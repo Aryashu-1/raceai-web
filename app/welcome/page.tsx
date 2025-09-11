@@ -1,14 +1,22 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useRouter } from "next/navigation"
-import ARIAAssistant, { useARIAConversation } from "@/components/aria-assistant"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { cn } from "@/lib/utils"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useRouter } from "next/navigation";
+import ARIAAssistant, {
+  useARIAConversation,
+} from "@/components/aria-assistant";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { cn } from "@/lib/utils";
 import {
   BookOpen,
   Users,
@@ -22,31 +30,51 @@ import {
   Settings,
   ChevronRight,
   Sparkles,
-} from "lucide-react"
+} from "lucide-react";
 
 interface UserProfile {
-  email: string
-  name: string
-  role: string
-  level: string
-  authenticated: boolean
-  onboarded: boolean
+  email: string;
+  name: string;
+  role: string;
+  level: string;
+  authenticated: boolean;
+  onboarded: boolean;
 }
 
 const getPersonalizedContent = (role: string, level: string) => {
-  const isPhD = level === "phd"
-  const isUndergrad = level === "undergrad"
-  const isGraduate = level === "graduate"
-  const isProfessor = role === "professor"
+  const isPhD = level === "phd";
+  const isUndergrad = level === "undergrad";
+  const isGraduate = level === "graduate";
+  const isProfessor = role === "professor";
 
   if (isPhD) {
     return {
       welcome: `Welcome to your PhD research command center! I've customized everything for advanced research work.`,
       quickActions: [
-        { icon: Search, title: "Literature Search", description: "Find papers in your field", color: "bg-blue-500" },
-        { icon: FileText, title: "Thesis Planner", description: "Organize your dissertation", color: "bg-green-500" },
-        { icon: BarChart3, title: "Research Analytics", description: "Track your progress", color: "bg-purple-500" },
-        { icon: Users, title: "Collaboration Hub", description: "Connect with advisors", color: "bg-orange-500" },
+        {
+          icon: Search,
+          title: "Literature Search",
+          description: "Find papers in your field",
+          color: "bg-blue-500",
+        },
+        {
+          icon: FileText,
+          title: "Thesis Planner",
+          description: "Organize your dissertation",
+          color: "bg-green-500",
+        },
+        {
+          icon: BarChart3,
+          title: "Research Analytics",
+          description: "Track your progress",
+          color: "bg-purple-500",
+        },
+        {
+          icon: Users,
+          title: "Collaboration Hub",
+          description: "Connect with advisors",
+          color: "bg-orange-500",
+        },
       ],
       suggestions: [
         "Help me plan my literature review methodology",
@@ -59,15 +87,35 @@ const getPersonalizedContent = (role: string, level: string) => {
         tools: "Advanced research tools",
         network: "PhD community access",
       },
-    }
+    };
   } else if (isProfessor) {
     return {
       welcome: `Welcome, Professor! Your research and teaching dashboard is ready.`,
       quickActions: [
-        { icon: BookOpen, title: "Course Materials", description: "Manage your classes", color: "bg-indigo-500" },
-        { icon: Users, title: "Student Mentoring", description: "Track student progress", color: "bg-teal-500" },
-        { icon: Search, title: "Research Hub", description: "Latest in your field", color: "bg-blue-500" },
-        { icon: BarChart3, title: "Publication Tracker", description: "Monitor your research", color: "bg-red-500" },
+        {
+          icon: BookOpen,
+          title: "Course Materials",
+          description: "Manage your classes",
+          color: "bg-indigo-500",
+        },
+        {
+          icon: Users,
+          title: "Student Mentoring",
+          description: "Track student progress",
+          color: "bg-teal-500",
+        },
+        {
+          icon: Search,
+          title: "Research Hub",
+          description: "Latest in your field",
+          color: "bg-blue-500",
+        },
+        {
+          icon: BarChart3,
+          title: "Publication Tracker",
+          description: "Monitor your research",
+          color: "bg-red-500",
+        },
       ],
       suggestions: [
         "Help me design a new course curriculum",
@@ -80,14 +128,29 @@ const getPersonalizedContent = (role: string, level: string) => {
         tools: "Teaching & research tools",
         network: "Faculty network",
       },
-    }
+    };
   } else if (isUndergrad) {
     return {
       welcome: `Hey there! I've set up the perfect study environment for your undergraduate journey.`,
       quickActions: [
-        { icon: BookOpen, title: "Study Assistant", description: "Get help with coursework", color: "bg-green-500" },
-        { icon: Calendar, title: "Assignment Tracker", description: "Never miss a deadline", color: "bg-blue-500" },
-        { icon: Users, title: "Study Groups", description: "Find study partners", color: "bg-purple-500" },
+        {
+          icon: BookOpen,
+          title: "Study Assistant",
+          description: "Get help with coursework",
+          color: "bg-green-500",
+        },
+        {
+          icon: Calendar,
+          title: "Assignment Tracker",
+          description: "Never miss a deadline",
+          color: "bg-blue-500",
+        },
+        {
+          icon: Users,
+          title: "Study Groups",
+          description: "Find study partners",
+          color: "bg-purple-500",
+        },
         {
           icon: Lightbulb,
           title: "Research Starter",
@@ -106,15 +169,35 @@ const getPersonalizedContent = (role: string, level: string) => {
         tools: "Study optimization tools",
         network: "Student community",
       },
-    }
+    };
   } else {
     return {
       welcome: `Welcome to your personalized research environment! Everything is tailored to your ${level} ${role} profile.`,
       quickActions: [
-        { icon: Search, title: "Research Hub", description: "Discover relevant papers", color: "bg-blue-500" },
-        { icon: Target, title: "Goal Tracker", description: "Monitor research objectives", color: "bg-green-500" },
-        { icon: Users, title: "Collaboration", description: "Connect with peers", color: "bg-purple-500" },
-        { icon: BarChart3, title: "Progress Analytics", description: "Track your development", color: "bg-orange-500" },
+        {
+          icon: Search,
+          title: "Research Hub",
+          description: "Discover relevant papers",
+          color: "bg-blue-500",
+        },
+        {
+          icon: Target,
+          title: "Goal Tracker",
+          description: "Monitor research objectives",
+          color: "bg-green-500",
+        },
+        {
+          icon: Users,
+          title: "Collaboration",
+          description: "Connect with peers",
+          color: "bg-purple-500",
+        },
+        {
+          icon: BarChart3,
+          title: "Progress Analytics",
+          description: "Track your development",
+          color: "bg-orange-500",
+        },
       ],
       suggestions: [
         "Find papers relevant to my research interests",
@@ -127,65 +210,70 @@ const getPersonalizedContent = (role: string, level: string) => {
         tools: "Research management tools",
         network: "Academic community",
       },
-    }
+    };
   }
-}
+};
 
 export default function WelcomePage() {
-  const router = useRouter()
-  const { currentState, currentMessage, speak, celebrate, idle } = useARIAConversation()
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-  const [chatInput, setChatInput] = useState("")
-  const [showQuickStart, setShowQuickStart] = useState(true)
+  const router = useRouter();
+  const { currentState, currentMessage, speak, celebrate, idle } =
+    useARIAConversation();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [chatInput, setChatInput] = useState("");
+  const [showQuickStart, setShowQuickStart] = useState(true);
 
   useEffect(() => {
     // Get user profile from localStorage
-    const userData = localStorage.getItem("race_ai_user")
+    const userData = localStorage.getItem("race_ai_user");
     if (userData) {
-      const profile = JSON.parse(userData)
-      setUserProfile(profile)
+      const profile = JSON.parse(userData);
+      setUserProfile(profile);
 
       // ARIA welcome message
       setTimeout(() => {
-        const content = getPersonalizedContent(profile.role, profile.level)
-        celebrate(content.welcome)
-      }, 1000)
+        const content = getPersonalizedContent(profile.role, profile.level);
+        celebrate(content.welcome);
+      }, 1000);
     } else {
       // Redirect to onboarding if no user data
-      router.push("/")
+      router.push("/");
     }
-  }, [router, celebrate])
+  }, [router, celebrate]);
 
   if (!userProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading your personalized dashboard...</p>
+          <p className="text-muted-foreground">
+            Loading your personalized dashboard...
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
-  const content = getPersonalizedContent(userProfile.role, userProfile.level)
+  const content = getPersonalizedContent(userProfile.role, userProfile.level);
 
   const handleQuickAction = (action: string) => {
-    speak(`Great choice! Let me help you with ${action}. This would normally open the ${action} interface.`)
-  }
+    speak(
+      `Great choice! Let me help you with ${action}. This would normally open the ${action} interface.`
+    );
+  };
 
   const handleChatSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!chatInput.trim()) return
+    e.preventDefault();
+    if (!chatInput.trim()) return;
 
     speak(
-      `Excellent question! "${chatInput}" - In the full version, I'd provide detailed, personalized assistance based on your ${userProfile.level} ${userProfile.role} profile. For now, let me show you around your dashboard!`,
-    )
-    setChatInput("")
-  }
+      `Excellent question! "${chatInput}" - In the full version, I'd provide detailed, personalized assistance based on your ${userProfile.level} ${userProfile.role} profile. For now, let me show you around your dashboard!`
+    );
+    setChatInput("");
+  };
 
   const handleGetStarted = () => {
-    router.push("/jarvis")
-  }
+    router.push("/jarvis");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
@@ -193,7 +281,9 @@ export default function WelcomePage() {
       <div className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Welcome to RACE AI</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Welcome to RACE AI
+            </h1>
             <p className="text-muted-foreground">
               {userProfile.name} • {userProfile.level} {userProfile.role}
             </p>
@@ -228,7 +318,9 @@ export default function WelcomePage() {
                   <Sparkles className="w-5 h-5 text-primary" />
                   Your Personalized Tools
                 </CardTitle>
-                <CardDescription>Everything you need, tailored for your research level</CardDescription>
+                <CardDescription>
+                  Everything you need, tailored for your research level
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-4">
@@ -239,14 +331,21 @@ export default function WelcomePage() {
                       className="p-4 rounded-lg border border-border hover:border-primary/50 transition-all duration-200 text-left group hover:shadow-md"
                     >
                       <div className="flex items-start gap-3">
-                        <div className={cn("p-2 rounded-lg text-white", action.color)}>
+                        <div
+                          className={cn(
+                            "p-2 rounded-lg text-white",
+                            action.color
+                          )}
+                        >
                           <action.icon className="w-5 h-5" />
                         </div>
                         <div className="flex-1">
                           <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
                             {action.title}
                           </h3>
-                          <p className="text-sm text-muted-foreground">{action.description}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {action.description}
+                          </p>
                         </div>
                         <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                       </div>
@@ -260,11 +359,15 @@ export default function WelcomePage() {
             <Card className="aria-card">
               <CardHeader>
                 <CardTitle>Chat with ARIA</CardTitle>
-                <CardDescription>Ask me anything about research - I'm here to help!</CardDescription>
+                <CardDescription>
+                  Ask me anything about research - I'm here to help!
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-2">
-                  <p className="text-sm font-medium text-foreground">Try asking:</p>
+                  <p className="text-sm font-medium text-foreground">
+                    Try asking:
+                  </p>
                   {content.suggestions.map((suggestion, index) => (
                     <button
                       key={index}
@@ -301,22 +404,34 @@ export default function WelcomePage() {
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Access Level</span>
+                    <span className="text-sm text-muted-foreground">
+                      Access Level
+                    </span>
                     <span className="text-sm font-medium text-foreground capitalize">
                       {userProfile.level} {userProfile.role}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Database</span>
-                    <span className="text-sm font-medium text-primary">{content.stats.papers}</span>
+                    <span className="text-sm text-muted-foreground">
+                      Database
+                    </span>
+                    <span className="text-sm font-medium text-primary">
+                      {content.stats.papers}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Tools</span>
-                    <span className="text-sm font-medium text-primary">{content.stats.tools}</span>
+                    <span className="text-sm font-medium text-primary">
+                      {content.stats.tools}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Network</span>
-                    <span className="text-sm font-medium text-primary">{content.stats.network}</span>
+                    <span className="text-sm text-muted-foreground">
+                      Network
+                    </span>
+                    <span className="text-sm font-medium text-primary">
+                      {content.stats.network}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -353,7 +468,10 @@ export default function WelcomePage() {
                       <span>Enter the full platform when ready</span>
                     </div>
                   </div>
-                  <Button onClick={handleGetStarted} className="w-full primary-button mt-4">
+                  <Button
+                    onClick={handleGetStarted}
+                    className="w-full primary-button mt-4"
+                  >
                     Start Your Research Journey
                   </Button>
                 </CardContent>
@@ -370,13 +488,22 @@ export default function WelcomePage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <Button variant="ghost" className="w-full justify-start text-sm">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-sm"
+                  >
                     Customize Dashboard
                   </Button>
-                  <Button variant="ghost" className="w-full justify-start text-sm">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-sm"
+                  >
                     Research Interests
                   </Button>
-                  <Button variant="ghost" className="w-full justify-start text-sm">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-sm"
+                  >
                     Notification Settings
                   </Button>
                 </div>
@@ -386,5 +513,5 @@ export default function WelcomePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

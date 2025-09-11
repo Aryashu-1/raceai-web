@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { AriaAssistant } from "@/components/aria-assistant"
-import { Search, X } from "lucide-react"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { AriaAssistant } from "@/components/aria-assistant";
+import { Search, X } from "lucide-react";
 
 const RESEARCH_DOMAINS = [
   "Artificial Intelligence",
@@ -53,73 +53,90 @@ const RESEARCH_DOMAINS = [
   "Immunology",
   "Microbiology",
   "Ecology",
-]
+];
 
 interface InterestSelectionTextProps {
-  onComplete: (interests: string[]) => void
-  onSkip: () => void
+  onComplete: (interests: string[]) => void;
+  onSkip: () => void;
 }
 
-const InterestSelectionText: React.FC<InterestSelectionTextProps> = ({ onComplete, onSkip }) => {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([])
-  const [filteredDomains, setFilteredDomains] = useState<string[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [ariaMessage, setAriaMessage] = useState("")
+const InterestSelectionText: React.FC<InterestSelectionTextProps> = ({
+  onComplete,
+  onSkip,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [filteredDomains, setFilteredDomains] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [ariaMessage, setAriaMessage] = useState("");
 
   useEffect(() => {
     if (searchTerm.length > 0) {
       const filtered = RESEARCH_DOMAINS.filter((domain) =>
-        domain.toLowerCase().includes(searchTerm.toLowerCase()),
-      ).slice(0, 8)
-      setFilteredDomains(filtered)
-      setShowSuggestions(true)
+        domain.toLowerCase().includes(searchTerm.toLowerCase())
+      ).slice(0, 8);
+      setFilteredDomains(filtered);
+      setShowSuggestions(true);
     } else {
-      setShowSuggestions(false)
+      setShowSuggestions(false);
     }
-  }, [searchTerm])
+  }, [searchTerm]);
 
   useEffect(() => {
     if (selectedInterests.length === 0) {
-      setAriaMessage("What research areas spark your curiosity? Start typing to see suggestions!")
+      setAriaMessage(
+        "What research areas spark your curiosity? Start typing to see suggestions!"
+      );
     } else if (selectedInterests.length === 1) {
-      setAriaMessage("Great choice! Feel free to add 1-2 more areas or continue if you're ready.")
+      setAriaMessage(
+        "Great choice! Feel free to add 1-2 more areas or continue if you're ready."
+      );
     } else if (selectedInterests.length >= 2) {
-      setAriaMessage("Perfect! I can already see some exciting research possibilities for you.")
+      setAriaMessage(
+        "Perfect! I can already see some exciting research possibilities for you."
+      );
     }
-  }, [selectedInterests])
+  }, [selectedInterests]);
 
   const handleAddInterest = (interest: string) => {
     if (!selectedInterests.includes(interest) && selectedInterests.length < 3) {
-      setSelectedInterests([...selectedInterests, interest])
-      setSearchTerm("")
-      setShowSuggestions(false)
+      setSelectedInterests([...selectedInterests, interest]);
+      setSearchTerm("");
+      setShowSuggestions(false);
     }
-  }
+  };
 
   const handleRemoveInterest = (interest: string) => {
-    setSelectedInterests(selectedInterests.filter((i) => i !== interest))
-  }
+    setSelectedInterests(selectedInterests.filter((i) => i !== interest));
+  };
 
   const handleContinue = () => {
     if (selectedInterests.length > 0) {
-      onComplete(selectedInterests)
+      onComplete(selectedInterests);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         {/* ARIA Assistant */}
         <div className="flex justify-center mb-4">
-          <AriaAssistant state="speaking" size="lg" message={ariaMessage} showMessage={true} />
+          <AriaAssistant
+            state="speaking"
+            size="lg"
+            message={ariaMessage}
+            showMessage={true}
+          />
         </div>
 
         {/* Main Content */}
         <div className="text-center mb-6">
-          <h2 className="text-3xl font-bold text-white mb-4">What drives your research?</h2>
+          <h2 className="text-3xl font-bold text-white mb-4">
+            What drives your research?
+          </h2>
           <p className="text-[#C3DDFF] text-lg">
-            Tell me about your research interests so I can personalize your experience
+            Tell me about your research interests so I can personalize your
+            experience
           </p>
         </div>
 
@@ -145,10 +162,21 @@ const InterestSelectionText: React.FC<InterestSelectionTextProps> = ({ onComplet
                   key={index}
                   onClick={() => handleAddInterest(domain)}
                   className="w-full text-left px-4 py-3 text-white hover:bg-white/10 transition-colors duration-200 first:rounded-t-xl last:rounded-b-xl"
-                  disabled={selectedInterests.includes(domain) || selectedInterests.length >= 3}
+                  disabled={
+                    selectedInterests.includes(domain) ||
+                    selectedInterests.length >= 3
+                  }
                 >
-                  <span className={selectedInterests.includes(domain) ? "opacity-50" : ""}>{domain}</span>
-                  {selectedInterests.includes(domain) && <span className="text-[#246CD8] ml-2">✓</span>}
+                  <span
+                    className={
+                      selectedInterests.includes(domain) ? "opacity-50" : ""
+                    }
+                  >
+                    {domain}
+                  </span>
+                  {selectedInterests.includes(domain) && (
+                    <span className="text-[#246CD8] ml-2">✓</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -158,7 +186,9 @@ const InterestSelectionText: React.FC<InterestSelectionTextProps> = ({ onComplet
         {/* Selected Interests */}
         {selectedInterests.length > 0 && (
           <div className="mb-8">
-            <p className="text-[#C3DDFF] mb-4 text-center">Selected interests ({selectedInterests.length}/3):</p>
+            <p className="text-[#C3DDFF] mb-4 text-center">
+              Selected interests ({selectedInterests.length}/3):
+            </p>
             <div className="flex flex-wrap gap-3 justify-center">
               {selectedInterests.map((interest, index) => (
                 <Badge
@@ -198,7 +228,7 @@ const InterestSelectionText: React.FC<InterestSelectionTextProps> = ({ onComplet
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default InterestSelectionText
+export default InterestSelectionText;

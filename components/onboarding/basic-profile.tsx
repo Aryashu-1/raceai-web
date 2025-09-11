@@ -1,104 +1,122 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface BasicProfileProps {
-  onNext: (data: { firstName: string; lastName: string; role: string; organization?: string }) => void
-  onBack: () => void
+  onNext: (data: {
+    firstName: string;
+    lastName: string;
+    role: string;
+    organization?: string;
+  }) => void;
+  onBack: () => void;
 }
 
-const roles = ["Student", "Researcher", "Professor", "Staff", "Industry Professional", "Other"]
+const roles = [
+  "Student",
+  "Researcher",
+  "Professor",
+  "Staff",
+  "Industry Professional",
+  "Other",
+];
 
 export default function BasicProfile({ onNext, onBack }: BasicProfileProps) {
-  const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [role, setRole] = useState("")
-  const [organization, setOrganization] = useState("")
-  const [currentField, setCurrentField] = useState("firstName")
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [role, setRole] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [currentField, setCurrentField] = useState("firstName");
   const [errors, setErrors] = useState<{
-    firstName?: string
-    lastName?: string
-    role?: string
-  }>({})
+    firstName?: string;
+    lastName?: string;
+    role?: string;
+  }>({});
 
   useEffect(() => {
     if (!firstName) {
-      setCurrentField("firstName")
+      setCurrentField("firstName");
     } else if (firstName && !lastName) {
-      setCurrentField("lastName")
+      setCurrentField("lastName");
     } else if (firstName && lastName && !role) {
-      setCurrentField("role")
+      setCurrentField("role");
     } else if (firstName && lastName && role) {
-      setCurrentField("organization")
+      setCurrentField("organization");
     }
-  }, [firstName, lastName, role, organization])
+  }, [firstName, lastName, role, organization]);
 
   const validateFields = () => {
-    const newErrors: typeof errors = {}
+    const newErrors: typeof errors = {};
 
     if (!firstName.trim()) {
-      newErrors.firstName = "First name is required"
+      newErrors.firstName = "First name is required";
     } else if (firstName.trim().length < 2) {
-      newErrors.firstName = "First name must be at least 2 characters"
+      newErrors.firstName = "First name must be at least 2 characters";
     }
 
     if (!lastName.trim()) {
-      newErrors.lastName = "Last name is required"
+      newErrors.lastName = "Last name is required";
     } else if (lastName.trim().length < 2) {
-      newErrors.lastName = "Last name must be at least 2 characters"
+      newErrors.lastName = "Last name must be at least 2 characters";
     }
 
     if (!role) {
-      newErrors.role = "Please select your role"
+      newErrors.role = "Please select your role";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (validateFields()) {
       onNext({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         role,
         organization: organization.trim() || undefined,
-      })
+      });
     }
-  }
+  };
 
   const handleFirstNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFirstName(e.target.value)
+    setFirstName(e.target.value);
     if (errors.firstName) {
-      setErrors((prev) => ({ ...prev, firstName: undefined }))
+      setErrors((prev) => ({ ...prev, firstName: undefined }));
     }
-  }
+  };
 
   const handleLastNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLastName(e.target.value)
+    setLastName(e.target.value);
     if (errors.lastName) {
-      setErrors((prev) => ({ ...prev, lastName: undefined }))
+      setErrors((prev) => ({ ...prev, lastName: undefined }));
     }
-  }
+  };
 
   const handleRoleChange = (value: string) => {
-    setRole(value)
+    setRole(value);
     if (errors.role) {
-      setErrors((prev) => ({ ...prev, role: undefined }))
+      setErrors((prev) => ({ ...prev, role: undefined }));
     }
-  }
+  };
 
   const handleSelectClick = (e: React.MouseEvent) => {
-    e.preventDefault()
-    const trigger = e.currentTarget as HTMLElement
-    trigger.click()
-  }
+    e.preventDefault();
+    const trigger = e.currentTarget as HTMLElement;
+    trigger.click();
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
@@ -113,9 +131,14 @@ export default function BasicProfile({ onNext, onBack }: BasicProfileProps) {
         <div className="glass-card-enhanced rounded-2xl p-6 shadow-2xl border border-primary/20">
           <div className="text-center mb-4">
             <div className="w-full bg-muted rounded-full h-2 mb-3">
-              <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: "60%" }}></div>
+              <div
+                className="bg-primary h-2 rounded-full transition-all duration-300"
+                style={{ width: "60%" }}
+              ></div>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Complete Your Profile</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Complete Your Profile
+            </h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -130,9 +153,17 @@ export default function BasicProfile({ onNext, onBack }: BasicProfileProps) {
                   onChange={handleFirstNameChange}
                   placeholder="John"
                   required
-                  className={`input-field-enhanced ${errors.firstName ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}`}
+                  className={`input-field-enhanced ${
+                    errors.firstName
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                      : ""
+                  }`}
                 />
-                {errors.firstName && <p className="text-xs text-red-500 mt-1">{errors.firstName}</p>}
+                {errors.firstName && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.firstName}
+                  </p>
+                )}
               </div>
               <div className="space-y-2 relative" id="lastName-field">
                 <Label htmlFor="lastName" className="text-sm font-medium">
@@ -144,9 +175,15 @@ export default function BasicProfile({ onNext, onBack }: BasicProfileProps) {
                   onChange={handleLastNameChange}
                   placeholder="Doe"
                   required
-                  className={`input-field-enhanced ${errors.lastName ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}`}
+                  className={`input-field-enhanced ${
+                    errors.lastName
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                      : ""
+                  }`}
                 />
-                {errors.lastName && <p className="text-xs text-red-500 mt-1">{errors.lastName}</p>}
+                {errors.lastName && (
+                  <p className="text-xs text-red-500 mt-1">{errors.lastName}</p>
+                )}
               </div>
             </div>
 
@@ -156,7 +193,11 @@ export default function BasicProfile({ onNext, onBack }: BasicProfileProps) {
               </Label>
               <Select value={role} onValueChange={handleRoleChange} required>
                 <SelectTrigger
-                  className={`input-field-enhanced ${errors.role ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}`}
+                  className={`input-field-enhanced ${
+                    errors.role
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                      : ""
+                  }`}
                   onClick={handleSelectClick}
                 >
                   <SelectValue placeholder="Select your role" />
@@ -169,7 +210,9 @@ export default function BasicProfile({ onNext, onBack }: BasicProfileProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.role && <p className="text-xs text-red-500 mt-1">{errors.role}</p>}
+              {errors.role && (
+                <p className="text-xs text-red-500 mt-1">{errors.role}</p>
+              )}
             </div>
 
             <div className="space-y-2 relative" id="organization-field">
@@ -186,7 +229,11 @@ export default function BasicProfile({ onNext, onBack }: BasicProfileProps) {
             </div>
 
             <div className="flex space-x-3 pt-3">
-              <Button variant="outline" onClick={onBack} className="flex-1 btn-secondary bg-transparent">
+              <Button
+                variant="outline"
+                onClick={onBack}
+                className="flex-1 btn-secondary bg-transparent"
+              >
                 Back
               </Button>
               <Button type="submit" className="flex-1 btn-primary">
@@ -197,5 +244,5 @@ export default function BasicProfile({ onNext, onBack }: BasicProfileProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

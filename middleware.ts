@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
 
 export default function middleware(req: any) {
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
 export const config = {
@@ -11,4 +11,4 @@ export const config = {
     // Always run for API routes
     "/(api|trpc)(.*)",
   ],
-}
+};

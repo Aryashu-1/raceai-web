@@ -1,241 +1,131 @@
-"use client"
+"use client";
 
-import React, { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Eye, EyeOff } from "lucide-react"
-import ARIAAssistant, { useARIAConversation } from "@/components/aria-assistant"
-import { cn } from "@/lib/utils"
+import React from "react";
+import { Button } from "@/components/ui/button";
+import JARVISAssistant, {
+  useJARVISConversation,
+} from "@/components/JARVIS-assistant";
+import { cn } from "@/lib/utils";
 
-interface OnboardingStep2Props {
-  onNext: (data: { email: string; password: string; role: string; level: string }) => void
-  onBack: () => void
-  className?: string
+interface OnboardingStep1Props {
+  onNext: () => void;
+  onSkip: () => void;
+  className?: string;
 }
 
-const roles = [
-  { id: "student", label: "Student", icon: "🎓" },
-  { id: "researcher", label: "Researcher", icon: "🔬" },
-  { id: "professor", label: "Professor", icon: "👨‍🏫" },
-  { id: "staff", label: "Staff", icon: "📊" },
-]
-
-const levels = [
-  { id: "undergrad", label: "Undergrad" },
-  { id: "graduate", label: "Graduate" },
-  { id: "phd", label: "PhD" },
-  { id: "postdoc", label: "Postdoc" },
-]
-
-export default function OnboardingStep2({ onNext, onBack, className }: OnboardingStep2Props) {
-  const { currentState, currentMessage, speak, think, idle } = useARIAConversation()
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    role: "",
-    level: "",
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [currentStep, setCurrentStep] = useState(0) // 0: email, 1: password, 2: role, 3: level
+export default function OnboardingStep1({
+  onNext,
+  onSkip,
+  className,
+}: OnboardingStep1Props) {
+  const { currentState, currentMessage, speak, idle } = useJARVISConversation();
 
   React.useEffect(() => {
-    speak("First, I need your email so I can personalize everything perfectly for you.")
-  }, [speak])
+    // JARVIS introduction sequence
+    const timer = setTimeout(() => {
+      speak(
+        "Hi there! I'm JARVIS, your AI research assistant. I'll help you get set up in under 60 seconds. Ready to supercharge your research?"
+      );
+    }, 1000);
 
-  const handleEmailSubmit = () => {
-    if (!formData.email) return
+    return () => clearTimeout(timer);
+  }, [speak]);
 
-    think()
-    setTimeout(() => {
-      const isAcademic = formData.email.includes(".edu")
-      const domain = formData.email.split("@")[1]
+  const handleGetStarted = () => {
+    speak(
+      "Excellent! Let's get you set up with the perfect research environment.",
+      "excited"
+    );
+    setTimeout(onNext, 2000);
+  };
 
-      if (isAcademic) {
-        speak(`${domain}! Impressive. Now let's create a secure password:`)
-      } else {
-        speak("Great email! Now let's create a secure password:")
-      }
-      setCurrentStep(1)
-    }, 1000)
-  }
-
-  const handlePasswordSubmit = () => {
-    if (formData.password.length < 8) return
-
-    think()
-    setTimeout(() => {
-      speak("Perfect! I can tell you're academic. What's your role?")
-      setCurrentStep(2)
-    }, 1000)
-  }
-
-  const handleRoleSelect = (roleId: string) => {
-    setFormData((prev) => ({ ...prev, role: roleId }))
-    think()
-    setTimeout(() => {
-      const roleLabel = roles.find((r) => r.id === roleId)?.label
-      speak(`${roleLabel}! What level are you researching at? This helps me adjust my explanations.`)
-      setCurrentStep(3)
-    }, 1000)
-  }
-
-  const handleLevelSelect = (levelId: string) => {
-    const newData = { ...formData, level: levelId }
-    setFormData(newData)
-
-    speak("Excellent! I'm setting up your perfect research environment... ✨", "excited")
-    setTimeout(() => {
-      onNext(newData)
-    }, 2500)
-  }
-
-  const getPasswordStrength = () => {
-    const password = formData.password
-    if (password.length < 8) return { strength: "Weak", color: "text-red-500" }
-    if (password.length < 12) return { strength: "Medium", color: "text-yellow-500" }
-    return { strength: "Strong", color: "text-green-500" }
-  }
+  const handleSkipToDemo = () => {
+    speak("No problem! Feel free to explore and come back when you're ready.");
+    setTimeout(onSkip, 1500);
+  };
 
   return (
-    <div className={cn("min-h-screen flex items-center justify-center relative overflow-hidden", className)}>
-      {/* Background */}
+    <div
+      className={cn(
+        "min-h-screen flex items-center justify-center relative overflow-hidden",
+        className
+      )}
+    >
+      {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#1D1D1D] via-[#1D1D1D] to-[#2A2A2A]">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 right-20 w-32 h-32 border border-[#246CD8]/30 rounded-full animate-pulse" />
-          <div className="absolute bottom-32 left-16 w-24 h-24 border border-[#0052CC]/30 rounded-full animate-pulse" />
+        {/* Geometric patterns */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-20 left-20 w-32 h-32 border border-[#246CD8]/30 rounded-full animate-pulse" />
+          <div
+            className="absolute bottom-32 right-16 w-24 h-24 border border-[#0052CC]/30 rounded-full animate-pulse"
+            style={{ animationDelay: "1s" }}
+          />
+          <div
+            className="absolute top-1/2 left-1/4 w-16 h-16 border border-[#246CD8]/30 rounded-full animate-pulse"
+            style={{ animationDelay: "2s" }}
+          />
+          <div
+            className="absolute top-1/3 right-1/3 w-20 h-20 border border-[#0052CC]/30 rounded-full animate-pulse"
+            style={{ animationDelay: "0.5s" }}
+          />
         </div>
+
+        {/* Gradient overlays */}
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-[#246CD8]/5 via-transparent to-[#0052CC]/5" />
       </div>
 
-      <div className="relative z-10 w-full max-w-md mx-auto px-6">
-        {/* ARIA Assistant - Smaller, positioned top-right */}
-        <div className="absolute -top-20 -right-10">
-          <ARIAAssistant size={80} state={currentState} message={currentMessage} onMessageComplete={() => idle()} />
+      {/* Main Content */}
+      <div className="relative z-10 text-center max-w-2xl mx-auto px-6">
+        {/* JARVIS Assistant */}
+        <JARVISAssistant
+          size={140}
+          state={currentState}
+          message={currentMessage}
+          onMessageComplete={() => idle()}
+          className="mb-8"
+        />
+
+        {/* Welcome Content */}
+        <div className="text-white mb-12">
+          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+            Welcome to RACE AI
+          </h1>
+          <p className="text-xl text-gray-300 leading-relaxed">
+            Research Accessible by Everyone
+          </p>
         </div>
 
-        {/* Form Container */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20">
-          {/* Progress Indicator */}
-          <div className="flex justify-center mb-8">
-            <div className="flex space-x-2">
-              {[0, 1, 2, 3].map((step) => (
-                <div
-                  key={step}
-                  className={cn(
-                    "w-3 h-3 rounded-full transition-all duration-300",
-                    step <= currentStep ? "bg-[#246CD8]" : "bg-white/30",
-                  )}
-                />
-              ))}
-            </div>
-          </div>
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <Button
+            onClick={handleGetStarted}
+            className="bg-gradient-to-r from-[#246CD8] to-[#0052CC] hover:from-[#0052CC] hover:to-[#246CD8] text-white px-8 py-3 text-lg font-medium rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+          >
+            Let's Go! 🚀
+          </Button>
 
-          {/* Email Step */}
-          {currentStep === 0 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-white text-sm font-medium mb-2">📧 Email Address</label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                  className="bg-[#2E2E1E] border-gray-600 text-white focus:border-[#246CD8]"
-                  placeholder="your@email.com"
-                  onKeyPress={(e) => e.key === "Enter" && handleEmailSubmit()}
-                />
-              </div>
-              <Button
-                onClick={handleEmailSubmit}
-                disabled={!formData.email}
-                className="w-full bg-[#246CD8] hover:bg-[#0052CC] text-white"
-              >
-                Continue
-              </Button>
-            </div>
-          )}
+          <Button
+            onClick={handleSkipToDemo}
+            vJARVISnt="outline"
+            className="border-[#246CD8] text-[#246CD8] hover:bg-[#246CD8] hover:text-white px-8 py-3 text-lg rounded-full transition-all duration-300 bg-transparent"
+          >
+            Explore First
+          </Button>
+        </div>
 
-          {/* Password Step */}
-          {currentStep === 1 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-white text-sm font-medium mb-2">🔒 Create Password</label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
-                    className="bg-[#2E2E1E] border-gray-600 text-white focus:border-[#246CD8] pr-10"
-                    placeholder="Enter password"
-                    onKeyPress={(e) => e.key === "Enter" && handlePasswordSubmit()}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {formData.password && (
-                  <div className={cn("text-sm mt-2", getPasswordStrength().color)}>
-                    Strength: {getPasswordStrength().strength}
-                  </div>
-                )}
-              </div>
-              <Button
-                onClick={handlePasswordSubmit}
-                disabled={formData.password.length < 8}
-                className="w-full bg-[#246CD8] hover:bg-[#0052CC] text-white"
-              >
-                Continue
-              </Button>
-            </div>
-          )}
-
-          {/* Role Selection */}
-          {currentStep === 2 && (
-            <div className="space-y-4">
-              <h3 className="text-white text-lg font-medium text-center mb-6">👤 Choose your role:</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {roles.map((role) => (
-                  <button
-                    key={role.id}
-                    onClick={() => handleRoleSelect(role.id)}
-                    className="bg-white/10 hover:bg-[#246CD8] border border-white/20 hover:border-[#246CD8] rounded-lg p-4 text-white transition-all duration-200 text-center"
-                  >
-                    <div className="text-2xl mb-2">{role.icon}</div>
-                    <div className="text-sm font-medium">{role.label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Level Selection */}
-          {currentStep === 3 && (
-            <div className="space-y-4">
-              <h3 className="text-white text-lg font-medium text-center mb-6">📚 What level?</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {levels.map((level) => (
-                  <button
-                    key={level.id}
-                    onClick={() => handleLevelSelect(level.id)}
-                    className="bg-white/10 hover:bg-[#0052CC] border border-white/20 hover:border-[#0052CC] rounded-lg p-3 text-white transition-all duration-200 text-center text-sm font-medium"
-                  >
-                    {level.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Back Button */}
-          <div className="mt-6 text-center">
-            <button onClick={onBack} className="text-gray-400 hover:text-white text-sm underline">
-              Go back
+        {/* Sign In Link */}
+        <div className="mt-8">
+          <p className="text-gray-400 text-sm">
+            Already have an account?{" "}
+            <button
+              onClick={onSkip}
+              className="text-[#0052CC] hover:text-[#246CD8] underline transition-colors"
+            >
+              Sign me in
             </button>
-          </div>
+          </p>
         </div>
       </div>
     </div>
-  )
+  );
 }

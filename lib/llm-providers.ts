@@ -1,15 +1,15 @@
 export interface LLMProvider {
-  id: string
-  name: string
-  models: LLMModel[]
-  apiKeyRequired: boolean
+  id: string;
+  name: string;
+  models: LLMModel[];
+  apiKeyRequired: boolean;
 }
 
 export interface LLMModel {
-  id: string
-  name: string
-  description?: string
-  contextLength?: number
+  id: string;
+  name: string;
+  description?: string;
+  contextLength?: number;
 }
 
 export const LLM_PROVIDERS: LLMProvider[] = [
@@ -95,18 +95,20 @@ export const LLM_PROVIDERS: LLMProvider[] = [
       },
     ],
   },
-]
+];
 
 export function getProviderById(providerId: string): LLMProvider | undefined {
-  return LLM_PROVIDERS.find((provider) => provider.id === providerId)
+  return LLM_PROVIDERS.find((provider) => provider.id === providerId);
 }
 
-export function getModelById(modelId: string): { provider: LLMProvider; model: LLMModel } | undefined {
+export function getModelById(
+  modelId: string
+): { provider: LLMProvider; model: LLMModel } | undefined {
   for (const provider of LLM_PROVIDERS) {
-    const model = provider.models.find((m) => m.id === modelId)
+    const model = provider.models.find((m) => m.id === modelId);
     if (model) {
-      return { provider, model }
+      return { provider, model };
     }
   }
-  return undefined
+  return undefined;
 }

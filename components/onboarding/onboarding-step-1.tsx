@@ -1,42 +1,56 @@
-"use client"
+"use client";
 
-import React from "react"
-import { Button } from "@/components/ui/button"
-import ARIAAssistant, { useARIAConversation } from "@/components/aria-assistant"
-import { cn } from "@/lib/utils"
+import React from "react";
+import { Button } from "@/components/ui/button";
+import JARVISAssistant, {
+  useJARVISConversation,
+} from "@/components/JARVIS-assistant";
+import { cn } from "@/lib/utils";
 
 interface OnboardingStep1Props {
-  onNext: () => void
-  onSkip: () => void
-  className?: string
+  onNext: () => void;
+  onSkip: () => void;
+  className?: string;
 }
 
-export default function OnboardingStep1({ onNext, onSkip, className }: OnboardingStep1Props) {
-  const { currentState, currentMessage, speak, idle } = useARIAConversation()
+export default function OnboardingStep1({
+  onNext,
+  onSkip,
+  className,
+}: OnboardingStep1Props) {
+  const { currentState, currentMessage, speak, idle } = useJARVISConversation();
 
   React.useEffect(() => {
-    // ARIA introduction sequence
+    // JARVIS introduction sequence
     const timer = setTimeout(() => {
       speak(
-        "Hi there! I'm ARIA, your AI research assistant. I'll help you get set up in under 60 seconds. Ready to supercharge your research?",
-      )
-    }, 1000)
+        "Hi there! I'm JARVIS, your AI research assistant. I'll help you get set up in under 60 seconds. Ready to supercharge your research?"
+      );
+    }, 1000);
 
-    return () => clearTimeout(timer)
-  }, [speak])
+    return () => clearTimeout(timer);
+  }, [speak]);
 
   const handleGetStarted = () => {
-    speak("Excellent! Let's get you set up with the perfect research environment.", "excited")
-    setTimeout(onNext, 2000)
-  }
+    speak(
+      "Excellent! Let's get you set up with the perfect research environment.",
+      "excited"
+    );
+    setTimeout(onNext, 2000);
+  };
 
   const handleSkipToDemo = () => {
-    speak("No problem! Feel free to explore and come back when you're ready.")
-    setTimeout(onSkip, 1500)
-  }
+    speak("No problem! Feel free to explore and come back when you're ready.");
+    setTimeout(onSkip, 1500);
+  };
 
   return (
-    <div className={cn("min-h-screen flex items-center justify-center relative overflow-hidden", className)}>
+    <div
+      className={cn(
+        "min-h-screen flex items-center justify-center relative overflow-hidden",
+        className
+      )}
+    >
       {/* Animated Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#1D1D1D] via-[#1D1D1D] to-[#2A2A2A]">
         {/* Geometric patterns */}
@@ -62,8 +76,8 @@ export default function OnboardingStep1({ onNext, onSkip, className }: Onboardin
 
       {/* Main Content */}
       <div className="relative z-10 text-center max-w-2xl mx-auto px-6">
-        {/* ARIA Assistant */}
-        <ARIAAssistant
+        {/* JARVIS Assistant */}
+        <JARVISAssistant
           size={140}
           state={currentState}
           message={currentMessage}
@@ -76,7 +90,9 @@ export default function OnboardingStep1({ onNext, onSkip, className }: Onboardin
           <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
             Welcome to RACE AI
           </h1>
-          <p className="text-xl text-gray-300 leading-relaxed">Research Accessible by Everyone</p>
+          <p className="text-xl text-gray-300 leading-relaxed">
+            Research Accessible by Everyone
+          </p>
         </div>
 
         {/* Action Buttons */}
@@ -90,7 +106,7 @@ export default function OnboardingStep1({ onNext, onSkip, className }: Onboardin
 
           <Button
             onClick={handleSkipToDemo}
-            variant="outline"
+            vJARVISnt="outline"
             className="border-[#246CD8] text-[#246CD8] hover:bg-[#246CD8] hover:text-white px-8 py-3 text-lg rounded-full transition-all duration-300 bg-transparent"
           >
             Explore First
@@ -101,12 +117,15 @@ export default function OnboardingStep1({ onNext, onSkip, className }: Onboardin
         <div className="mt-8">
           <p className="text-gray-400 text-sm">
             Already have an account?{" "}
-            <button onClick={onSkip} className="text-[#0052CC] hover:text-[#246CD8] underline transition-colors">
+            <button
+              onClick={onSkip}
+              className="text-[#0052CC] hover:text-[#246CD8] underline transition-colors"
+            >
               Sign me in
             </button>
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 }

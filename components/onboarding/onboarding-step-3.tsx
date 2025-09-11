@@ -1,22 +1,24 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 
-import React from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import ARIAAssistant, { useARIAConversation } from "@/components/aria-assistant"
-import { cn } from "@/lib/utils"
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import JARVISAssistant, {
+  useJARVISConversation,
+} from "@/components/JARVIS-assistant";
+import { cn } from "@/lib/utils";
 
 interface OnboardingStep3Props {
-  userData: { email: string; password: string; role: string; level: string }
-  onComplete: () => void
-  className?: string
+  userData: { email: string; password: string; role: string; level: string };
+  onComplete: () => void;
+  className?: string;
 }
 
 const getPersonalizedContent = (role: string, level: string) => {
-  const isPhD = level === "phd"
-  const isUndergrad = level === "undergrad"
+  const isPhD = level === "phd";
+  const isUndergrad = level === "undergrad";
 
   if (isPhD) {
     return {
@@ -47,7 +49,7 @@ const getPersonalizedContent = (role: string, level: string) => {
         "Explain methodology in simple terms",
         "Help plan my literature review",
       ],
-    }
+    };
   } else if (isUndergrad) {
     return {
       welcome:
@@ -77,7 +79,7 @@ const getPersonalizedContent = (role: string, level: string) => {
         "Help me start my research project",
         "Find papers for my assignment",
       ],
-    }
+    };
   } else {
     return {
       welcome:
@@ -107,35 +109,40 @@ const getPersonalizedContent = (role: string, level: string) => {
         "Help organize my research notes",
         "Suggest collaboration opportunities",
       ],
-    }
+    };
   }
-}
+};
 
-export default function OnboardingStep3({ userData, onComplete, className }: OnboardingStep3Props) {
-  const { currentState, currentMessage, speak, celebrate, idle } = useARIAConversation()
-  const [chatInput, setChatInput] = useState("")
+export default function OnboardingStep3({
+  userData,
+  onComplete,
+  className,
+}: OnboardingStep3Props) {
+  const { currentState, currentMessage, speak, celebrate, idle } =
+    useJARVISConversation();
+  const [chatInput, setChatInput] = useState("");
 
-  const content = getPersonalizedContent(userData.role, userData.level)
+  const content = getPersonalizedContent(userData.role, userData.level);
 
   React.useEffect(() => {
     setTimeout(() => {
-      celebrate(content.welcome)
-    }, 500)
-  }, [content.welcome, celebrate])
+      celebrate(content.welcome);
+    }, 500);
+  }, [content.welcome, celebrate]);
 
   const handleChatSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!chatInput.trim()) return
+    e.preventDefault();
+    if (!chatInput.trim()) return;
 
-    // Simulate ARIA response
+    // Simulate JARVIS response
     speak(
-      `Great question! Let me help you with "${chatInput}". This is just a demo - in the full version, I'd provide detailed assistance with your research needs.`,
-    )
-    setChatInput("")
-  }
+      `Great question! Let me help you with "${chatInput}". This is just a demo - in the full version, I'd provide detailed assistance with your research needs.`
+    );
+    setChatInput("");
+  };
 
   const handleStartExploring = () => {
-    speak("Fantastic! Taking you to your research dashboard now!")
+    speak("Fantastic! Taking you to your research dashboard now!");
     setTimeout(() => {
       // Store user session with onboarded flag
       localStorage.setItem(
@@ -147,14 +154,19 @@ export default function OnboardingStep3({ userData, onComplete, className }: Onb
           level: userData.level,
           authenticated: true,
           onboarded: true,
-        }),
-      )
-      window.location.href = "/jarvis"
-    }, 2000)
-  }
+        })
+      );
+      window.location.href = "/jarvis";
+    }, 2000);
+  };
 
   return (
-    <div className={cn("min-h-screen flex items-center justify-center relative overflow-hidden py-8", className)}>
+    <div
+      className={cn(
+        "min-h-screen flex items-center justify-center relative overflow-hidden py-8",
+        className
+      )}
+    >
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#1D1D1D] via-[#1D1D1D] to-[#2A2A2A]">
         <div className="absolute inset-0 opacity-10">
@@ -165,9 +177,14 @@ export default function OnboardingStep3({ userData, onComplete, className }: Onb
       </div>
 
       <div className="relative z-10 w-full max-w-4xl mx-auto px-6">
-        {/* ARIA Assistant - Celebrating */}
+        {/* JARVIS Assistant - Celebrating */}
         <div className="flex justify-center mb-8">
-          <ARIAAssistant size={100} state={currentState} message={currentMessage} onMessageComplete={() => idle()} />
+          <JARVISAssistant
+            size={100}
+            state={currentState}
+            message={currentMessage}
+            onMessageComplete={() => idle()}
+          />
         </div>
 
         {/* Main Content */}
@@ -179,8 +196,8 @@ export default function OnboardingStep3({ userData, onComplete, className }: Onb
               {userData.level === "phd"
                 ? "Research Command Center"
                 : userData.level === "undergrad"
-                  ? "Study Command Center"
-                  : "Research Hub"}
+                ? "Study Command Center"
+                : "Research Hub"}
               :
             </h2>
 
@@ -191,9 +208,16 @@ export default function OnboardingStep3({ userData, onComplete, className }: Onb
                   className="bg-white rounded-lg p-6 text-center hover:shadow-lg transition-all duration-200 hover:scale-105"
                 >
                   <div className="text-3xl mb-3">{tool.icon}</div>
-                  <h3 className="font-semibold text-gray-800 mb-2">{tool.title}</h3>
-                  <p className="text-sm text-gray-600 mb-4">{tool.description}</p>
-                  <Button size="sm" className="bg-[#246CD8] hover:bg-[#0052CC] text-white">
+                  <h3 className="font-semibold text-gray-800 mb-2">
+                    {tool.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    {tool.description}
+                  </p>
+                  <Button
+                    size="sm"
+                    className="bg-[#246CD8] hover:bg-[#0052CC] text-white"
+                  >
                     {tool.action}
                   </Button>
                 </div>
@@ -201,9 +225,11 @@ export default function OnboardingStep3({ userData, onComplete, className }: Onb
             </div>
           </div>
 
-          {/* Try ARIA Section */}
+          {/* Try JARVIS Section */}
           <div className="bg-white/5 rounded-xl p-6 mb-6">
-            <h3 className="text-white text-lg font-medium mb-4">💬 Try asking me:</h3>
+            <h3 className="text-white text-lg font-medium mb-4">
+              💬 Try asking me:
+            </h3>
             <div className="grid gap-2 mb-4">
               {content.suggestions.map((suggestion, index) => (
                 <button
@@ -221,10 +247,13 @@ export default function OnboardingStep3({ userData, onComplete, className }: Onb
               <Input
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask ARIA anything about research..."
+                placeholder="Ask JARVIS anything about research..."
                 className="bg-[#2E2E1E] border-gray-600 text-white focus:border-[#246CD8] flex-1"
               />
-              <Button type="submit" className="bg-[#246CD8] hover:bg-[#0052CC] text-white">
+              <Button
+                type="submit"
+                className="bg-[#246CD8] hover:bg-[#0052CC] text-white"
+              >
                 Ask
               </Button>
             </form>
@@ -240,7 +269,7 @@ export default function OnboardingStep3({ userData, onComplete, className }: Onb
             </Button>
 
             <Button
-              variant="outline"
+              vJARVISnt="outline"
               className="border-[#246CD8] text-[#246CD8] hover:bg-[#246CD8] hover:text-white px-8 py-3 text-lg rounded-full transition-all duration-300 bg-transparent"
             >
               ⚙️ Customize More
@@ -249,5 +278,5 @@ export default function OnboardingStep3({ userData, onComplete, className }: Onb
         </div>
       </div>
     </div>
-  )
+  );
 }

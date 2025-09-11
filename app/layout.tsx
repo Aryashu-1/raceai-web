@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
-import KnowledgeGraph from "@/components/knowledge-graph";
+import KnowledgeGraph from "@/components/timeline-section";
 import "./globals.css";
 
 const inter = Inter({

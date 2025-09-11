@@ -9,7 +9,7 @@ export const signInWithGoogle = async () => {
           name: "Demo User",
           picture: "https://via.placeholder.com/40",
         },
-      })
-    }, 1000)
-  })
-}
+      });
+    }, 1000);
+  });
+};

@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import {
   FolderPlus,
   FileText,
@@ -25,30 +25,32 @@ import {
   Sparkles,
   BookOpen,
   Loader2,
-} from "lucide-react"
-import NavigationSidebar from "@/components/navigation-sidebar"
+} from "lucide-react";
+import NavigationSidebar from "@/components/navigation-sidebar";
 
 interface ProjectFolder {
-  id: string
-  name: string
-  type: "folder" | "file"
-  children?: ProjectFolder[]
-  fileType?: string
-  size?: string
-  lastModified?: string
-  content?: string
+  id: string;
+  name: string;
+  type: "folder" | "file";
+  children?: ProjectFolder[];
+  fileType?: string;
+  size?: string;
+  lastModified?: string;
+  content?: string;
 }
 
 interface ChatMessage {
-  id: string
-  content: string
-  sender: "user" | "assistant"
-  timestamp: Date
+  id: string;
+  content: string;
+  sender: "user" | "assistant";
+  timestamp: Date;
 }
 
 export default function ResearchCollaborationPage() {
-  const [selectedFile, setSelectedFile] = useState<ProjectFolder | null>(null)
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["1", "2"]))
+  const [selectedFile, setSelectedFile] = useState<ProjectFolder | null>(null);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
+    new Set(["1", "2"])
+  );
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: "1",
@@ -57,12 +59,12 @@ export default function ResearchCollaborationPage() {
       sender: "assistant",
       timestamp: new Date(),
     },
-  ])
-  const [chatInput, setChatInput] = useState("")
-  const [isGeneratingPodcast, setIsGeneratingPodcast] = useState(false)
-  const [podcastUrl, setPodcastUrl] = useState<string | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [isChatLoading, setIsChatLoading] = useState(false)
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [isGeneratingPodcast, setIsGeneratingPodcast] = useState(false);
+  const [podcastUrl, setPodcastUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   const projectStructure: ProjectFolder[] = [
     {
@@ -87,7 +89,8 @@ export default function ResearchCollaborationPage() {
                   fileType: "pdf",
                   size: "2.4 MB",
                   lastModified: "2 days ago",
-                  content: "This is a comprehensive research paper on computational biology methods...",
+                  content:
+                    "This is a comprehensive research paper on computational biology methods...",
                 },
               ],
             },
@@ -135,37 +138,37 @@ export default function ResearchCollaborationPage() {
         },
       ],
     },
-  ]
+  ];
 
   const toggleFolder = (folderId: string) => {
-    const newExpanded = new Set(expandedFolders)
+    const newExpanded = new Set(expandedFolders);
     if (newExpanded.has(folderId)) {
-      newExpanded.delete(folderId)
+      newExpanded.delete(folderId);
     } else {
-      newExpanded.add(folderId)
+      newExpanded.add(folderId);
     }
-    setExpandedFolders(newExpanded)
-  }
+    setExpandedFolders(newExpanded);
+  };
 
   const handleFileSelect = (file: ProjectFolder) => {
     if (file.type === "file") {
-      setSelectedFile(file)
+      setSelectedFile(file);
     }
-  }
+  };
 
   const handleSendMessage = async () => {
-    if (!chatInput.trim() || isChatLoading) return
+    if (!chatInput.trim() || isChatLoading) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       content: chatInput,
       sender: "user",
       timestamp: new Date(),
-    }
+    };
 
-    setChatMessages((prev) => [...prev, userMessage])
-    setChatInput("")
-    setIsChatLoading(true)
+    setChatMessages((prev) => [...prev, userMessage]);
+    setChatInput("");
+    setIsChatLoading(true);
 
     try {
       const response = await fetch("/api/research-chat", {
@@ -178,40 +181,41 @@ export default function ResearchCollaborationPage() {
           selectedFile: selectedFile,
           model: "gpt-4o",
         }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to get response")
+        throw new Error("Failed to get response");
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       const assistantMessage: ChatMessage = {
         id: data.message.id,
         content: data.message.content,
         sender: "assistant",
         timestamp: new Date(data.message.timestamp),
-      }
+      };
 
-      setChatMessages((prev) => [...prev, assistantMessage])
+      setChatMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error("Error sending message:", error)
+      console.error("Error sending message:", error);
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: "I'm having trouble connecting right now. Please try again later.",
+        content:
+          "I'm having trouble connecting right now. Please try again later.",
         sender: "assistant",
         timestamp: new Date(),
-      }
-      setChatMessages((prev) => [...prev, errorMessage])
+      };
+      setChatMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setIsChatLoading(false)
+      setIsChatLoading(false);
     }
-  }
+  };
 
   const handleGeneratePodcast = async () => {
-    if (!selectedFile) return
+    if (!selectedFile) return;
 
-    setIsGeneratingPodcast(true)
+    setIsGeneratingPodcast(true);
 
     try {
       const response = await fetch("/api/generate-podcast", {
@@ -223,36 +227,37 @@ export default function ResearchCollaborationPage() {
           selectedFile: selectedFile,
           model: "gpt-4o",
         }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to generate podcast")
+        throw new Error("Failed to generate podcast");
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
-      setPodcastUrl(data.audioUrl)
+      setPodcastUrl(data.audioUrl);
 
       const podcastMessage: ChatMessage = {
         id: Date.now().toString(),
         content: `I've generated a podcast explanation of "${selectedFile.name}". You can listen to it using the audio player above. Here's the script I created:\n\n${data.script}`,
         sender: "assistant",
         timestamp: new Date(),
-      }
-      setChatMessages((prev) => [...prev, podcastMessage])
+      };
+      setChatMessages((prev) => [...prev, podcastMessage]);
     } catch (error) {
-      console.error("Error generating podcast:", error)
+      console.error("Error generating podcast:", error);
       const errorMessage: ChatMessage = {
         id: Date.now().toString(),
-        content: "I encountered an error while generating the podcast. Please try again later.",
+        content:
+          "I encountered an error while generating the podcast. Please try again later.",
         sender: "assistant",
         timestamp: new Date(),
-      }
-      setChatMessages((prev) => [...prev, errorMessage])
+      };
+      setChatMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setIsGeneratingPodcast(false)
+      setIsGeneratingPodcast(false);
     }
-  }
+  };
 
   const renderProjectTree = (items: ProjectFolder[], depth = 0) => {
     return items.map((item) => (
@@ -263,9 +268,9 @@ export default function ResearchCollaborationPage() {
           }`}
           onClick={() => {
             if (item.type === "folder") {
-              toggleFolder(item.id)
+              toggleFolder(item.id);
             } else {
-              handleFileSelect(item)
+              handleFileSelect(item);
             }
           }}
         >
@@ -286,12 +291,14 @@ export default function ResearchCollaborationPage() {
           )}
           <span className="text-sm font-medium truncate">{item.name}</span>
         </div>
-        {item.type === "folder" && expandedFolders.has(item.id) && item.children && (
-          <div>{renderProjectTree(item.children, depth + 1)}</div>
-        )}
+        {item.type === "folder" &&
+          expandedFolders.has(item.id) &&
+          item.children && (
+            <div>{renderProjectTree(item.children, depth + 1)}</div>
+          )}
       </div>
-    ))
-  }
+    ));
+  };
 
   return (
     <div className="h-screen flex bg-background">
@@ -317,7 +324,9 @@ export default function ResearchCollaborationPage() {
 
           {/* Project Tree */}
           <ScrollArea className="flex-1 p-4">
-            <div className="space-y-1">{renderProjectTree(projectStructure)}</div>
+            <div className="space-y-1">
+              {renderProjectTree(projectStructure)}
+            </div>
           </ScrollArea>
         </div>
 
@@ -327,8 +336,12 @@ export default function ResearchCollaborationPage() {
           <div className="p-6 border-b border-border">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Research and Collaboration</h1>
-                <p className="text-muted-foreground">Manage your research projects and collaborate with AI</p>
+                <h1 className="text-2xl font-bold text-foreground">
+                  Research and Collaboration
+                </h1>
+                <p className="text-muted-foreground">
+                  Manage your research projects and collaborate with AI
+                </p>
               </div>
               {selectedFile && (
                 <div className="flex space-x-2">
@@ -377,10 +390,16 @@ export default function ResearchCollaborationPage() {
             ) : (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
-                  <FileText size={48} className="mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No Document Selected</h3>
+                  <FileText
+                    size={48}
+                    className="mx-auto text-muted-foreground mb-4"
+                  />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    No Document Selected
+                  </h3>
                   <p className="text-muted-foreground">
-                    Select a research paper from the project structure to view it here
+                    Select a research paper from the project structure to view
+                    it here
                   </p>
                 </div>
               </div>
@@ -399,7 +418,9 @@ export default function ResearchCollaborationPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground">Race Chat</h3>
-                  <p className="text-xs text-muted-foreground">AI Research Assistant</p>
+                  <p className="text-xs text-muted-foreground">
+                    AI Research Assistant
+                  </p>
                 </div>
               </div>
               <Button
@@ -423,8 +444,14 @@ export default function ResearchCollaborationPage() {
             {podcastUrl && (
               <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Podcast Explanation</span>
-                  <Button size="sm" variant="ghost" onClick={() => setIsPlaying(!isPlaying)}>
+                  <span className="text-sm font-medium">
+                    Podcast Explanation
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setIsPlaying(!isPlaying)}
+                  >
                     {isPlaying ? <Pause size={16} /> : <Play size={16} />}
                   </Button>
                 </div>
@@ -442,17 +469,33 @@ export default function ResearchCollaborationPage() {
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-4">
               {chatMessages.map((message) => (
-                <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    message.sender === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
                   <div
                     className={`max-w-[80%] p-3 rounded-lg ${
-                      message.sender === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+                      message.sender === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground"
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {message.content}
+                    </p>
                     <p
-                      className={`text-xs mt-1 ${message.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                      className={`text-xs mt-1 ${
+                        message.sender === "user"
+                          ? "text-primary-foreground/70"
+                          : "text-muted-foreground"
+                      }`}
                     >
-                      {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {message.timestamp.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </p>
                   </div>
                 </div>
@@ -485,7 +528,7 @@ export default function ResearchCollaborationPage() {
                     disabled={isChatLoading}
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
-                        handleSendMessage()
+                        handleSendMessage();
                       }
                     }}
                   />
@@ -504,15 +547,29 @@ export default function ResearchCollaborationPage() {
                   className="gradient-race-primary text-white"
                   disabled={isChatLoading || !chatInput.trim()}
                 >
-                  {isChatLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                  {isChatLoading ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Send size={16} />
+                  )}
                 </Button>
               </div>
               <div className="flex space-x-2">
-                <Button variant="outline" size="sm" className="flex-1 bg-transparent" disabled={isChatLoading}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 bg-transparent"
+                  disabled={isChatLoading}
+                >
                   <BookOpen size={14} className="mr-1" />
                   Summarize
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 bg-transparent" disabled={isChatLoading}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 bg-transparent"
+                  disabled={isChatLoading}
+                >
                   <MessageSquare size={14} className="mr-1" />
                   Explain
                 </Button>
@@ -522,5 +579,5 @@ export default function ResearchCollaborationPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

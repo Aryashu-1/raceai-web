@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
 interface RaceGeometricLogoProps {
-  size?: number
-  variant?: "primary" | "secondary" | "white"
-  showText?: boolean
-  className?: string
+  size?: number;
+  variant?: "primary" | "secondary" | "white";
+  showText?: boolean;
+  className?: string;
 }
 
-export default function RaceGeometricLogo({
+export function RaceGeometricLogo({
   size = 40,
   variant = "primary",
   showText = true,
@@ -29,9 +29,9 @@ export default function RaceGeometricLogo({
       accent: "#F1F5F9",
       text: "#FFFFFF",
     },
-  }
+  };
 
-  const currentColors = colors[variant]
+  const currentColors = colors[variant];
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
@@ -39,23 +39,14 @@ export default function RaceGeometricLogo({
         <svg width={size} height={size} viewBox="0 0 100 100" className="drop-shadow-sm">
           {/* Main cube structure */}
           <g fill="none" stroke={currentColors.cube} strokeWidth="2.5">
-            {/* Front face */}
             <path d="M20 30 L50 15 L80 30 L80 60 L50 75 L20 60 Z" />
-
-            {/* Top face */}
             <path d="M20 30 L35 20 L65 20 L80 30 L50 15 Z" />
-
-            {/* Right face */}
             <path d="M80 30 L80 60 L65 70 L65 40 Z" />
-
-            {/* Internal structure lines */}
             <path d="M35 20 L35 50 L20 60" strokeWidth="1.5" opacity="0.7" />
             <path d="M65 20 L65 50 L80 60" strokeWidth="1.5" opacity="0.7" />
             <path d="M50 15 L50 45 L35 50" strokeWidth="1.5" opacity="0.7" />
             <path d="M50 45 L65 50" strokeWidth="1.5" opacity="0.7" />
           </g>
-
-          {/* Accent elements */}
           <g fill={currentColors.accent} opacity="0.6">
             <circle cx="35" cy="35" r="2" />
             <circle cx="65" cy="35" r="2" />
@@ -90,5 +81,5 @@ export default function RaceGeometricLogo({
         </div>
       )}
     </div>
-  )
+  );
 }

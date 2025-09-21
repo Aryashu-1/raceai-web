@@ -219,7 +219,7 @@ export default function KnowledgeDiscoveryPage() {
   const selectedCategoryData = researchData[selectedCategory] || []
 
   return (
-    <div className="h-screen flex bg-background">
+    <div className="h-full flex bg-background">
       <NavigationSidebar />
 
       {/* Main Content */}
@@ -232,7 +232,7 @@ export default function KnowledgeDiscoveryPage() {
 
         <div className="flex-1 flex">
           {/* Main Content Area */}
-          <div className="flex-1 p-6">
+          <div className="flex-1 px-6 pt-2">
             {/* Category Filters */}
             <div className="flex flex-wrap gap-3 mb-6">
               {fieldCategories.map((category) => {
@@ -255,7 +255,7 @@ export default function KnowledgeDiscoveryPage() {
             </div>
 
             {/* Content Display */}
-            <div className="mb-6">
+            <div className="">
               <h2 className="text-xl font-semibold text-foreground mb-4 capitalize">
                 {fieldCategories.find((c) => c.id === selectedCategory)?.label}
               </h2>
@@ -343,33 +343,7 @@ export default function KnowledgeDiscoveryPage() {
           </div>
         </div>
 
-        {/* Bottom Input Area */}
-        <div className="p-6 border-t border-border bg-card">
-          <div className="max-w-4xl mx-auto">
-            <p className="text-sm text-muted-foreground mb-3">NEW TOPIC</p>
-            <div className="flex items-center space-x-3">
-              <div className="flex-1 relative">
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Let's research together...What's on your mind?"
-                  className="pr-20 py-3 text-base"
-                />
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-                  <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground">
-                    <Mic size={16} />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground">
-                    <Edit3 size={16} />
-                  </Button>
-                </div>
-              </div>
-              <Button onClick={handleSearch} className="gradient-race-primary text-white px-6">
-                <Search size={16} />
-              </Button>
-            </div>
-          </div>
-        </div>
+       
       </div>
     </div>
   )

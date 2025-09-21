@@ -39,7 +39,7 @@ import { LLM_PROVIDERS, getModelById } from "@/lib/llm-providers";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { RaceGeometricLogo } from "@/components/race-geometric-logo";
-import { KnowledgeGraph } from "@/components/knowledge-graph";
+import { KnowledgeGraph } from "@/components/knowledge-graph-background";
 
 const EnhancedBackground = ({ children }: { children: React.ReactNode }) => (
   <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
@@ -77,8 +77,6 @@ interface Message {
 }
 
 interface ChatSession {
-  userGroup: string;
-  user: any;
   id: string;
   title: string;
   preview: string;
@@ -128,7 +126,8 @@ export default function JarvisPage() {
     {
       id: "1",
       title: "Quantum Research Discussion",
-      preview: "Exploring quantum computing applications in machine learning...",
+      preview:
+        "Exploring quantum computing applications in machine learning...",
       timestamp: "2 hours ago",
       createdAt: new Date(),
       category: "recent",
@@ -136,8 +135,6 @@ export default function JarvisPage() {
       isShared: false,
       projectName: "Quantum ML Project",
       topic: "quantum-computing",
-      userGroup: "",
-      user: undefined
     },
     {
       id: "2",
@@ -150,8 +147,6 @@ export default function JarvisPage() {
       isShared: false,
       projectName: "Deep Learning Survey",
       topic: "machine-learning",
-      userGroup: "",
-      user: undefined
     },
     {
       id: "3",
@@ -163,8 +158,6 @@ export default function JarvisPage() {
       isPinned: false,
       isShared: false,
       topic: "data-science",
-      userGroup: "",
-      user: undefined
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
@@ -277,8 +270,6 @@ export default function JarvisPage() {
       createdAt: new Date(),
       category: "recent",
       topic: "general",
-      userGroup: "",
-      user: undefined
     };
 
     console.log("Created new chat session:", newSession);

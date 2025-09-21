@@ -4,8 +4,12 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, BarChart3, Users, PenTool, Brain } from "lucide-react";
 
-const KnowledgeGraph = ({ isBackground = false }) => {
-  const [hoveredNode, setHoveredNode] = useState(null);
+interface KnowledgeGraphProps {
+  isBackground?: boolean;
+}
+
+export function KnowledgeGraph({ isBackground = false }: KnowledgeGraphProps) {
+  const [hoveredNode, setHoveredNode] = useState<number | null>(null);
 
   const nodes = [
     {
@@ -69,19 +73,13 @@ const KnowledgeGraph = ({ isBackground = false }) => {
           : "h-[600px] bg-gradient-to-br from-slate-900 via-blue-900/20 to-slate-900 dark:from-slate-900 dark:via-blue-900/20 dark:to-slate-900 rounded-3xl"
       } overflow-hidden`}
     >
+      {/* Grid Background */}
       <div
-        className={`absolute inset-0 ${
-          isBackground ? "opacity-60" : "opacity-20"
-        }`}
+        className={`absolute inset-0 ${isBackground ? "opacity-60" : "opacity-20"}`}
       >
         <svg width="100%" height="100%" className="absolute inset-0">
           <defs>
-            <pattern
-              id="grid"
-              width="40"
-              height="40"
-              patternUnits="userSpaceOnUse"
-            >
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
               <path
                 d="M 40 0 L 0 0 0 40"
                 fill="none"
@@ -95,6 +93,7 @@ const KnowledgeGraph = ({ isBackground = false }) => {
         </svg>
       </div>
 
+      {/* Connection Lines */}
       <svg className="absolute inset-0 w-full h-full">
         {connections.map((connection, index) => {
           const fromNode = nodes.find((n) => n.id === connection.from);
@@ -105,14 +104,13 @@ const KnowledgeGraph = ({ isBackground = false }) => {
           return (
             <motion.line
               key={index}
-              x1={`${fromNode.x}%`}
-              y1={`${fromNode.y}%`}
-              x2={`${toNode.x}%`}
-              y2={`${toNode.y}%`}
+              x1={`${fromNode?.x}%`}
+              y1={`${fromNode?.y}%`}
+              x2={`${toNode?.x}%`}
+              y2={`${toNode?.y}%`}
               stroke={isHighlighted ? "#3B82F6" : "#0052CC"}
               strokeWidth={isHighlighted ? "3" : "2"}
               opacity={isBackground ? "0.5" : isHighlighted ? "1" : "0.6"}
-              className="transition-all duration-300"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
               transition={{
@@ -127,6 +125,7 @@ const KnowledgeGraph = ({ isBackground = false }) => {
         })}
       </svg>
 
+      {/* Node Elements */}
       {nodes.map((node) => {
         const IconComponent = node.icon;
         return (
@@ -195,6 +194,7 @@ const KnowledgeGraph = ({ isBackground = false }) => {
         );
       })}
 
+      {/* Center Blur Glow */}
       <div
         className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${
           isBackground ? "w-40 h-40" : "w-24 h-24"
@@ -202,6 +202,4 @@ const KnowledgeGraph = ({ isBackground = false }) => {
       />
     </div>
   );
-};
-
-export default KnowledgeGraph;
+}

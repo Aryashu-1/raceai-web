@@ -1,29 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import OnboardingContainer from "@/components/onboarding/onboarding-container";
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const [userData, setUserData] = useState(null);
 
   useEffect(() => {
     // Check if user is authenticated
     const storedUser = localStorage.getItem("race_ai_user");
     if (!storedUser) {
-      router.push("/");
+      window.location.href = "/";
       return;
     }
 
     const user = JSON.parse(storedUser);
     if (!user.authenticated) {
-      router.push("/");
+      window.location.href = "/";
       return;
     }
 
     setUserData(user);
-  }, [router]);
+  }, []);
 
   const handleOnboardingComplete = (completedUserData) => {
     // Update user data with onboarding completion
@@ -34,8 +32,7 @@ export default function OnboardingPage() {
     };
     localStorage.setItem("race_ai_user", JSON.stringify(updatedUser));
 
-    // Redirect to jarvis page
-    router.push("/jarvis");
+    window.location.href = "/dashboard";
   };
 
   if (!userData) {

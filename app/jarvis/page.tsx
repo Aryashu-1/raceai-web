@@ -39,9 +39,29 @@ import { LLM_PROVIDERS, getModelById } from "@/lib/llm-providers";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { RaceGeometricLogo } from "@/components/race-geometric-logo";
+import { KnowledgeGraph } from "@/components/knowledge-graph-background";
 
-const CleanBackground = ({ children }: { children: React.ReactNode }) => (
-  <div className="min-h-screen bg-background">{children}</div>
+const EnhancedBackground = ({ children }: { children: React.ReactNode }) => (
+  <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
+    {/* Animated gradient orbs */}
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl animate-gentle-pulse" />
+      <div
+        className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-cyan-600/20 rounded-full blur-3xl animate-gentle-pulse"
+        style={{ animationDelay: "2s" }}
+      />
+      <div
+        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-pink-600/10 rounded-full blur-3xl animate-gentle-pulse"
+        style={{ animationDelay: "4s" }}
+      />
+    </div>
+
+    {/* Knowledge Graph Background */}
+    <KnowledgeGraph />
+
+    {/* Content */}
+    <div className="relative z-10">{children}</div>
+  </div>
 );
 
 interface Message {
@@ -447,14 +467,14 @@ export default function JarvisPage() {
   const [shareFeedback, setShareFeedback] = useState("");
 
   return (
-    <CleanBackground>
+    <EnhancedBackground>
       <div className="h-screen flex">
         <NavigationSidebar />
 
         {/* Chat Sidebar */}
-        <div className="w-80 bg-card border-r border-border flex flex-col">
+        <div className="w-80 glass-effect border-r border-white/20 dark:border-slate-700/50 flex flex-col backdrop-blur-xl bg-white/80 dark:bg-slate-900/80">
           {/* Sidebar Header */}
-          <div className="p-4 border-b border-border">
+          <div className="p-4 border-b border-white/20 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
                 <RaceGeometricLogo
@@ -462,13 +482,15 @@ export default function JarvisPage() {
                   variant="primary"
                   showText={false}
                 />
-                <span className="font-semibold text-foreground">Chats</span>
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  Chats
+                </span>
               </div>
               <div className="flex items-center space-x-1">
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 w-8 p-0 rounded-full bg-blue-600 hover:bg-blue-700 text-white hover:scale-110 transition-all duration-200"
+                  className="h-8 w-8 p-0 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white hover:scale-110 transition-all duration-200 shadow-lg hover:shadow-xl"
                   onClick={handleNewChat}
                 >
                   <Plus size={16} />
@@ -479,12 +501,12 @@ export default function JarvisPage() {
             {/* Search */}
             <div className="relative mb-4">
               <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-slate-400"
                 size={16}
               />
               <Input
                 placeholder="Search conversations..."
-                className="pl-10 pr-12 bg-input border-border text-foreground placeholder-muted-foreground rounded-full"
+                className="pl-10 pr-12 glass-effect border-white/30 dark:border-slate-600/50 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 rounded-full bg-white/70 dark:bg-slate-800/70 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200"
                 value={filters.searchText}
                 onChange={(e) =>
                   setFilters((prev) => ({
@@ -496,7 +518,7 @@ export default function JarvisPage() {
               <Button
                 size="sm"
                 variant="ghost"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 rounded-full hover:bg-accent hover:scale-110 transition-all duration-200"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 rounded-full hover:bg-white/50 dark:hover:bg-slate-700/50 hover:scale-110 transition-all duration-200"
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter size={14} />
@@ -504,9 +526,10 @@ export default function JarvisPage() {
             </div>
 
             {showFilters && (
-              <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border space-y-3">
+              /* Enhanced filter panel with glass effects */
+              <div className="mb-4 p-3 glass-effect bg-white/60 dark:bg-slate-800/60 rounded-lg border border-white/30 dark:border-slate-600/50 space-y-3 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">
+                  <span className="text-sm font-medium text-slate-900 dark:text-white">
                     Filters
                   </span>
                   <Button
@@ -521,7 +544,7 @@ export default function JarvisPage() {
 
                 {/* Date Range Filter with Calendar */}
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">
                     Date Range
                   </label>
                   <div className="space-y-2">
@@ -582,7 +605,7 @@ export default function JarvisPage() {
 
                 {/* User Filter */}
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">
                     User
                   </label>
                   <Input
@@ -597,7 +620,7 @@ export default function JarvisPage() {
 
                 {/* User Group Filter */}
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">
+                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">
                     User Group
                   </label>
                   <select
@@ -636,23 +659,18 @@ export default function JarvisPage() {
             )}
 
             {/* Tabs */}
-            <div className="flex space-x-1 bg-muted rounded-lg p-1">
-              {[
-                { key: "recent", label: "Recent" },
-                { key: "pinned", label: "Pinned" },
-                { key: "project", label: "Projects" },
-                { key: "shared", label: "Shared" },
-              ].map((tab) => (
+            <div className="flex space-x-1 bg-white/50 dark:bg-slate-800/50 p-1 rounded-full border border-white/30 dark:border-slate-600/50">
+              {["Recent", "Pinned", "Projects", "Shared"].map((tab) => (
                 <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key as any)}
-                  className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all ${
-                    activeTab === tab.key
-                      ? "bg-background text-primary shadow-sm"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  key={tab}
+                  onClick={() => setActiveTab(tab.toLowerCase() as any)}
+                  className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-200 ${
+                    activeTab === tab.toLowerCase()
+                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-700/70 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
-                  {tab.label}
+                  {tab}
                 </button>
               ))}
             </div>
@@ -1232,7 +1250,7 @@ export default function JarvisPage() {
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col">
           {/* Chat Header */}
-          <div className="p-4 border-b border-border bg-card">
+          <div className="p-4 border-b border-white/20 dark:border-slate-700/50 glass-effect bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <button
@@ -1245,10 +1263,10 @@ export default function JarvisPage() {
                     showText={false}
                   />
                   <div>
-                    <h2 className="font-semibold text-foreground">
+                    <h2 className="font-semibold text-slate-900 dark:text-white">
                       JARVIS Research Assistant
                     </h2>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       {selectedModelInfo
                         ? `${selectedModelInfo.provider.name} • ${selectedModelInfo.model.name}`
                         : "Powered by AI"}
@@ -1334,7 +1352,7 @@ export default function JarvisPage() {
           </div>
 
           {/* Messages Area */}
-          <ScrollArea className="flex-1 p-6 bg-background">
+          <ScrollArea className="flex-1 p-6 bg-transparent">
             <div className="max-w-5xl mx-auto space-y-6 px-4">
               {messages.map((message) => (
                 <div
@@ -1344,10 +1362,10 @@ export default function JarvisPage() {
                   }`}
                 >
                   <div
-                    className={`max-w-[85%] p-5 rounded-2xl ${
+                    className={`max-w-[85%] p-5 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 ${
                       message.sender === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card text-card-foreground border border-border"
+                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white"
+                        : "glass-effect bg-white/90 dark:bg-slate-800/90 text-slate-900 dark:text-white border border-white/30 dark:border-slate-600/50 backdrop-blur-sm"
                     }`}
                   >
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">
@@ -1366,10 +1384,10 @@ export default function JarvisPage() {
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1 pr-3">
-                                <h4 className="text-sm font-medium text-foreground mb-2">
+                                <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-2">
                                   {resource.title}
                                 </h4>
-                                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                                   {resource.snippet}
                                 </p>
                               </div>
@@ -1392,8 +1410,8 @@ export default function JarvisPage() {
                     <p
                       className={`text-xs mt-3 ${
                         message.sender === "user"
-                          ? "text-primary-foreground/70"
-                          : "text-muted-foreground"
+                          ? "text-white/70"
+                          : "text-slate-500 dark:text-slate-400"
                       }`}
                     >
                       {message.timestamp.toLocaleTimeString([], {
@@ -1407,10 +1425,10 @@ export default function JarvisPage() {
 
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-card/70 backdrop-blur-sm p-5 rounded-2xl border border-border/50 shadow-sm">
+                  <div className="glass-effect bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm p-5 rounded-2xl border border-white/30 dark:border-slate-600/50 shadow-sm">
                     <div className="flex items-center space-x-3">
-                      <Loader2 className="w-4 h-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 text-blue-500" />
+                      <span className="text-sm text-slate-500 dark:text-slate-400">
                         JARVIS is thinking...
                       </span>
                     </div>
@@ -1422,13 +1440,16 @@ export default function JarvisPage() {
           </ScrollArea>
 
           {/* Input Area */}
-          <div className="p-6 border-t border-border bg-card">
+          <div className="p-6 border-t border-white/20 dark:border-slate-700/50 glass-effect bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
             <div className="max-w-5xl mx-auto px-4">
               {selectedFile && (
-                <div className="mb-4 p-3 bg-muted rounded-xl border border-border flex items-center justify-between">
+                <div className="mb-4 p-3 glass-effect bg-white/70 dark:bg-slate-800/70 rounded-xl border border-white/30 dark:border-slate-600/50 flex items-center justify-between backdrop-blur-sm">
                   <div className="flex items-center space-x-3">
-                    <Paperclip size={16} className="text-muted-foreground" />
-                    <span className="text-sm text-foreground font-medium">
+                    <Paperclip
+                      size={16}
+                      className="text-slate-500 dark:text-slate-400"
+                    />
+                    <span className="text-sm text-slate-900 dark:text-white font-medium">
                       {selectedFile.name}
                     </span>
                   </div>
@@ -1436,7 +1457,7 @@ export default function JarvisPage() {
                     size="sm"
                     variant="ghost"
                     onClick={() => setSelectedFile(null)}
-                    className="text-muted-foreground hover:text-destructive p-1 h-6 w-6"
+                    className="text-slate-500 dark:text-red-500 hover:text-red-600 p-1 h-6 w-6"
                   >
                     ×
                   </Button>
@@ -1450,7 +1471,7 @@ export default function JarvisPage() {
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Ask JARVIS anything about your research..."
-                    className="pr-24 py-4 bg-input border-border text-foreground placeholder-muted-foreground rounded-full text-base"
+                    className="pr-24 py-4 glass-effect border-white/30 dark:border-slate-600/50 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 rounded-full text-base bg-white/70 dark:bg-slate-800/70 focus:bg-white/90 dark:focus:bg-slate-800/90 transition-all duration-200 shadow-lg focus:shadow-xl"
                     disabled={isLoading}
                   />
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
@@ -1464,7 +1485,7 @@ export default function JarvisPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-muted-foreground hover:text-blue-600 p-2 h-8 w-8 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
+                      className="text-slate-500 dark:text-blue-500 hover:text-blue-600 p-2 h-8 w-8 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
                       disabled={isLoading}
                       onClick={() => fileInputRef.current?.click()}
                     >
@@ -1477,7 +1498,7 @@ export default function JarvisPage() {
                       className={`p-2 h-8 w-8 rounded-full hover:scale-110 transition-all duration-200 ${
                         isRecording
                           ? "text-red-500 bg-red-100 dark:bg-red-900/30"
-                          : "text-muted-foreground hover:text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                          : "text-slate-500 dark:text-blue-500 hover:text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30"
                       }`}
                       disabled={isLoading}
                       onClick={handleVoiceInput}
@@ -1489,7 +1510,7 @@ export default function JarvisPage() {
                 <Button
                   onClick={handleSendMessage}
                   disabled={!inputMessage.trim() || isLoading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full min-w-[48px] hover:scale-105 transition-all duration-200"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-4 rounded-full min-w-[48px] hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   {isLoading ? <Loader2 size={18} /> : <Send size={18} />}
                 </Button>
@@ -1498,6 +1519,6 @@ export default function JarvisPage() {
           </div>
         </div>
       </div>
-    </CleanBackground>
+    </EnhancedBackground>
   );
 }

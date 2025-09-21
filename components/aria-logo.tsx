@@ -1,16 +1,22 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { cn } from "@/lib/utils"
+import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 interface ARIALogoProps {
-  size?: "sm" | "md" | "lg"
-  state?: "idle" | "speaking" | "thinking" | "excited"
-  className?: string
+  size?: "sm" | "md" | "lg";
+  state?: "idle" | "speaking" | "thinking" | "excited";
+  className?: string;
 }
 
-export default function ARIALogo({ size = "md", state = "idle", className }: ARIALogoProps) {
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; delay: number }>>([])
+export default function ARIALogo({
+  size = "md",
+  state = "idle",
+  className,
+}: ARIALogoProps) {
+  const [particles, setParticles] = useState<
+    Array<{ id: number; x: number; y: number; delay: number }>
+  >([]);
 
   useEffect(() => {
     const newParticles = Array.from({ length: 8 }, (_, i) => ({
@@ -18,22 +24,22 @@ export default function ARIALogo({ size = "md", state = "idle", className }: ARI
       x: Math.random() * 100,
       y: Math.random() * 100,
       delay: Math.random() * 2,
-    }))
-    setParticles(newParticles)
-  }, [])
+    }));
+    setParticles(newParticles);
+  }, []);
 
   const sizeClasses = {
     sm: "w-12 h-12",
     md: "w-16 h-16",
     lg: "w-24 h-24",
-  }
+  };
 
   const stateAnimations = {
     idle: "animate-pulse",
     speaking: "animate-bounce",
     thinking: "animate-spin-slow",
     excited: "animate-ping",
-  }
+  };
 
   return (
     <div className={cn("relative flex items-center justify-center", className)}>
@@ -43,7 +49,7 @@ export default function ARIALogo({ size = "md", state = "idle", className }: ARI
           "absolute rounded-full bg-gradient-to-r from-blue-400/20 to-blue-600/20 blur-md",
           sizeClasses[size],
           state === "speaking" && "animate-pulse",
-          state === "thinking" && "animate-spin-slow",
+          state === "thinking" && "animate-spin-slow"
         )}
         style={{ transform: "scale(1.5)" }}
       />
@@ -54,7 +60,7 @@ export default function ARIALogo({ size = "md", state = "idle", className }: ARI
           "relative rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 shadow-lg shadow-blue-500/25",
           "border border-blue-300/30 backdrop-blur-sm",
           sizeClasses[size],
-          stateAnimations[state],
+          stateAnimations[state]
         )}
       >
         {/* Inner core */}
@@ -98,5 +104,5 @@ export default function ARIALogo({ size = "md", state = "idle", className }: ARI
         </>
       )}
     </div>
-  )
+  );
 }

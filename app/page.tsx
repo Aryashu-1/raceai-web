@@ -1,74 +1,113 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff, Check, Moon, Sun } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Check, Mail, Lock, User } from "lucide-react";
 import { RaceGeometricLogo } from "@/components/race-geometric-logo";
 import { OnboardingContainer } from "@/components/onboarding/onboarding-container";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "next-themes";
+import KnowledgeGraph from "@/components/knowledge-graph-background";
+import ThemeSelector from "@/components/theme-selector";
+import LoadingSpinner from "@/components/loading-spinner";
 
-const KnowledgeGraphHero = () => {
-  const { theme, setTheme } = useTheme();
-
+const LandingPage = () => {
   return (
-    <div className="relative min-h-screen flex items-center justify-between overflow-hidden">
-      <div className="absolute top-6 right-6 z-20 flex items-center gap-4">
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-medium transition-all duration-200 bg-transparent"
-        >
-          Contact Us
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="rounded-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 bg-transparent"
-        >
-          {theme === "dark" ? (
-            <Sun className="h-5 w-5" />
-          ) : (
-            <Moon className="h-5 w-5" />
-          )}
-        </Button>
+    <div className="min-h-screen relative overflow-hidden bg-background">
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-accent/10" />
+        <KnowledgeGraph isBackground={true} />
+
+        {/* Animated gradient orbs */}
+        <div className="absolute top-20 left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
+        <div
+          className="absolute bottom-20 right-20 w-80 h-80 bg-accent/8 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: "1s" }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-secondary/10 rounded-full blur-2xl animate-pulse"
+          style={{ animationDelay: "0.5s" }}
+        />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 flex items-center justify-between w-full">
-        {/* Left side content with hero text */}
-        <div className="flex-1 max-w-2xl">
-          <div className="flex items-center gap-3 mb-8">
-            <RaceGeometricLogo size={50} variant="primary" showText={true} />
-          </div>
-
-          <h1 className="text-5xl lg:text-7xl font-bold text-slate-900 dark:text-white leading-tight mb-6">
-            Research Accessible
-            <span className="block text-blue-600 dark:text-blue-300 font-bold">
-              By Everyone
-            </span>
-          </h1>
-
-          <p className="text-xl text-slate-600 dark:text-slate-300 leading-relaxed mb-8">
-            Streamline your research with our intuitive research empowerment and
-            management tool. Organize, track progress, collaborate with peers,
-            and get AI-powered assistance.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4">
+      <header className="absolute top-0 left-0 right-0 z-20 p-6">
+        <div className="flex items-center justify-between">
+          <RaceGeometricLogo size={40} showText={true} />
+          <div className="flex items-center gap-4">
+            <ThemeSelector />
             <Button
-              variant="default"
-              size="lg"
-              className="rounded-full bg-blue-600 hover:bg-blue-700 text-white"
+              variant="outline"
+              size="sm"
+              className="glass-effect bg-transparent"
             >
-              Watch Demo <ArrowRight className="ml-2 h-4 w-4" />
+              Contact Us
             </Button>
           </div>
         </div>
+      </header>
 
-        {/* Right side Get Started form positioned for better conversion */}
-        <div className="flex-shrink-0 w-full max-w-md ml-8">
-          <AuthFormCard />
+      {/* Main Content */}
+      <div className="relative z-10 min-h-screen flex items-center">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 w-full">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left Side - Hero Content */}
+            <div className="space-y-8">
+              <div className="space-y-6">
+                <h1 className="text-5xl lg:text-7xl font-bold text-foreground leading-tight">
+                  Research Accessible
+                  <span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    By Everyone
+                  </span>
+                </h1>
+
+                <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl">
+                  Streamline your research with our intuitive research
+                  empowerment and management tool. Organize, track progress,
+                  collaborate with peers, and get AI-powered assistance.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button size="lg" className="group hover-lift">
+                  Watch Demo
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="glass-effect bg-transparent"
+                >
+                  Learn More
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 pt-8">
+                <div className="space-y-2">
+                  <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-foreground">AI-Powered</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Intelligent research assistance
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
+                    <ArrowRight className="h-4 w-4 text-accent-foreground" />
+                  </div>
+                  <h3 className="font-semibold text-foreground">
+                    Collaborative
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Work together seamlessly
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side - Auth Form */}
+            <div className="lg:max-w-md mx-auto w-full">
+              <AuthFormCard />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -76,12 +115,10 @@ const KnowledgeGraphHero = () => {
 };
 
 const AuthFormCard = () => {
-  const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [keepSignedIn, setKeepSignedIn] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -91,14 +128,16 @@ const AuthFormCard = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    submit: "",
   });
+  const [keepSignedIn, setKeepSignedIn] = useState(false);
 
   const handleInputChange = (e) => {
     if (!e || !e.target) return;
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (formErrors[name]) {
-      setFormErrors((prev) => ({ ...prev, [name]: "" }));
+      setFormErrors((prev) => ({ ...prev, [name]: "", submit: "" }));
     }
   };
 
@@ -124,30 +163,46 @@ const AuthFormCard = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    router.push("/jarvis");
-    setIsLoading(false);
+    setFormErrors((prev) => ({ ...prev, submit: "" }));
+
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const userData = {
+        email: formData.email,
+        password: formData.password,
+        authenticated: true,
+        onboarded: false,
+      };
+      localStorage.setItem("race_ai_user", JSON.stringify(userData));
+      window.location.href = "/onboarding";
+    } catch (error) {
+      setFormErrors((prev) => ({
+        ...prev,
+        submit: "An unexpected error occurred",
+      }));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="bg-white/98 dark:bg-slate-800/98 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-slate-200/80 dark:border-slate-600/50">
+    <div className="glass-effect rounded-3xl p-8 shadow-2xl border border-border">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold mb-2" style={{ color: "#1e293b" }}>
-          Get Started
-        </h2>
-        <p className="text-slate-600 dark:text-slate-400">
-          Join the research revolution
-        </p>
+        <h2 className="text-2xl font-bold mb-2 text-foreground">Get Started</h2>
+        <p className="text-muted-foreground">Join the research revolution</p>
       </div>
 
-      <div className="flex bg-slate-100 dark:bg-slate-700 rounded-full p-1 mb-6">
+      <div className="flex bg-secondary rounded-full p-1 mb-6">
         <button
           onClick={() => setIsSignUp(false)}
           className={`flex-1 py-3 px-6 rounded-full text-sm font-medium transition-all duration-300 ${
             !isSignUp
-              ? "bg-blue-600 text-white shadow-lg"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              ? "bg-primary text-primary-foreground shadow-lg"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Sign In
@@ -156,8 +211,8 @@ const AuthFormCard = () => {
           onClick={() => setIsSignUp(true)}
           className={`flex-1 py-3 px-6 rounded-full text-sm font-medium transition-all duration-300 ${
             isSignUp
-              ? "bg-blue-600 text-white shadow-lg"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              ? "bg-primary text-primary-foreground shadow-lg"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Sign Up
@@ -166,72 +221,79 @@ const AuthFormCard = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Email address
           </label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            placeholder="your.email@university.edu"
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-          />
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              placeholder="your.email@university.edu"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            />
+          </div>
           {formErrors.email && (
-            <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>
+            <p className="text-destructive text-xs mt-1">{formErrors.email}</p>
           )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Password
           </label>
           <div className="relative">
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type={showPassword ? "text" : "password"}
               name="password"
               value={formData.password}
               onChange={handleInputChange}
               placeholder="Create a secure password"
-              className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full pl-10 pr-12 py-3 rounded-xl border border-border bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
           {formErrors.password && (
-            <p className="text-red-500 text-xs mt-1">{formErrors.password}</p>
+            <p className="text-destructive text-xs mt-1">
+              {formErrors.password}
+            </p>
           )}
         </div>
 
         {isSignUp && (
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Confirm password
             </label>
             <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
                 placeholder="Re-enter your password"
-                className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full pl-10 pr-12 py-3 rounded-xl border border-border bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
             {formErrors.confirmPassword && (
-              <p className="text-red-500 text-xs mt-1">
+              <p className="text-destructive text-xs mt-1">
                 {formErrors.confirmPassword}
               </p>
             )}
@@ -243,47 +305,55 @@ const AuthFormCard = () => {
             type="button"
             onClick={() => setKeepSignedIn(!keepSignedIn)}
             className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-              keepSignedIn
-                ? "bg-blue-600 border-blue-600"
-                : "border-slate-300 dark:border-slate-600"
+              keepSignedIn ? "bg-primary border-primary" : "border-border"
             }`}
           >
-            {keepSignedIn && <Check size={12} className="text-white" />}
+            {keepSignedIn && (
+              <Check size={12} className="text-primary-foreground" />
+            )}
           </button>
           <label
-            className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer"
+            className="text-sm text-muted-foreground cursor-pointer"
             onClick={() => setKeepSignedIn(!keepSignedIn)}
           >
             Keep me signed in
           </label>
         </div>
 
+        {formErrors.submit && (
+          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+            <p className="text-destructive text-sm">{formErrors.submit}</p>
+          </div>
+        )}
+
         <Button
           type="submit"
           disabled={isLoading}
-          variant="default"
           size="lg"
-          className="w-full rounded-full"
+          className="w-full group hover-lift"
         >
           {isLoading ? (
             <div className="flex items-center justify-center gap-2">
-              <div className="w-5 h-5 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+              <LoadingSpinner size="sm" />
               <span>Please wait...</span>
             </div>
           ) : (
             <div className="flex items-center justify-center gap-2">
               <span>{isSignUp ? "Continue with JARVIS" : "Sign In"}</span>
-              <ArrowRight size={18} />
+              <ArrowRight
+                size={18}
+                className="group-hover:translate-x-1 transition-transform"
+              />
             </div>
           )}
         </Button>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200 dark:border-slate-600" />
+            <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white dark:bg-slate-800 px-4 text-slate-500">
+            <span className="bg-card px-4 text-muted-foreground">
               or continue with
             </span>
           </div>
@@ -293,7 +363,7 @@ const AuthFormCard = () => {
           <Button
             type="button"
             variant="outline"
-            className="flex items-center justify-center gap-2 py-3 px-4 rounded-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-medium transition-all duration-200 bg-transparent"
+            className="flex items-center justify-center gap-2 glass-effect bg-transparent"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -310,7 +380,7 @@ const AuthFormCard = () => {
           <Button
             type="button"
             variant="outline"
-            className="flex items-center justify-center gap-2 py-3 px-4 rounded-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-medium transition-all duration-200 bg-transparent"
+            className="flex items-center justify-center gap-2 glass-effect bg-transparent"
           >
             🔐 SSO
           </Button>
@@ -319,8 +389,7 @@ const AuthFormCard = () => {
         <div className="text-center">
           <button
             type="button"
-            onClick={() => router.push("/demo")}
-            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+            className="text-sm text-primary hover:text-primary/80 transition-colors"
           >
             Try demo without signing up
           </button>
@@ -330,12 +399,20 @@ const AuthFormCard = () => {
   );
 };
 
-export default function LandingPage() {
+export default function HomePage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userData, setUserData] = useState({});
 
-  const handleOnboardingComplete = () => {
-    setShowOnboarding(false);
+  const handleOnboardingComplete = (completedUserData) => {
+    const updatedUser = {
+      ...completedUserData,
+      authenticated: true,
+      onboarded: true,
+    };
+    localStorage.setItem("race_ai_user", JSON.stringify(updatedUser));
+
+    // Redirect to dashboard after onboarding
+    window.location.href = "/dashboard";
   };
 
   if (showOnboarding) {
@@ -349,7 +426,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen">
-      <KnowledgeGraphHero />
+      <LandingPage />
     </div>
   );
 }

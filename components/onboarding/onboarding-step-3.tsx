@@ -5,9 +5,9 @@ import { useState } from "react";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import JARVISAssistant, {
-  useJARVISConversation,
-} from "@/components/JARVIS-assistant";
+import ARIAAssistant, {
+  useARIAConversation,
+} from "@/components/aria-assistant";
 import { cn } from "@/lib/utils";
 
 interface OnboardingStep3Props {
@@ -119,7 +119,7 @@ export default function OnboardingStep3({
   className,
 }: OnboardingStep3Props) {
   const { currentState, currentMessage, speak, celebrate, idle } =
-    useJARVISConversation();
+    useARIAConversation();
   const [chatInput, setChatInput] = useState("");
 
   const content = getPersonalizedContent(userData.role, userData.level);
@@ -134,7 +134,7 @@ export default function OnboardingStep3({
     e.preventDefault();
     if (!chatInput.trim()) return;
 
-    // Simulate JARVIS response
+    // Simulate ARIA response
     speak(
       `Great question! Let me help you with "${chatInput}". This is just a demo - in the full version, I'd provide detailed assistance with your research needs.`
     );
@@ -177,9 +177,9 @@ export default function OnboardingStep3({
       </div>
 
       <div className="relative z-10 w-full max-w-4xl mx-auto px-6">
-        {/* JARVIS Assistant - Celebrating */}
+        {/* ARIA Assistant - Celebrating */}
         <div className="flex justify-center mb-8">
-          <JARVISAssistant
+          <ARIAAssistant
             size={100}
             state={currentState}
             message={currentMessage}
@@ -225,7 +225,7 @@ export default function OnboardingStep3({
             </div>
           </div>
 
-          {/* Try JARVIS Section */}
+          {/* Try ARIA Section */}
           <div className="bg-white/5 rounded-xl p-6 mb-6">
             <h3 className="text-white text-lg font-medium mb-4">
               💬 Try asking me:
@@ -247,7 +247,7 @@ export default function OnboardingStep3({
               <Input
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask JARVIS anything about research..."
+                placeholder="Ask ARIA anything about research..."
                 className="bg-[#2E2E1E] border-gray-600 text-white focus:border-[#246CD8] flex-1"
               />
               <Button
@@ -269,7 +269,7 @@ export default function OnboardingStep3({
             </Button>
 
             <Button
-              vJARVISnt="outline"
+              variant="outline"
               className="border-[#246CD8] text-[#246CD8] hover:bg-[#246CD8] hover:text-white px-8 py-3 text-lg rounded-full transition-all duration-300 bg-transparent"
             >
               ⚙️ Customize More

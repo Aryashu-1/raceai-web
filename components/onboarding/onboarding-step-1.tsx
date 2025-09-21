@@ -2,9 +2,9 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import JARVISAssistant, {
-  useJARVISConversation,
-} from "@/components/JARVIS-assistant";
+import ARIAAssistant, {
+  useARIAConversation,
+} from "@/components/aria-assistant";
 import { cn } from "@/lib/utils";
 
 interface OnboardingStep1Props {
@@ -18,13 +18,13 @@ export default function OnboardingStep1({
   onSkip,
   className,
 }: OnboardingStep1Props) {
-  const { currentState, currentMessage, speak, idle } = useJARVISConversation();
+  const { currentState, currentMessage, speak, idle } = useARIAConversation();
 
   React.useEffect(() => {
-    // JARVIS introduction sequence
+    // ARIA introduction sequence
     const timer = setTimeout(() => {
       speak(
-        "Hi there! I'm JARVIS, your AI research assistant. I'll help you get set up in under 60 seconds. Ready to supercharge your research?"
+        "Hi there! I'm ARIA, your AI research assistant. I'll help you get set up in under 60 seconds. Ready to supercharge your research?"
       );
     }, 1000);
 
@@ -76,8 +76,8 @@ export default function OnboardingStep1({
 
       {/* Main Content */}
       <div className="relative z-10 text-center max-w-2xl mx-auto px-6">
-        {/* JARVIS Assistant */}
-        <JARVISAssistant
+        {/* ARIA Assistant */}
+        <ARIAAssistant
           size={140}
           state={currentState}
           message={currentMessage}
@@ -106,7 +106,7 @@ export default function OnboardingStep1({
 
           <Button
             onClick={handleSkipToDemo}
-            vJARVISnt="outline"
+            variant="outline"
             className="border-[#246CD8] text-[#246CD8] hover:bg-[#246CD8] hover:text-white px-8 py-3 text-lg rounded-full transition-all duration-300 bg-transparent"
           >
             Explore First

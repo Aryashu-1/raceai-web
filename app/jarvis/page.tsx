@@ -398,14 +398,14 @@ export default function JarvisPage() {
           <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
-                <Logo2D size="sm" />
+                
                 <span className="font-semibold text-foreground">Chats</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-muted-foreground hover:text-foreground hover:bg-accent"
+                  className="text-muted-foreground hover:text-foreground hover:cursor-pointer hover:bg-accent"
                   onClick={handleNewChat}
                 >
                   <Plus size={16} />
@@ -414,7 +414,8 @@ export default function JarvisPage() {
             </div>
 
             {/* Search */}
-            <div className="relative mb-4">
+            <div>
+              <div className="relative mb-4 z-10">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
               <Input
                 placeholder="Search conversations..."
@@ -422,15 +423,18 @@ export default function JarvisPage() {
                 value={filters.searchText}
                 onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
               />
-              <Button
+              {/* <Button
                 size="sm"
                 variant="ghost"
                 className="absolute right-2 top-1/2 transform -translate-y-1/2"
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter size={14} />
-              </Button>
+              </Button> */}
             </div>
+
+            </div>
+            
 
             {showFilters && (
               <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border space-y-3">
@@ -537,7 +541,7 @@ export default function JarvisPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key as any)}
-                  className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all ${
+                  className={`flex-1 py-2 px-3 rounded-md text-xs font-medium hover:cursor-pointer transition-all ${
                     activeTab === tab.key
                       ? "bg-background text-primary shadow-sm"
                       : "text-muted-foreground hover:text-foreground hover:bg-background/50"
@@ -575,7 +579,8 @@ export default function JarvisPage() {
                       {todaySessions.map((session) => (
                         <div
                           key={session.id}
-                          className="relative p-3 rounded-lg bg-card hover:bg-accent cursor-pointer transition-all border border-border hover:border-primary/50 group"
+                          className=" p-3 rounded-lg bg-card hover:bg-accent cursor-pointer  transition-all duration-300 ease-in-out 
+                                      hover:scale-100 hover:shadow-xl border border-border hover:border-primary/50 group"
                           onMouseEnter={() => setHoveredChat(session.id)}
                           onMouseLeave={() => setHoveredChat(null)}
                         >
@@ -588,7 +593,7 @@ export default function JarvisPage() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0"
+                                    className="h-5 hover:cursor-pointer w-5 p-0"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       // Toggle pin status
@@ -603,7 +608,7 @@ export default function JarvisPage() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0"
+                                    className="h-5 hover:cursor-pointer w-5 p-0"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleChatAction({ type: "rename", chatId: session.id })
@@ -614,7 +619,7 @@ export default function JarvisPage() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0"
+                                    className="h-5 hover:cursor-pointer w-5 p-0"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleChatAction({ type: "share", chatId: session.id })
@@ -625,7 +630,7 @@ export default function JarvisPage() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0"
+                                    className="h-5 hover:cursor-pointer w-5 p-0"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleChatAction({ type: "save", chatId: session.id })
@@ -692,7 +697,22 @@ export default function JarvisPage() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0"
+                                    className="h-5 hover:cursor-pointer w-5 p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      // Toggle pin status
+                                      console.log("Toggling pin for chat:", session.id)
+                                    }}
+                                  >
+                                    <Pin
+                                      size={10}
+                                      className={session.isPinned ? "text-primary" : "text-muted-foreground"}
+                                    />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-5 hover:cursor-pointer w-5 p-0"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleChatAction({ type: "rename", chatId: session.id })
@@ -703,7 +723,7 @@ export default function JarvisPage() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0"
+                                    className="h-5 hover:cursor-pointer w-5 p-0"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleChatAction({ type: "share", chatId: session.id })
@@ -714,7 +734,7 @@ export default function JarvisPage() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0"
+                                    className="h-5 hover:cursor-pointer w-5 p-0"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleChatAction({ type: "save", chatId: session.id })
@@ -878,9 +898,7 @@ export default function JarvisPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                    <span className="text-primary-foreground text-sm font-bold">R</span>
-                  </div>
+                  
                   <div>
                     <h2 className="font-semibold text-foreground">JARVIS RACE Research Assistant</h2>
                     <p className="text-xs text-muted-foreground">
@@ -892,22 +910,22 @@ export default function JarvisPage() {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center  space-x-2">
                 <Select value={selectedModel} onValueChange={setSelectedModel}>
-                  <SelectTrigger className="w-[180px] h-8 text-xs bg-card border-border">
-                    <div className="flex items-center gap-1.5">
+                  <SelectTrigger className="w-[180px]  h-8 text-xs bg-card border-border">
+                    <div className="flex hover:cursor-pointer items-center gap-1.5">
                       <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
                       <SelectValue>{selectedModelInfo?.model.name || "GPT-4o"}</SelectValue>
                     </div>
                   </SelectTrigger>
-                  <SelectContent className="w-[320px] bg-card border-border">
+                  <SelectContent className="w-[320px] bg-card border-border ">
                     {LLM_PROVIDERS.map((provider) => (
                       <SelectGroup key={provider.id}>
                         <SelectLabel className="text-xs font-semibold">{provider.name}</SelectLabel>
                         {provider.models.map((model) => (
-                          <SelectItem key={model.id} value={model.id} className="text-xs py-3">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-2">
+                          <SelectItem key={model.id} value={model.id} className="text-xs hover:cursor-pointer py-3">
+                            <div className="flex flex-col gap-1 hover:cursor-pointer">
+                              <div className="flex items-center gap-2 ">
                                 <span className="font-medium">{model.name}</span>
                                 {model.isPro && (
                                   <Badge variant="secondary" className="text-xs h-4 px-1">
@@ -951,35 +969,17 @@ export default function JarvisPage() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-muted-foreground bg-card/30 backdrop-blur-sm border-border/50"
+                  className="text-muted-foreground hover:cursor-pointer bg-card/30 backdrop-blur-sm border-border/50"
                 >
                   <Settings size={16} />
                 </Button>
+                
+              
+                
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-muted-foreground bg-card/30 backdrop-blur-sm border-border/50"
-                >
-                  <Download size={16} />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-muted-foreground bg-card/30 backdrop-blur-sm border-border/50"
-                >
-                  <Share size={16} />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-muted-foreground bg-card/30 backdrop-blur-sm border-border/50"
-                >
-                  <RefreshCw size={16} />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-muted-foreground bg-card/30 backdrop-blur-sm border-border/50"
+                  className="text-muted-foreground hover:cursor-pointer bg-card/30 backdrop-blur-sm border-border/50"
                 >
                   <Trash2 size={16} />
                 </Button>
@@ -988,7 +988,7 @@ export default function JarvisPage() {
           </div>
 
           {/* Messages Area */}
-          <ScrollArea className="flex-1 p-6 bg-background">
+          <ScrollArea className="flex-1 px-15 bg-background">
             <div className="max-w-5xl mx-auto space-y-6 px-4">
               {messages.map((message) => (
                 <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
@@ -1050,10 +1050,10 @@ export default function JarvisPage() {
             </div>
           </ScrollArea>
 
-          {/* Input Area */}
-          <div className="p-6 border-t border-border bg-card">
+          
+          
             <div className="max-w-5xl mx-auto px-4">
-              {selectedFile && (
+              {/* {selectedFile && (
                 <div className="mb-4 p-3 bg-muted rounded-xl border border-border flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <Paperclip size={16} className="text-muted-foreground" />
@@ -1068,16 +1068,16 @@ export default function JarvisPage() {
                     ×
                   </Button>
                 </div>
-              )}
+              )} */}
 
-              <div className="flex items-end space-x-4">
+              <div className=" w-[800px] bg-transparent pt-1 mb-10 flex items-end space-x-4">
                 <div className="flex-1 relative">
                   <Input
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Ask JARVIS anything about your research..."
-                    className="pr-24 py-4 bg-input border-border text-foreground placeholder-muted-foreground rounded-2xl text-base"
+                    className="pr-24 py-2 h-[52px] bg-input border-border text-foreground placeholder-muted-foreground rounded-[40px] text-base"
                     disabled={isLoading}
                   />
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
@@ -1091,36 +1091,36 @@ export default function JarvisPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-muted-foreground hover:text-foreground p-2 h-8 w-8"
+                      className="text-muted-foreground hover:cursor-pointer  hover:text-foreground p-2 h-8 w-8"
                       disabled={isLoading}
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      <Paperclip size={16} />
+                      <Paperclip size={32} />
                     </Button>
 
                     <Button
                       size="sm"
                       variant="ghost"
-                      className={`text-muted-foreground hover:text-foreground p-2 h-8 w-8 ${isRecording ? "text-destructive animate-pulse" : ""}`}
+                      className={`text-muted-foreground hover:cursor-pointer hover:text-foreground p-2 h-8 w-8 ${isRecording ? "text-destructive animate-pulse" : ""}`}
                       disabled={isLoading}
                       onClick={handleVoiceInput}
                     >
-                      <Mic size={16} />
+                      <Mic size={32} />
                     </Button>
                   </div>
                 </div>
                 <Button
                   onClick={handleSendMessage}
                   disabled={!inputMessage.trim() || isLoading}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground p-4 rounded-2xl min-w-[48px]"
+                  className="bg-primary h-[50px] hover:bg-primary/90 text-primary-foreground p-4 rounded-[52px] hover:cursor-pointer min-w-[48px]"
                 >
-                  {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                  {isLoading ? <Loader2 size={48} className="animate-spin" /> : <Send size={48} />}
                 </Button>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      
     </CleanBackground>
   )
 }

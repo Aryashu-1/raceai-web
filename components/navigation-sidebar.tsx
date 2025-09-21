@@ -4,6 +4,9 @@ import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { MessageSquare, Search, Users, Lightbulb, User } from "lucide-react"
 import Logo2D from "@/components/logo-2d"
+import { ThemeToggle } from "./theme-toggle"
+import Image from "next/image";
+import myIcon from "@/assets/my-icon.png";
 
 const navigationItems = [
   {
@@ -41,14 +44,19 @@ export default function NavigationSidebar() {
   const router = useRouter()
 
   return (
-    <div className="w-16 bg-white/10 backdrop-blur-md border-r border-white/20 flex flex-col items-center py-4">
+    <div className="w-16 bg-white/10 backdrop-blur-md border-r shadow-sm  border-white/20 flex flex-col items-center pt-2 pb-4">
       {/* Logo */}
       <div className="mb-8 cursor-pointer" onClick={() => router.push("/jarvis")}>
-        <Logo2D size="sm" />
+        <Image
+          src={myIcon}
+          alt="My PNG Icon"
+          className="h-[50px] mt-0 w-[50px] rounded-[10px]"
+
+        />
       </div>
 
       {/* Navigation Items */}
-      <div className="flex flex-col space-y-4">
+      <div className="flex flex-col mt-6 space-y-1">
         {navigationItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.path
@@ -59,8 +67,8 @@ export default function NavigationSidebar() {
               variant="ghost"
               size="sm"
               onClick={() => router.push(item.path)}
-              className={`w-12 h-12 p-0 rounded-xl transition-all duration-200 group relative ${
-                isActive ? "bg-primary text-white shadow-lg" : "text-gray-600 hover:text-primary hover:bg-white/20"
+              className={`w-12 h-12 p-0 rounded-xl transition-all duration-200 group hover:cursor-pointer relative ${
+                isActive ? "bg-primary text-secondary shadow-lg " : "text-gray-600 hover:text-primary hover:bg-white/20"
               }`}
               title={item.label}
             >
@@ -76,7 +84,10 @@ export default function NavigationSidebar() {
           )
         })}
       </div>
-
+      
+         <div className="mt-[320px]">
+                <ThemeToggle />
+            </div>
       {/* Profile Section */}
       <div className="mt-auto flex flex-col items-center space-y-4">
         <Button
@@ -91,6 +102,10 @@ export default function NavigationSidebar() {
           title="Profile"
         >
           <User size={20} />
+
+           
+           
+      
 
           {/* Tooltip */}
           <div className="absolute left-16 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">

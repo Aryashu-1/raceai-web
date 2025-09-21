@@ -181,7 +181,7 @@ export default function SOTAProblemsPage() {
   }
 
   return (
-    <div className="h-screen flex bg-background">
+    <div className="h-[100vh] flex bg-background">
       <NavigationSidebar />
 
       <div className="flex-1 flex flex-col">
@@ -231,10 +231,10 @@ export default function SOTAProblemsPage() {
           </div>
         </div>
 
-        <div className="flex-1 flex">
+        <div className="flex-1 flex ">
           {/* Problems List */}
           <div className="w-1/2 border-r border-border">
-            <ScrollArea className="h-full p-6">
+            <ScrollArea className="h-[calc(100vh-50px)] px-6 pt-6">
               <div className="space-y-4">
                 {filteredProblems.map((problem) => (
                   <Card
@@ -281,7 +281,7 @@ export default function SOTAProblemsPage() {
           </div>
 
           {/* Problem Details */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 h-[calc(100vh-50px)] flex flex-col">
             {selectedProblem ? (
               <>
                 <div className="p-6 border-b border-border">
@@ -392,33 +392,7 @@ export default function SOTAProblemsPage() {
           </div>
         </div>
 
-        {/* Bottom Input Area */}
-        <div className="p-6 border-t border-border bg-card">
-          <div className="max-w-4xl mx-auto">
-            <p className="text-sm text-muted-foreground mb-3">NEW TOPIC</p>
-            <div className="flex items-center space-x-3">
-              <div className="flex-1 relative">
-                <Input
-                  value={newTopicInput}
-                  onChange={(e) => setNewTopicInput(e.target.value)}
-                  placeholder="Let's research together...What's on your mind?"
-                  className="pr-20 py-3 text-base"
-                />
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-                  <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground">
-                    <Edit3 size={16} />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground">
-                    <Mic size={16} />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground">
-                    <BookOpen size={16} />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        
       </div>
     </div>
   )

@@ -1,17 +1,22 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Eye, EyeOff, ArrowRight, Check } from "lucide-react"
-import OnboardingContainer from "@/components/onboarding/onboarding-container"
-import RaceGeometricLogo from "@/components/race-geometric-logo"
-import Tesseract3D from "@/components/tesseract-3d"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, ArrowRight, Check } from "lucide-react";
+import OnboardingContainer from "@/components/onboarding/onboarding-container";
+import RaceGeometricLogo from "@/components/race-geometric-logo";
+import Tesseract3D from "@/components/tesseract-3d";
 
 const ResearchIcon = ({ type, size = 40 }) => {
   const icons = {
     dna: (
       <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-        <path d="M8 8C12 12 16 16 20 20C24 16 28 12 32 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path
+          d="M8 8C12 12 16 16 20 20C24 16 28 12 32 8"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
         <path
           d="M8 32C12 28 16 24 20 20C24 24 28 28 32 32"
           stroke="currentColor"
@@ -65,7 +70,14 @@ const ResearchIcon = ({ type, size = 40 }) => {
         <rect x="8" y="32" width="24" height="2" fill="currentColor" />
         <rect x="12" y="28" width="4" height="6" fill="currentColor" />
         <rect x="18" y="20" width="6" height="14" fill="currentColor" />
-        <circle cx="21" cy="16" r="4" stroke="currentColor" strokeWidth="2" fill="none" />
+        <circle
+          cx="21"
+          cy="16"
+          r="4"
+          stroke="currentColor"
+          strokeWidth="2"
+          fill="none"
+        />
         <rect x="20" y="8" width="2" height="8" fill="currentColor" />
         <circle cx="21" cy="8" r="2" fill="currentColor" />
       </svg>
@@ -87,13 +99,32 @@ const ResearchIcon = ({ type, size = 40 }) => {
           strokeWidth="2"
           fill="none"
         />
-        <path d="M16 14C18 16 22 16 24 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M14 18C16 20 20 20 22 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path
+          d="M16 14C18 16 22 16 24 14"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M14 18C16 20 20 20 22 18"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
       </svg>
     ),
     book: (
       <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-        <rect x="8" y="6" width="24" height="28" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
+        <rect
+          x="8"
+          y="6"
+          width="24"
+          height="28"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="2"
+          fill="none"
+        />
         <path d="M8 10L32 10" stroke="currentColor" strokeWidth="2" />
         <path d="M12 16L28 16" stroke="currentColor" strokeWidth="1" />
         <path d="M12 20L28 20" stroke="currentColor" strokeWidth="1" />
@@ -115,18 +146,39 @@ const ResearchIcon = ({ type, size = 40 }) => {
     ),
     molecule: (
       <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-        <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" fill="none" />
-        <circle cx="28" cy="12" r="4" stroke="currentColor" strokeWidth="2" fill="none" />
-        <circle cx="20" cy="28" r="4" stroke="currentColor" strokeWidth="2" fill="none" />
+        <circle
+          cx="12"
+          cy="12"
+          r="4"
+          stroke="currentColor"
+          strokeWidth="2"
+          fill="none"
+        />
+        <circle
+          cx="28"
+          cy="12"
+          r="4"
+          stroke="currentColor"
+          strokeWidth="2"
+          fill="none"
+        />
+        <circle
+          cx="20"
+          cy="28"
+          r="4"
+          stroke="currentColor"
+          strokeWidth="2"
+          fill="none"
+        />
         <path d="M16 12L24 12" stroke="currentColor" strokeWidth="2" />
         <path d="M14 16L18 24" stroke="currentColor" strokeWidth="2" />
         <path d="M26 16L22 24" stroke="currentColor" strokeWidth="2" />
       </svg>
     ),
-  }
+  };
 
-  return <div className="text-blue-300">{icons[type]}</div>
-}
+  return <div className="text-blue-300">{icons[type]}</div>;
+};
 
 const AnimatedLogoFormation = () => {
   const logoSegments = [
@@ -146,17 +198,17 @@ const AnimatedLogoFormation = () => {
     { start: { x: 0, y: 70 }, end: { x: 0, y: 30 }, delay: 3 },
     // Top-left edge
     { start: { x: 0, y: 30 }, end: { x: 30, y: 0 }, delay: 3.5 },
-  ]
+  ];
 
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
       <div className="relative w-32 h-32">
         {/* Converging lines from all directions */}
         {Array.from({ length: 16 }, (_, i) => {
-          const angle = i * 22.5 * (Math.PI / 180)
-          const distance = 60
-          const startX = Math.cos(angle) * distance
-          const startY = Math.sin(angle) * distance
+          const angle = i * 22.5 * (Math.PI / 180);
+          const distance = 60;
+          const startX = Math.cos(angle) * distance;
+          const startY = Math.sin(angle) * distance;
 
           return (
             <div
@@ -171,7 +223,7 @@ const AnimatedLogoFormation = () => {
                 opacity: 0,
               }}
             />
-          )
+          );
         })}
 
         {/* Logo formation segments */}
@@ -200,7 +252,13 @@ const AnimatedLogoFormation = () => {
           ))}
 
           <defs>
-            <linearGradient id="raceLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient
+              id="raceLogoGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
               <stop offset="0%" stopColor="#1E40AF" stopOpacity="0.8" />
               <stop offset="50%" stopColor="#2563EB" stopOpacity="0.9" />
               <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.7" />
@@ -220,18 +278,72 @@ const AnimatedLogoFormation = () => {
         />
       </div>
     </div>
-  )
-}
+  );
+};
 
 const FloatingCircularElements = ({ isReturningUser = false }) => {
   const orbitalElements = [
-    { id: 1, type: "dna", size: 80, orbit: "inner", angle: 0, delay: 0, speed: 90, orbitRadius: 200 },
-    { id: 2, type: "atom", size: 70, orbit: "middle", angle: 120, delay: 3, speed: 140, orbitRadius: 320 },
-    { id: 3, type: "brain", size: 85, orbit: "outer", angle: 240, delay: 6, speed: 110, orbitRadius: 420 },
-    { id: 4, type: "microscope", size: 75, orbit: "inner", angle: 180, delay: 9, speed: 80, orbitRadius: 180 },
-    { id: 5, type: "chart", size: 80, orbit: "middle", angle: 300, delay: 12, speed: 160, orbitRadius: 350 },
-    { id: 6, type: "network", size: 70, orbit: "outer", angle: 60, delay: 15, speed: 120, orbitRadius: 400 },
-  ]
+    {
+      id: 1,
+      type: "dna",
+      size: 80,
+      orbit: "inner",
+      angle: 0,
+      delay: 0,
+      speed: 90,
+      orbitRadius: 200,
+    },
+    {
+      id: 2,
+      type: "atom",
+      size: 70,
+      orbit: "middle",
+      angle: 120,
+      delay: 3,
+      speed: 140,
+      orbitRadius: 320,
+    },
+    {
+      id: 3,
+      type: "brain",
+      size: 85,
+      orbit: "outer",
+      angle: 240,
+      delay: 6,
+      speed: 110,
+      orbitRadius: 420,
+    },
+    {
+      id: 4,
+      type: "microscope",
+      size: 75,
+      orbit: "inner",
+      angle: 180,
+      delay: 9,
+      speed: 80,
+      orbitRadius: 180,
+    },
+    {
+      id: 5,
+      type: "chart",
+      size: 80,
+      orbit: "middle",
+      angle: 300,
+      delay: 12,
+      speed: 160,
+      orbitRadius: 350,
+    },
+    {
+      id: 6,
+      type: "network",
+      size: 70,
+      orbit: "outer",
+      angle: 60,
+      delay: 15,
+      speed: 120,
+      orbitRadius: 400,
+    },
+  ];
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
@@ -247,15 +359,16 @@ const FloatingCircularElements = ({ isReturningUser = false }) => {
             transform: `translate(-50%, -50%) rotate(${element.angle}deg) translateX(${element.orbitRadius}px) rotate(-${element.angle}deg)`,
             animation: `orbitalMotion${element.id} ${element.speed}s linear infinite`,
             animationDelay: `${element.delay}s`,
-            filter: "drop-shadow(0 4px 12px rgba(59, 130, 246, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.1))",
+            filter:
+              "drop-shadow(0 4px 12px rgba(59, 130, 246, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.1))",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.filter =
-              "drop-shadow(0 8px 24px rgba(59, 130, 246, 0.6)) drop-shadow(0 0 40px rgba(59, 130, 246, 0.4))"
+              "drop-shadow(0 8px 24px rgba(59, 130, 246, 0.6)) drop-shadow(0 0 40px rgba(59, 130, 246, 0.4))";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.filter =
-              "drop-shadow(0 4px 12px rgba(59, 130, 246, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.1))"
+              "drop-shadow(0 4px 12px rgba(59, 130, 246, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.1))";
           }}
         >
           <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400/20 to-blue-600/30 group-hover:from-blue-300/30 group-hover:to-blue-500/40 transition-all duration-700" />
@@ -285,129 +398,132 @@ const FloatingCircularElements = ({ isReturningUser = false }) => {
             left: `${15 + i * 15}%`,
             animation: `floatDot ${20 + i * 3}s ease-in-out infinite`,
             animationDelay: `${i * 2}s`,
-            filter: "drop-shadow(0 2px 8px rgba(59, 130, 246, 0.4)) drop-shadow(0 0 12px rgba(59, 130, 246, 0.2))",
+            filter:
+              "drop-shadow(0 2px 8px rgba(59, 130, 246, 0.4)) drop-shadow(0 0 12px rgba(59, 130, 246, 0.2))",
           }}
         />
       ))}
     </div>
-  )
-}
+  );
+};
 
 export default function LandingPage() {
-  const router = useRouter()
-  const [showOnboarding, setShowOnboarding] = useState(false)
-  const [isSignUp, setIsSignUp] = useState(true)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [scrollY, setScrollY] = useState(0)
-  const [keepSignedIn, setKeepSignedIn] = useState(false)
-  const [currentUser, setCurrentUser] = useState(null)
-  const [isReturningUser, setIsReturningUser] = useState(false)
+  const router = useRouter();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const [keepSignedIn, setKeepSignedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isReturningUser, setIsReturningUser] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     confirmPassword: "",
-  })
-  const [userData, setUserData] = useState({})
+  });
+  const [userData, setUserData] = useState({});
   const [formErrors, setFormErrors] = useState({
     email: "",
     password: "",
     confirmPassword: "",
-  })
+  });
 
   const handleOnboardingComplete = () => {
     // Handle onboarding completion logic here
-    setShowOnboarding(false)
-  }
+    setShowOnboarding(false);
+  };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("race_ai_user")
-    const hasVisited = localStorage.getItem("race_ai_visited")
+    const savedUser = localStorage.getItem("race_ai_user");
+    const hasVisited = localStorage.getItem("race_ai_visited");
 
     if (savedUser) {
       try {
-        const user = JSON.parse(savedUser)
+        const user = JSON.parse(savedUser);
         if (user.authenticated && user.keepSignedIn) {
-          setCurrentUser(user)
+          setCurrentUser(user);
         }
       } catch (error) {
-        console.error("Error parsing saved user:", error)
+        console.error("Error parsing saved user:", error);
       }
     }
 
     if (hasVisited) {
-      setIsReturningUser(true)
+      setIsReturningUser(true);
     } else {
-      localStorage.setItem("race_ai_visited", "true")
+      localStorage.setItem("race_ai_visited", "true");
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY)
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleInputChange = (e) => {
     if (!e || !e.target) {
-      console.error("[v0] Event or event.target is undefined in handleInputChange")
-      return
+      console.error(
+        "[v0] Event or event.target is undefined in handleInputChange"
+      );
+      return;
     }
 
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }))
+    }));
 
     if (formErrors[name]) {
       setFormErrors((prev) => ({
         ...prev,
         [name]: "",
-      }))
+      }));
     }
-  }
+  };
 
   const validateForm = () => {
-    const errors = {}
+    const errors = {};
 
     if (!formData.email) {
-      errors.email = "Email is required"
+      errors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = "Please enter a valid email address"
+      errors.email = "Please enter a valid email address";
     }
 
     if (!formData.password) {
-      errors.password = "Password is required"
+      errors.password = "Password is required";
     } else if (formData.password.length < 8) {
-      errors.password = "Password must be at least 8 characters long"
+      errors.password = "Password must be at least 8 characters long";
     }
 
     if (isSignUp) {
       if (!formData.confirmPassword) {
-        errors.confirmPassword = "Please confirm your password"
+        errors.confirmPassword = "Please confirm your password";
       } else if (formData.password !== formData.confirmPassword) {
-        errors.confirmPassword = "Passwords don't match"
+        errors.confirmPassword = "Passwords don't match";
       }
     }
 
-    setFormErrors(errors)
-    return Object.keys(errors).length === 0
-  }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!validateForm()) {
-      return
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
       if (isSignUp) {
-        await new Promise((resolve) => setTimeout(resolve, 1500))
+        await new Promise((resolve) => setTimeout(resolve, 1500));
 
         if (formData.email && formData.password) {
           setUserData({
@@ -415,11 +531,11 @@ export default function LandingPage() {
             password: formData.password,
             authMethod: "email",
             keepSignedIn,
-          })
-          setShowOnboarding(true)
+          });
+          setShowOnboarding(true);
         }
       } else {
-        await new Promise((resolve) => setTimeout(resolve, 1500))
+        await new Promise((resolve) => setTimeout(resolve, 1500));
 
         const signedInUser = {
           email: formData.email,
@@ -427,25 +543,30 @@ export default function LandingPage() {
           onboardingComplete: true,
           keepSignedIn,
           name: formData.email.split("@")[0],
-        }
+        };
 
-        localStorage.setItem("race_ai_user", JSON.stringify(signedInUser))
-        router.push("/jarvis")
+        localStorage.setItem("race_ai_user", JSON.stringify(signedInUser));
+        router.push("/jarvis");
       }
     } catch (error) {
-      console.error("Authentication error:", error)
-      setFormErrors({ email: "Authentication failed. Please try again." })
+      console.error("Authentication error:", error);
+      setFormErrors({ email: "Authentication failed. Please try again." });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleWelcomeBack = () => {
-    router.push("/jarvis")
-  }
+    router.push("/jarvis");
+  };
 
   if (showOnboarding) {
-    return <OnboardingContainer initialUserData={userData} onComplete={handleOnboardingComplete} />
+    return (
+      <OnboardingContainer
+        initialUserData={userData}
+        onComplete={handleOnboardingComplete}
+      />
+    );
   }
 
   return (
@@ -504,7 +625,9 @@ export default function LandingPage() {
                 style={{
                   background: `linear-gradient(to right, #1E40AF30, transparent, #1E40AF30)`,
                   transform: `translateY(-50%) rotate(${i * 45}deg)`,
-                  animation: `connectionPulse ${6 + i * 0.5}s ease-in-out infinite`,
+                  animation: `connectionPulse ${
+                    6 + i * 0.5
+                  }s ease-in-out infinite`,
                   animationDelay: `${i * 0.3}s`,
                 }}
               />
@@ -547,7 +670,11 @@ export default function LandingPage() {
           <div className="max-w-2xl">
             <div className="mb-12">
               <div className="flex items-center gap-4 mb-8">
-                <RaceGeometricLogo size={48} variant="primary" showText={true} />
+                <RaceGeometricLogo
+                  size={48}
+                  variant="primary"
+                  showText={true}
+                />
               </div>
             </div>
 
@@ -557,7 +684,8 @@ export default function LandingPage() {
                   <h2
                     className="text-6xl font-bold text-foreground leading-tight"
                     style={{
-                      textShadow: "0 8px 32px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4)",
+                      textShadow:
+                        "0 8px 32px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4)",
                       fontFamily: "'Satoshi', 'Inter', sans-serif",
                     }}
                   >
@@ -570,7 +698,8 @@ export default function LandingPage() {
                   <h2
                     className="text-6xl font-bold text-foreground leading-tight"
                     style={{
-                      textShadow: "0 8px 32px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4)",
+                      textShadow:
+                        "0 8px 32px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4)",
                       fontFamily: "'Satoshi', 'Inter', sans-serif",
                     }}
                   >
@@ -587,19 +716,24 @@ export default function LandingPage() {
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     backgroundClip: "text",
-                    filter: "blur(1px) drop-shadow(0 2px 8px rgba(255, 255, 255, 0.1))",
-                    maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 60%)",
-                    WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 60%)",
+                    filter:
+                      "blur(1px) drop-shadow(0 2px 8px rgba(255, 255, 255, 0.1))",
+                    maskImage:
+                      "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 60%)",
+                    WebkitMaskImage:
+                      "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 60%)",
                     fontFamily: "'Satoshi', 'Inter', sans-serif",
                   }}
                 >
                   {isReturningUser && !currentUser ? (
                     <>
-                      Welcome back to<span className="text-blue-400"> RACE</span>
+                      Welcome back to
+                      <span className="text-blue-400"> RACE</span>
                     </>
                   ) : (
                     <>
-                      Research made<span className="text-blue-400"> simple</span>
+                      Research made
+                      <span className="text-blue-400"> simple</span>
                     </>
                   )}
                 </div>
@@ -616,9 +750,12 @@ export default function LandingPage() {
               <div className="flex items-center gap-4 group">
                 <div className="w-2 h-2 bg-blue-400 rounded-full group-hover:scale-125 transition-transform" />
                 <div>
-                  <span className="text-white font-semibold">Intelligent paper discovery and analysis</span>
+                  <span className="text-white font-semibold">
+                    Intelligent paper discovery and analysis
+                  </span>
                   <p className="text-blue-200 text-sm mt-1">
-                    AI-powered insights that help you understand complex research papers in minutes
+                    AI-powered insights that help you understand complex
+                    research papers in minutes
                   </p>
                 </div>
               </div>
@@ -626,9 +763,12 @@ export default function LandingPage() {
               <div className="flex items-center gap-4 group">
                 <div className="w-2 h-2 bg-blue-400 rounded-full group-hover:scale-125 transition-transform" />
                 <div>
-                  <span className="text-white font-semibold">Seamless collaboration with peers and mentors</span>
+                  <span className="text-white font-semibold">
+                    Seamless collaboration with peers and mentors
+                  </span>
                   <p className="text-blue-200 text-sm mt-1">
-                    Work together in real-time, share insights, and build knowledge as a team
+                    Work together in real-time, share insights, and build
+                    knowledge as a team
                   </p>
                 </div>
               </div>
@@ -636,9 +776,12 @@ export default function LandingPage() {
               <div className="flex items-center gap-4 group">
                 <div className="w-2 h-2 bg-blue-400 rounded-full group-hover:scale-125 transition-transform" />
                 <div>
-                  <span className="text-white font-semibold">Progress tracking and milestone management</span>
+                  <span className="text-white font-semibold">
+                    Progress tracking and milestone management
+                  </span>
                   <p className="text-blue-200 text-sm mt-1">
-                    Stay organized with intelligent project management and research goal tracking
+                    Stay organized with intelligent project management and
+                    research goal tracking
                   </p>
                 </div>
               </div>
@@ -661,8 +804,12 @@ export default function LandingPage() {
               <div className="mb-8 text-center relative z-10">
                 {currentUser ? (
                   <>
-                    <h3 className="text-3xl font-bold text-foreground mb-2">Welcome back, {currentUser.name}!</h3>
-                    <p className="text-muted-foreground">Ready to continue your research?</p>
+                    <h3 className="text-3xl font-bold text-foreground mb-2">
+                      Welcome back, {currentUser.name}!
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Ready to continue your research?
+                    </p>
                     <button
                       onClick={handleWelcomeBack}
                       className="mt-6 w-full race-btn-primary py-4 rounded-xl font-semibold text-base transform hover:scale-105 transition-all duration-200"
@@ -675,7 +822,9 @@ export default function LandingPage() {
                   </>
                 ) : (
                   <>
-                    <h3 className="text-3xl font-bold text-foreground mb-2">Get started</h3>
+                    <h3 className="text-3xl font-bold text-foreground mb-2">
+                      Get started
+                    </h3>
                     <p className="text-muted-foreground">Get. Set. Race.</p>
                   </>
                 )}
@@ -687,7 +836,9 @@ export default function LandingPage() {
                     <button
                       onClick={() => setIsSignUp(false)}
                       className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                        !isSignUp ? "race-btn-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        !isSignUp
+                          ? "race-btn-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
                       }`}
                     >
                       Sign In
@@ -695,7 +846,9 @@ export default function LandingPage() {
                     <button
                       onClick={() => setIsSignUp(true)}
                       className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                        isSignUp ? "race-btn-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        isSignUp
+                          ? "race-btn-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
                       }`}
                     >
                       Sign Up
@@ -704,7 +857,9 @@ export default function LandingPage() {
 
                   <div className="space-y-6 relative z-10">
                     <div>
-                      <label className="block text-sm font-semibold text-foreground mb-2">Email address</label>
+                      <label className="block text-sm font-semibold text-foreground mb-2">
+                        Email address
+                      </label>
                       <input
                         type="email"
                         name="email"
@@ -713,7 +868,11 @@ export default function LandingPage() {
                         placeholder="your.email@university.edu"
                         className="race-input w-full"
                       />
-                      {formErrors.email && <p className="text-destructive text-xs mt-1">{formErrors.email}</p>}
+                      {formErrors.email && (
+                        <p className="text-destructive text-xs mt-1">
+                          {formErrors.email}
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -726,8 +885,14 @@ export default function LandingPage() {
                           name="password"
                           value={formData.password}
                           onChange={handleInputChange}
-                          className={`race-input w-full pr-12 ${formErrors.password ? "border-red-400" : ""}`}
-                          placeholder={isSignUp ? "Create a secure password" : "Enter your password"}
+                          className={`race-input w-full pr-12 ${
+                            formErrors.password ? "border-red-400" : ""
+                          }`}
+                          placeholder={
+                            isSignUp
+                              ? "Create a secure password"
+                              : "Enter your password"
+                          }
                           required
                         />
                         <button
@@ -735,35 +900,55 @@ export default function LandingPage() {
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                         >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showPassword ? (
+                            <EyeOff size={18} />
+                          ) : (
+                            <Eye size={18} />
+                          )}
                         </button>
                       </div>
-                      {formErrors.password && <p className="mt-1 text-sm text-red-400">{formErrors.password}</p>}
+                      {formErrors.password && (
+                        <p className="mt-1 text-sm text-red-400">
+                          {formErrors.password}
+                        </p>
+                      )}
                     </div>
 
                     {isSignUp && (
                       <div>
-                        <label className="block text-sm font-semibold text-foreground mb-2">Confirm password</label>
+                        <label className="block text-sm font-semibold text-foreground mb-2">
+                          Confirm password
+                        </label>
                         <div className="relative">
                           <input
                             type={showConfirmPassword ? "text" : "password"}
                             name="confirmPassword"
                             value={formData.confirmPassword}
                             onChange={handleInputChange}
-                            className={`race-input w-full pr-12 ${formErrors.confirmPassword ? "border-red-400" : ""}`}
+                            className={`race-input w-full pr-12 ${
+                              formErrors.confirmPassword ? "border-red-400" : ""
+                            }`}
                             placeholder="Re-enter your password"
                             required
                           />
                           <button
                             type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            onClick={() =>
+                              setShowConfirmPassword(!showConfirmPassword)
+                            }
                             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                           >
-                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            {showConfirmPassword ? (
+                              <EyeOff size={18} />
+                            ) : (
+                              <Eye size={18} />
+                            )}
                           </button>
                         </div>
                         {formErrors.confirmPassword && (
-                          <p className="mt-1 text-sm text-red-400">{formErrors.confirmPassword}</p>
+                          <p className="mt-1 text-sm text-red-400">
+                            {formErrors.confirmPassword}
+                          </p>
                         )}
                       </div>
                     )}
@@ -773,10 +958,14 @@ export default function LandingPage() {
                         type="button"
                         onClick={() => setKeepSignedIn(!keepSignedIn)}
                         className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
-                          keepSignedIn ? "bg-primary border-primary" : "border-border hover:border-foreground/50"
+                          keepSignedIn
+                            ? "bg-primary border-primary"
+                            : "border-border hover:border-foreground/50"
                         }`}
                       >
-                        {keepSignedIn && <Check size={12} className="text-white" />}
+                        {keepSignedIn && (
+                          <Check size={12} className="text-white" />
+                        )}
                       </button>
                       <label
                         onClick={() => setKeepSignedIn(!keepSignedIn)}
@@ -798,7 +987,9 @@ export default function LandingPage() {
                         </div>
                       ) : (
                         <div className="flex items-center justify-center gap-2">
-                          <span>{isSignUp ? "Continue with JARVIS" : "Sign In"}</span>
+                          <span>
+                            {isSignUp ? "Continue with JARVIS" : "Sign In"}
+                          </span>
                           <ArrowRight size={18} />
                         </div>
                       )}
@@ -809,7 +1000,9 @@ export default function LandingPage() {
                         <div className="w-full border-t border-border"></div>
                       </div>
                       <div className="relative flex justify-center text-sm">
-                        <span className="bg-background px-4 text-muted-foreground">or continue with</span>
+                        <span className="bg-background px-4 text-muted-foreground">
+                          or continue with
+                        </span>
                       </div>
                     </div>
 
@@ -818,19 +1011,23 @@ export default function LandingPage() {
                         type="button"
                         onClick={async () => {
                           try {
-                            const { signInWithGoogle } = await import("@/lib/google-auth")
-                            const result = await signInWithGoogle()
+                            const { signInWithGoogle } = await import(
+                              "@/lib/google-auth"
+                            );
+                            const result = await signInWithGoogle();
                             if (result.success) {
                               setUserData({
                                 method: "google",
                                 email: result.user.email,
                                 name: result.user.name,
                                 avatar: result.user.picture,
-                              })
-                              setShowOnboarding(true)
+                              });
+                              setShowOnboarding(true);
                             }
                           } catch (error) {
-                            setFormErrors({ email: "Google sign-in failed. Please try again." })
+                            setFormErrors({
+                              email: "Google sign-in failed. Please try again.",
+                            });
                           }
                         }}
                         className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-muted border border-border rounded-xl text-foreground font-medium hover:bg-muted transform hover:scale-105 transition-all duration-200"
@@ -860,8 +1057,9 @@ export default function LandingPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            const dropdown = document.getElementById("sso-dropdown")
-                            dropdown.classList.toggle("hidden")
+                            const dropdown =
+                              document.getElementById("sso-dropdown");
+                            dropdown.classList.toggle("hidden");
                           }}
                           className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-muted border border-border rounded-xl text-foreground font-medium hover:bg-muted transform hover:scale-105 transition-all duration-200"
                         >
@@ -872,35 +1070,61 @@ export default function LandingPage() {
                           id="sso-dropdown"
                           className="hidden absolute top-full left-0 right-0 mt-2 bg-slate-800/90 backdrop-blur-xl border border-white/20 rounded-xl p-4 z-50"
                           style={{
-                            boxShadow: "0 10px 25px rgba(255, 255, 255, 0.1), 0 5px 15px rgba(0, 0, 0, 0.2)",
+                            boxShadow:
+                              "0 10px 25px rgba(255, 255, 255, 0.1), 0 5px 15px rgba(0, 0, 0, 0.2)",
                           }}
                         >
                           <div className="space-y-3">
                             <button
                               onClick={async () => {
-                                const email = prompt("Enter your email address:")
+                                const email = prompt(
+                                  "Enter your email address:"
+                                );
                                 if (email && /\S+@\S+\.\S+/.test(email)) {
                                   try {
-                                    const { sendEmailOTP } = await import("@/lib/sso-auth")
-                                    await sendEmailOTP(email)
-                                    const otp = prompt("Enter the OTP sent to your email:")
+                                    const { sendEmailOTP } = await import(
+                                      "@/lib/sso-auth"
+                                    );
+                                    await sendEmailOTP(email);
+                                    const otp = prompt(
+                                      "Enter the OTP sent to your email:"
+                                    );
                                     if (otp) {
-                                      const { verifyOTP } = await import("@/lib/sso-auth")
-                                      const result = await verifyOTP(email, otp)
+                                      const { verifyOTP } = await import(
+                                        "@/lib/sso-auth"
+                                      );
+                                      const result = await verifyOTP(
+                                        email,
+                                        otp
+                                      );
                                       if (result.success) {
-                                        setUserData({ method: "email-otp", email })
-                                        setShowOnboarding(true)
+                                        setUserData({
+                                          method: "email-otp",
+                                          email,
+                                        });
+                                        setShowOnboarding(true);
                                       } else {
-                                        setFormErrors({ email: "Invalid OTP. Please try again." })
+                                        setFormErrors({
+                                          email:
+                                            "Invalid OTP. Please try again.",
+                                        });
                                       }
                                     }
                                   } catch (error) {
-                                    setFormErrors({ email: "Failed to send OTP. Please try again." })
+                                    setFormErrors({
+                                      email:
+                                        "Failed to send OTP. Please try again.",
+                                    });
                                   }
                                 } else {
-                                  setFormErrors({ email: "Please enter a valid email address." })
+                                  setFormErrors({
+                                    email:
+                                      "Please enter a valid email address.",
+                                  });
                                 }
-                                document.getElementById("sso-dropdown").classList.add("hidden")
+                                document
+                                  .getElementById("sso-dropdown")
+                                  .classList.add("hidden");
                               }}
                               className="w-full text-left px-3 py-2 text-blue-100 hover:bg-blue-600/20 rounded-lg transform hover:scale-105 transition-all duration-200"
                             >
@@ -908,29 +1132,53 @@ export default function LandingPage() {
                             </button>
                             <button
                               onClick={async () => {
-                                const phone = prompt("Enter your phone number:")
+                                const phone = prompt(
+                                  "Enter your phone number:"
+                                );
                                 if (phone && /^\+?[\d\s-()]+$/.test(phone)) {
                                   try {
-                                    const { sendPhoneOTP } = await import("@/lib/sso-auth")
-                                    await sendPhoneOTP(phone)
-                                    const otp = prompt("Enter the OTP sent to your phone:")
+                                    const { sendPhoneOTP } = await import(
+                                      "@/lib/sso-auth"
+                                    );
+                                    await sendPhoneOTP(phone);
+                                    const otp = prompt(
+                                      "Enter the OTP sent to your phone:"
+                                    );
                                     if (otp) {
-                                      const { verifyOTP } = await import("@/lib/sso-auth")
-                                      const result = await verifyOTP(phone, otp)
+                                      const { verifyOTP } = await import(
+                                        "@/lib/sso-auth"
+                                      );
+                                      const result = await verifyOTP(
+                                        phone,
+                                        otp
+                                      );
                                       if (result.success) {
-                                        setUserData({ method: "phone-otp", phone })
-                                        setShowOnboarding(true)
+                                        setUserData({
+                                          method: "phone-otp",
+                                          phone,
+                                        });
+                                        setShowOnboarding(true);
                                       } else {
-                                        setFormErrors({ email: "Invalid OTP. Please try again." })
+                                        setFormErrors({
+                                          email:
+                                            "Invalid OTP. Please try again.",
+                                        });
                                       }
                                     }
                                   } catch (error) {
-                                    setFormErrors({ email: "Failed to send OTP. Please try again." })
+                                    setFormErrors({
+                                      email:
+                                        "Failed to send OTP. Please try again.",
+                                    });
                                   }
                                 } else {
-                                  setFormErrors({ email: "Please enter a valid phone number." })
+                                  setFormErrors({
+                                    email: "Please enter a valid phone number.",
+                                  });
                                 }
-                                document.getElementById("sso-dropdown").classList.add("hidden")
+                                document
+                                  .getElementById("sso-dropdown")
+                                  .classList.add("hidden");
                               }}
                               className="w-full text-left px-3 py-2 text-blue-100 hover:bg-blue-600/20 rounded-lg transform hover:scale-105 transition-all duration-200"
                             >
@@ -947,7 +1195,7 @@ export default function LandingPage() {
                         onClick={() => router.push("/demo")}
                         className="text-sm text-blue-300 hover:text-white transform hover:scale-105 transition-all duration-200"
                       >
-                        Try demo without signing up
+                        Take a look at our demo
                       </button>
                     </div>
                   </div>
@@ -958,5 +1206,5 @@ export default function LandingPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

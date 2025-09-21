@@ -689,9 +689,9 @@ export default function LandingPage() {
                       fontFamily: "'Satoshi', 'Inter', sans-serif",
                     }}
                   >
-                    Research made
+                    Research accessible
                     <span className="text-primary">
-                      <i> simple</i>
+                      <i> by everyone</i>
                     </span>
                   </h2>
                 ) : (
@@ -703,8 +703,8 @@ export default function LandingPage() {
                       fontFamily: "'Satoshi', 'Inter', sans-serif",
                     }}
                   >
-                    Research made
-                    <span className="text-primary"> simple</span>
+                    Research accessible
+                    <span className="text-primary"> by everyone</span>
                   </h2>
                 )}
 
@@ -732,8 +732,8 @@ export default function LandingPage() {
                     </>
                   ) : (
                     <>
-                      Research made
-                      <span className="text-blue-400"> simple</span>
+                      Research accessible
+                      <span className="text-blue-400"> by everyone</span>
                     </>
                   )}
                 </div>

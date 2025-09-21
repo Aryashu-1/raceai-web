@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 const EllipticalResearchBackground = () => {
   return (
@@ -12,13 +12,7 @@ const EllipticalResearchBackground = () => {
           {/* Ellipse border with flowing light */}
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 600">
             <defs>
-              <linearGradient
-                id="ellipseGlow"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="0%"
-              >
+              <linearGradient id="ellipseGlow" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#246CD8" stopOpacity="0.1" />
                 <stop offset="50%" stopColor="#0052CC" stopOpacity="0.3" />
                 <stop offset="100%" stopColor="#246CD8" stopOpacity="0.1" />
@@ -45,16 +39,7 @@ const EllipticalResearchBackground = () => {
             />
 
             {/* Inner ellipse */}
-            <ellipse
-              cx="400"
-              cy="300"
-              rx="280"
-              ry="200"
-              fill="none"
-              stroke="#246CD8"
-              strokeWidth="1"
-              opacity="0.2"
-            />
+            <ellipse cx="400" cy="300" rx="280" ry="200" fill="none" stroke="#246CD8" strokeWidth="1" opacity="0.2" />
           </svg>
 
           {/* Research objects floating inside ellipse */}
@@ -71,12 +56,7 @@ const EllipticalResearchBackground = () => {
                 strokeWidth="1.5"
                 opacity="0.6"
               />
-              <path
-                d="M8 8L16 16M16 8L8 16"
-                stroke="#0052CC"
-                strokeWidth="1.5"
-                opacity="0.8"
-              />
+              <path d="M8 8L16 16M16 8L8 16" stroke="#0052CC" strokeWidth="1.5" opacity="0.8" />
               <circle cx="8" cy="8" r="1.5" fill="#246CD8" opacity="0.7" />
               <circle cx="16" cy="16" r="1.5" fill="#0052CC" opacity="0.7" />
             </svg>
@@ -91,12 +71,7 @@ const EllipticalResearchBackground = () => {
               <circle cx="12" cy="6" r="2" fill="#246CD8" opacity="0.7" />
               <circle cx="6" cy="18" r="2" fill="#0052CC" opacity="0.7" />
               <circle cx="18" cy="18" r="2" fill="#246CD8" opacity="0.7" />
-              <path
-                d="M12 8L6 16M12 8L18 16"
-                stroke="#0052CC"
-                strokeWidth="1.5"
-                opacity="0.5"
-              />
+              <path d="M12 8L6 16M12 8L18 16" stroke="#0052CC" strokeWidth="1.5" opacity="0.5" />
             </svg>
           </div>
 
@@ -126,12 +101,7 @@ const EllipticalResearchBackground = () => {
                 fill="#0052CC"
                 opacity="0.6"
               />
-              <path
-                d="M12 6L5 9M12 6L19 9M5 9L12 18M19 9L12 18"
-                stroke="#246CD8"
-                strokeWidth="1"
-                opacity="0.4"
-              />
+              <path d="M12 6L5 9M12 6L19 9M5 9L12 18M19 9L12 18" stroke="#246CD8" strokeWidth="1" opacity="0.4" />
             </svg>
           </div>
 
@@ -141,33 +111,10 @@ const EllipticalResearchBackground = () => {
             style={{ animationDelay: "1s", animationDuration: "9s" }}
           >
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M8 2V6H16V2"
-                stroke="#0052CC"
-                strokeWidth="1.5"
-                opacity="0.6"
-              />
-              <path
-                d="M12 6V10"
-                stroke="#246CD8"
-                strokeWidth="1.5"
-                opacity="0.7"
-              />
-              <circle
-                cx="12"
-                cy="12"
-                r="3"
-                stroke="#0052CC"
-                strokeWidth="1.5"
-                fill="none"
-                opacity="0.5"
-              />
-              <path
-                d="M6 20H18"
-                stroke="#246CD8"
-                strokeWidth="1.5"
-                opacity="0.6"
-              />
+              <path d="M8 2V6H16V2" stroke="#0052CC" strokeWidth="1.5" opacity="0.6" />
+              <path d="M12 6V10" stroke="#246CD8" strokeWidth="1.5" opacity="0.7" />
+              <circle cx="12" cy="12" r="3" stroke="#0052CC" strokeWidth="1.5" fill="none" opacity="0.5" />
+              <path d="M6 20H18" stroke="#246CD8" strokeWidth="1.5" opacity="0.6" />
             </svg>
           </div>
 
@@ -177,12 +124,7 @@ const EllipticalResearchBackground = () => {
             style={{ animationDelay: "3s", animationDuration: "11s" }}
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M3 20L9 14L13 18L21 10"
-                stroke="#246CD8"
-                strokeWidth="2"
-                opacity="0.7"
-              />
+              <path d="M3 20L9 14L13 18L21 10" stroke="#246CD8" strokeWidth="2" opacity="0.7" />
               <circle cx="9" cy="14" r="2" fill="#0052CC" opacity="0.6" />
               <circle cx="13" cy="18" r="2" fill="#246CD8" opacity="0.6" />
               <circle cx="21" cy="10" r="2" fill="#0052CC" opacity="0.6" />
@@ -233,12 +175,7 @@ const EllipticalResearchBackground = () => {
                 strokeWidth="1.5"
                 opacity="0.6"
               />
-              <path
-                d="M8 8H16M8 12H16M8 16H12"
-                stroke="#246CD8"
-                strokeWidth="1"
-                opacity="0.7"
-              />
+              <path d="M8 8H16M8 12H16M8 16H12" stroke="#246CD8" strokeWidth="1" opacity="0.7" />
             </svg>
           </div>
 
@@ -261,7 +198,7 @@ const EllipticalResearchBackground = () => {
       {/* Subtle ambient glow */}
       <div className="absolute inset-0 bg-gradient-radial from-[#246CD8]/5 via-transparent to-transparent" />
     </div>
-  );
-};
+  )
+}
 
-export default EllipticalResearchBackground;
+export default EllipticalResearchBackground

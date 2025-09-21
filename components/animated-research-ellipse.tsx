@@ -1,17 +1,6 @@
-"use client";
+"use client"
 
-import {
-  BookOpen,
-  Brain,
-  Cloud,
-  Database,
-  Microscope,
-  Atom,
-  Dna,
-  FlaskConical,
-  Lightbulb,
-  Zap,
-} from "lucide-react";
+import { BookOpen, Brain, Cloud, Database, Microscope, Atom, Dna, FlaskConical, Lightbulb, Zap } from "lucide-react"
 
 const researchIcons = [
   { Icon: BookOpen, color: "text-blue-400", delay: "0s" },
@@ -24,7 +13,7 @@ const researchIcons = [
   { Icon: FlaskConical, color: "text-yellow-400", delay: "3.5s" },
   { Icon: Lightbulb, color: "text-amber-400", delay: "4s" },
   { Icon: Zap, color: "text-violet-400", delay: "4.5s" },
-];
+]
 
 export default function AnimatedResearchEllipse() {
   return (
@@ -42,7 +31,7 @@ export default function AnimatedResearchEllipse() {
 
       {/* Orbiting icons */}
       {researchIcons.map(({ Icon, color, delay }, index) => {
-        const angle = index * 36; // 360 degrees / 10 icons
+        const angle = index * 36 // 360 degrees / 10 icons
         return (
           <div
             key={index}
@@ -60,7 +49,7 @@ export default function AnimatedResearchEllipse() {
               </div>
             </div>
           </div>
-        );
+        )
       })}
 
       {/* Additional floating particles */}
@@ -79,5 +68,5 @@ export default function AnimatedResearchEllipse() {
         ))}
       </div>
     </div>
-  );
+  )
 }

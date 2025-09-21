@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import type React from "react";
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import type React from "react"
+import { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -14,8 +14,8 @@ import {
   SelectGroup,
   SelectLabel,
   SelectSeparator,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import {
   Send,
   Mic,
@@ -31,54 +31,51 @@ import {
   Plus,
   Loader2,
   ExternalLink,
-} from "lucide-react";
-import Logo2D from "@/components/logo-2d";
-import NavigationSidebar from "@/components/navigation-sidebar";
-import { LLM_PROVIDERS, getModelById } from "@/lib/llm-providers";
+} from "lucide-react"
+import Logo2D from "@/components/logo-2d"
+import NavigationSidebar from "@/components/navigation-sidebar"
+import { LLM_PROVIDERS, getModelById } from "@/lib/llm-providers"
 
 interface Message {
-  id: string;
-  content: string;
-  sender: "user" | "assistant";
-  timestamp: Date;
+  id: string
+  content: string
+  sender: "user" | "assistant"
+  timestamp: Date
   resources?: Array<{
-    title: string;
-    url: string;
-    snippet: string;
-  }>;
+    title: string
+    url: string
+    snippet: string
+  }>
 }
 
 interface ChatSession {
-  id: string;
-  title: string;
-  preview: string;
-  timestamp: string;
-  createdAt: Date;
-  isPinned?: boolean;
-  category: "recent" | "pinned" | "project";
-  projectName?: string;
+  id: string
+  title: string
+  preview: string
+  timestamp: string
+  createdAt: Date
+  isPinned?: boolean
+  category: "recent" | "pinned" | "project"
+  projectName?: string
 }
 
 export default function JarvisPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      content:
-        "Welcome to Quantum Chat! How can I assist with your research today?",
+      content: "Welcome to Quantum Chat! How can I assist with your research today?",
       sender: "assistant",
       timestamp: new Date(),
     },
-  ]);
-  const [inputMessage, setInputMessage] = useState("");
-  const [selectedModel, setSelectedModel] = useState("gpt-4o");
-  const [activeTab, setActiveTab] = useState<"recent" | "pinned" | "project">(
-    "recent"
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  ])
+  const [inputMessage, setInputMessage] = useState("")
+  const [selectedModel, setSelectedModel] = useState("gpt-4o")
+  const [activeTab, setActiveTab] = useState<"recent" | "pinned" | "project">("recent")
+  const [isLoading, setIsLoading] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const chatSessions: ChatSession[] = [
     {
@@ -123,29 +120,29 @@ export default function JarvisPage() {
       category: "project",
       projectName: "Project Alpha",
     },
-  ];
+  ]
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    scrollToBottom()
+  }, [messages])
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+    if (!inputMessage.trim() || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       content: inputMessage,
       sender: "user",
       timestamp: new Date(),
-    };
+    }
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInputMessage("");
-    setIsLoading(true);
+    setMessages((prev) => [...prev, userMessage])
+    setInputMessage("")
+    setIsLoading(true)
 
     try {
       const response = await fetch("/api/chat", {
@@ -158,13 +155,13 @@ export default function JarvisPage() {
           model: selectedModel,
           includeResources: true, // Enable resource fetching
         }),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error("Failed to get response");
+        throw new Error("Failed to get response")
       }
 
-      const data = await response.json();
+      const data = await response.json()
 
       const assistantMessage: Message = {
         id: data.message.id,
@@ -172,77 +169,72 @@ export default function JarvisPage() {
         sender: "assistant",
         timestamp: new Date(data.message.timestamp),
         resources: data.message.resources, // Include resources from API
-      };
+      }
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage])
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("Error sending message:", error)
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content:
-          "I apologize, but I'm having trouble connecting right now. Please try again later.",
+        content: "I apologize, but I'm having trouble connecting right now. Please try again later.",
         sender: "assistant",
         timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      }
+      setMessages((prev) => [...prev, errorMessage])
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+      e.preventDefault()
+      handleSendMessage()
     }
-  };
+  }
 
-  const filteredSessions = chatSessions.filter(
-    (session) => session.category === activeTab
-  );
+  const filteredSessions = chatSessions.filter((session) => session.category === activeTab)
 
   const allModels = LLM_PROVIDERS.flatMap((provider) =>
     provider.models.map((model) => ({
       ...model,
       providerName: provider.name,
       fullId: model.id,
-    }))
-  );
+    })),
+  )
 
-  const selectedModelInfo = getModelById(selectedModel);
+  const selectedModelInfo = getModelById(selectedModel)
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0]
     if (file) {
-      setSelectedFile(file);
+      setSelectedFile(file)
       // You can process the file here - upload to server, extract text, etc.
-      console.log("File selected:", file.name);
+      console.log("File selected:", file.name)
     }
-  };
+  }
 
   const handleVoiceInput = async () => {
     if (!isRecording) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        setIsRecording(true);
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        setIsRecording(true)
 
         // Here you would implement actual voice recording logic
         // For now, just simulate recording for 3 seconds
         setTimeout(() => {
-          setIsRecording(false);
-          stream.getTracks().forEach((track) => track.stop());
+          setIsRecording(false)
+          stream.getTracks().forEach((track) => track.stop())
           // Process the recorded audio here
-          console.log("Voice recording completed");
-        }, 3000);
+          console.log("Voice recording completed")
+        }, 3000)
       } catch (error) {
-        console.error("Error accessing microphone:", error);
+        console.error("Error accessing microphone:", error)
       }
     } else {
-      setIsRecording(false);
+      setIsRecording(false)
     }
-  };
+  }
 
   return (
     <div className="h-screen flex bg-background">
@@ -257,30 +249,19 @@ export default function JarvisPage() {
               <Logo2D size="sm" />
               <span className="font-semibold text-foreground">Chats</span>
             </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-muted-foreground hover:text-foreground"
-            >
+            <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground">
               <Plus size={16} />
             </Button>
           </div>
 
           {/* Search */}
           <div className="relative mb-4">
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
-              size={16}
-            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
             <Input
               placeholder="Search conversations..."
               className="pl-10 bg-input border-border text-foreground placeholder-muted-foreground"
             />
-            <Button
-              size="sm"
-              variant="ghost"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2"
-            >
+            <Button size="sm" variant="ghost" className="absolute right-2 top-1/2 transform -translate-y-1/2">
               <Filter size={14} />
             </Button>
           </div>
@@ -313,26 +294,22 @@ export default function JarvisPage() {
           <div className="space-y-4">
             {/* Today Section */}
             {(() => {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
 
               const todaySessions = filteredSessions.filter((session) => {
-                const sessionDate = new Date(session.createdAt);
-                sessionDate.setHours(0, 0, 0, 0);
-                return sessionDate.getTime() === today.getTime();
-              });
+                const sessionDate = new Date(session.createdAt)
+                sessionDate.setHours(0, 0, 0, 0)
+                return sessionDate.getTime() === today.getTime()
+              })
 
-              if (todaySessions.length === 0) return null;
+              if (todaySessions.length === 0) return null
 
               return (
                 <div>
                   <div className="flex items-center justify-between mb-3 px-2">
-                    <h3 className="text-sm font-medium text-foreground">
-                      Today
-                    </h3>
-                    <span className="text-xs text-muted-foreground">
-                      {todaySessions.length} Total
-                    </span>
+                    <h3 className="text-sm font-medium text-foreground">Today</h3>
+                    <span className="text-xs text-muted-foreground">{todaySessions.length} Total</span>
                   </div>
                   <div className="space-y-2">
                     {todaySessions.map((session) => (
@@ -341,28 +318,14 @@ export default function JarvisPage() {
                         className="p-3 rounded-lg bg-card hover:bg-accent cursor-pointer transition-all border border-border hover:border-primary/50"
                       >
                         <div className="flex items-start justify-between mb-1">
-                          <h4 className="font-medium text-foreground text-sm truncate flex-1">
-                            {session.title}
-                          </h4>
-                          {session.isPinned && (
-                            <Pin
-                              size={12}
-                              className="text-primary ml-2 flex-shrink-0"
-                            />
-                          )}
+                          <h4 className="font-medium text-foreground text-sm truncate flex-1">{session.title}</h4>
+                          {session.isPinned && <Pin size={12} className="text-primary ml-2 flex-shrink-0" />}
                         </div>
-                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                          {session.preview}
-                        </p>
+                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{session.preview}</p>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
-                            {session.timestamp}
-                          </span>
+                          <span className="text-xs text-muted-foreground">{session.timestamp}</span>
                           {session.projectName && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-primary/10 text-primary"
-                            >
+                            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
                               {session.projectName}
                             </Badge>
                           )}
@@ -371,36 +334,30 @@ export default function JarvisPage() {
                     ))}
                   </div>
                 </div>
-              );
+              )
             })()}
 
             {/* Previous 7 Days Section */}
             {(() => {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
 
-              const sevenDaysAgo = new Date(today);
-              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+              const sevenDaysAgo = new Date(today)
+              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-              const previousWeekSessions = filteredSessions.filter(
-                (session) => {
-                  const sessionDate = new Date(session.createdAt);
-                  sessionDate.setHours(0, 0, 0, 0);
-                  return sessionDate < today && sessionDate >= sevenDaysAgo;
-                }
-              );
+              const previousWeekSessions = filteredSessions.filter((session) => {
+                const sessionDate = new Date(session.createdAt)
+                sessionDate.setHours(0, 0, 0, 0)
+                return sessionDate < today && sessionDate >= sevenDaysAgo
+              })
 
-              if (previousWeekSessions.length === 0) return null;
+              if (previousWeekSessions.length === 0) return null
 
               return (
                 <div>
                   <div className="flex items-center justify-between mb-3 px-2">
-                    <h3 className="text-sm font-medium text-foreground">
-                      Previous 7 Days
-                    </h3>
-                    <span className="text-xs text-muted-foreground">
-                      {previousWeekSessions.length}
-                    </span>
+                    <h3 className="text-sm font-medium text-foreground">Previous 7 Days</h3>
+                    <span className="text-xs text-muted-foreground">{previousWeekSessions.length}</span>
                   </div>
                   <div className="space-y-2">
                     {previousWeekSessions.map((session) => (
@@ -409,28 +366,14 @@ export default function JarvisPage() {
                         className="p-3 rounded-lg bg-card hover:bg-accent cursor-pointer transition-all border border-border hover:border-primary/50"
                       >
                         <div className="flex items-start justify-between mb-1">
-                          <h4 className="font-medium text-foreground text-sm truncate flex-1">
-                            {session.title}
-                          </h4>
-                          {session.isPinned && (
-                            <Pin
-                              size={12}
-                              className="text-primary ml-2 flex-shrink-0"
-                            />
-                          )}
+                          <h4 className="font-medium text-foreground text-sm truncate flex-1">{session.title}</h4>
+                          {session.isPinned && <Pin size={12} className="text-primary ml-2 flex-shrink-0" />}
                         </div>
-                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                          {session.preview}
-                        </p>
+                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{session.preview}</p>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
-                            {session.timestamp}
-                          </span>
+                          <span className="text-xs text-muted-foreground">{session.timestamp}</span>
                           {session.projectName && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-primary/10 text-primary"
-                            >
+                            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
                               {session.projectName}
                             </Badge>
                           )}
@@ -439,34 +382,30 @@ export default function JarvisPage() {
                     ))}
                   </div>
                 </div>
-              );
+              )
             })()}
 
             {/* Older Sessions Section */}
             {(() => {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
 
-              const sevenDaysAgo = new Date(today);
-              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+              const sevenDaysAgo = new Date(today)
+              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
               const olderSessions = filteredSessions.filter((session) => {
-                const sessionDate = new Date(session.createdAt);
-                sessionDate.setHours(0, 0, 0, 0);
-                return sessionDate < sevenDaysAgo;
-              });
+                const sessionDate = new Date(session.createdAt)
+                sessionDate.setHours(0, 0, 0, 0)
+                return sessionDate < sevenDaysAgo
+              })
 
-              if (olderSessions.length === 0) return null;
+              if (olderSessions.length === 0) return null
 
               return (
                 <div>
                   <div className="flex items-center justify-between mb-3 px-2">
-                    <h3 className="text-sm font-medium text-foreground">
-                      Older
-                    </h3>
-                    <span className="text-xs text-muted-foreground">
-                      {olderSessions.length}
-                    </span>
+                    <h3 className="text-sm font-medium text-foreground">Older</h3>
+                    <span className="text-xs text-muted-foreground">{olderSessions.length}</span>
                   </div>
                   <div className="space-y-2">
                     {olderSessions.map((session) => (
@@ -475,28 +414,14 @@ export default function JarvisPage() {
                         className="p-3 rounded-lg bg-card hover:bg-accent cursor-pointer transition-all border border-border hover:border-primary/50"
                       >
                         <div className="flex items-start justify-between mb-1">
-                          <h4 className="font-medium text-foreground text-sm truncate flex-1">
-                            {session.title}
-                          </h4>
-                          {session.isPinned && (
-                            <Pin
-                              size={12}
-                              className="text-primary ml-2 flex-shrink-0"
-                            />
-                          )}
+                          <h4 className="font-medium text-foreground text-sm truncate flex-1">{session.title}</h4>
+                          {session.isPinned && <Pin size={12} className="text-primary ml-2 flex-shrink-0" />}
                         </div>
-                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                          {session.preview}
-                        </p>
+                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{session.preview}</p>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
-                            {session.timestamp}
-                          </span>
+                          <span className="text-xs text-muted-foreground">{session.timestamp}</span>
                           {session.projectName && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-primary/10 text-primary"
-                            >
+                            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
                               {session.projectName}
                             </Badge>
                           )}
@@ -505,7 +430,7 @@ export default function JarvisPage() {
                     ))}
                   </div>
                 </div>
-              );
+              )
             })()}
           </div>
         </ScrollArea>
@@ -530,9 +455,7 @@ export default function JarvisPage() {
                   <span className="text-white text-sm font-bold">R</span>
                 </div>
                 <div>
-                  <h2 className="font-semibold text-foreground">
-                    JARVIS Research Assistant
-                  </h2>
+                  <h2 className="font-semibold text-foreground">JARVIS Research Assistant</h2>
                   <p className="text-xs text-muted-foreground">
                     {selectedModelInfo
                       ? `${selectedModelInfo.provider.name} • ${selectedModelInfo.model.name}`
@@ -547,80 +470,47 @@ export default function JarvisPage() {
                 <SelectTrigger className="w-[180px] h-8 text-xs">
                   <div className="flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
-                    <SelectValue>
-                      {selectedModelInfo?.model.name || "GPT-4o"}
-                    </SelectValue>
+                    <SelectValue>{selectedModelInfo?.model.name || "GPT-4o"}</SelectValue>
                   </div>
                 </SelectTrigger>
                 <SelectContent className="w-[320px]">
                   {LLM_PROVIDERS.map((provider) => (
                     <SelectGroup key={provider.id}>
-                      <SelectLabel className="text-xs font-semibold">
-                        {provider.name}
-                      </SelectLabel>
+                      <SelectLabel className="text-xs font-semibold">{provider.name}</SelectLabel>
                       {provider.models.map((model) => (
-                        <SelectItem
-                          key={model.id}
-                          value={model.id}
-                          className="text-xs py-3"
-                        >
+                        <SelectItem key={model.id} value={model.id} className="text-xs py-3">
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{model.name}</span>
                               {model.isPro && (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-xs h-4 px-1"
-                                >
+                                <Badge variant="secondary" className="text-xs h-4 px-1">
                                   PRO
                                 </Badge>
                               )}
                             </div>
                             <span className="text-[10px] text-muted-foreground">
-                              {model.id === "gpt-4o" &&
-                                "Best for complex reasoning and analysis"}
-                              {model.id === "gpt-4o-mini" &&
-                                "Fast, efficient for simple tasks"}
-                              {model.id === "o1-preview" &&
-                                "Advanced reasoning with chain-of-thought"}
-                              {model.id === "o1-mini" &&
-                                "Lightweight reasoning model"}
-                              {model.id === "claude-3-5-sonnet" &&
-                                "Best for creative and nuanced content"}
-                              {model.id === "claude-3-5-haiku" &&
-                                "Fast Claude model for quick tasks"}
-                              {model.id === "claude-3-opus" &&
-                                "Most capable Claude for complex work"}
-                              {model.id === "gemini-1.5-pro" &&
-                                "Google's best for multimodal tasks"}
-                              {model.id === "gemini-1.5-flash" &&
-                                "Fast Google model for quick responses"}
-                              {model.id === "gemini-2.0-flash-exp" &&
-                                "Experimental features and capabilities"}
-                              {model.id === "llama-3.1-sonar-large" &&
-                                "Open-source with web search"}
-                              {model.id === "llama-3.1-sonar-small" &&
-                                "Lightweight with web search"}
-                              {model.id === "llama-3.1-sonar-huge" &&
-                                "Most powerful open-source option"}
-                              {model.id === "grok-2-1212" &&
-                                "Latest Grok with real-time knowledge"}
-                              {model.id === "grok-2-vision-1212" &&
-                                "Grok with image understanding"}
-                              {model.id === "deepseek-r1" &&
-                                "Specialized for research tasks"}
-                              {model.id === "deepseek-r1-distill-llama-70b" &&
-                                "Research-focused, large model"}
-                              {model.id === "mixtral-8x7b" &&
-                                "Efficient mixture of experts model"}
-                              {model.id === "mixtral-8x22b" &&
-                                "Large MoE for complex tasks"}
-                              {model.id === "mistral-large" &&
-                                "Mistral's flagship model"}
-                              {model.id === "mistral-nemo" &&
-                                "Balanced performance model"}
-                              {model.id === "nemotron-70b" &&
-                                "NVIDIA's large language model"}
+                              {model.id === "gpt-4o" && "Best for complex reasoning and analysis"}
+                              {model.id === "gpt-4o-mini" && "Fast, efficient for simple tasks"}
+                              {model.id === "o1-preview" && "Advanced reasoning with chain-of-thought"}
+                              {model.id === "o1-mini" && "Lightweight reasoning model"}
+                              {model.id === "claude-3-5-sonnet" && "Best for creative and nuanced content"}
+                              {model.id === "claude-3-5-haiku" && "Fast Claude model for quick tasks"}
+                              {model.id === "claude-3-opus" && "Most capable Claude for complex work"}
+                              {model.id === "gemini-1.5-pro" && "Google's best for multimodal tasks"}
+                              {model.id === "gemini-1.5-flash" && "Fast Google model for quick responses"}
+                              {model.id === "gemini-2.0-flash-exp" && "Experimental features and capabilities"}
+                              {model.id === "llama-3.1-sonar-large" && "Open-source with web search"}
+                              {model.id === "llama-3.1-sonar-small" && "Lightweight with web search"}
+                              {model.id === "llama-3.1-sonar-huge" && "Most powerful open-source option"}
+                              {model.id === "grok-2-1212" && "Latest Grok with real-time knowledge"}
+                              {model.id === "grok-2-vision-1212" && "Grok with image understanding"}
+                              {model.id === "deepseek-r1" && "Specialized for research tasks"}
+                              {model.id === "deepseek-r1-distill-llama-70b" && "Research-focused, large model"}
+                              {model.id === "mixtral-8x7b" && "Efficient mixture of experts model"}
+                              {model.id === "mixtral-8x22b" && "Large MoE for complex tasks"}
+                              {model.id === "mistral-large" && "Mistral's flagship model"}
+                              {model.id === "mistral-nemo" && "Balanced performance model"}
+                              {model.id === "nemotron-70b" && "NVIDIA's large language model"}
                             </span>
                           </div>
                         </SelectItem>
@@ -631,39 +521,19 @@ export default function JarvisPage() {
                 </SelectContent>
               </Select>
 
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground"
-              >
+              <Button size="sm" variant="ghost" className="text-muted-foreground">
                 <Settings size={16} />
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground"
-              >
+              <Button size="sm" variant="ghost" className="text-muted-foreground">
                 <Download size={16} />
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground"
-              >
+              <Button size="sm" variant="ghost" className="text-muted-foreground">
                 <Share size={16} />
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground"
-              >
+              <Button size="sm" variant="ghost" className="text-muted-foreground">
                 <RefreshCw size={16} />
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground"
-              >
+              <Button size="sm" variant="ghost" className="text-muted-foreground">
                 <Trash2 size={16} />
               </Button>
             </div>
@@ -674,12 +544,7 @@ export default function JarvisPage() {
         <ScrollArea className="flex-1 p-6">
           <div className="max-w-5xl mx-auto space-y-6 px-4">
             {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.sender === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
+              <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
                 <div
                   className={`max-w-[85%] p-5 rounded-2xl ${
                     message.sender === "user"
@@ -687,25 +552,16 @@ export default function JarvisPage() {
                       : "bg-card text-card-foreground border border-border shadow-sm"
                   }`}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {message.content}
-                  </p>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
 
                   {message.resources && message.resources.length > 0 && (
                     <div className="mt-4 space-y-3">
-                      <div className="text-xs font-medium text-muted-foreground mb-3">
-                        Related Resources:
-                      </div>
+                      <div className="text-xs font-medium text-muted-foreground mb-3">Related Resources:</div>
                       {message.resources.map((resource, index) => (
-                        <div
-                          key={index}
-                          className="bg-muted/50 p-4 rounded-xl border border-border/50"
-                        >
+                        <div key={index} className="bg-muted/50 p-4 rounded-xl border border-border/50">
                           <div className="flex items-start justify-between">
                             <div className="flex-1 pr-3">
-                              <h4 className="text-sm font-medium text-foreground mb-2">
-                                {resource.title}
-                              </h4>
+                              <h4 className="text-sm font-medium text-foreground mb-2">{resource.title}</h4>
                               <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                                 {resource.snippet}
                               </p>
@@ -713,9 +569,7 @@ export default function JarvisPage() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() =>
-                                window.open(resource.url, "_blank")
-                              }
+                              onClick={() => window.open(resource.url, "_blank")}
                               className="ml-2 p-2 h-8 w-8 hover:bg-primary/10"
                             >
                               <ExternalLink size={14} />
@@ -727,16 +581,9 @@ export default function JarvisPage() {
                   )}
 
                   <p
-                    className={`text-xs mt-3 ${
-                      message.sender === "user"
-                        ? "text-primary-foreground/70"
-                        : "text-muted-foreground"
-                    }`}
+                    className={`text-xs mt-3 ${message.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}
                   >
-                    {message.timestamp.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
               </div>
@@ -747,9 +594,7 @@ export default function JarvisPage() {
                 <div className="bg-card p-5 rounded-2xl border border-border shadow-sm">
                   <div className="flex items-center space-x-3">
                     <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    <span className="text-sm text-muted-foreground">
-                      JARVIS is thinking...
-                    </span>
+                    <span className="text-sm text-muted-foreground">JARVIS is thinking...</span>
                   </div>
                 </div>
               </div>
@@ -765,9 +610,7 @@ export default function JarvisPage() {
               <div className="mb-4 p-3 bg-muted/50 rounded-xl border border-border/50 flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Paperclip size={16} className="text-muted-foreground" />
-                  <span className="text-sm text-foreground font-medium">
-                    {selectedFile.name}
-                  </span>
+                  <span className="text-sm text-foreground font-medium">{selectedFile.name}</span>
                 </div>
                 <Button
                   size="sm"
@@ -811,9 +654,7 @@ export default function JarvisPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className={`text-muted-foreground hover:text-foreground p-2 h-8 w-8 ${
-                      isRecording ? "text-destructive animate-pulse" : ""
-                    }`}
+                    className={`text-muted-foreground hover:text-foreground p-2 h-8 w-8 ${isRecording ? "text-destructive animate-pulse" : ""}`}
                     disabled={isLoading}
                     onClick={handleVoiceInput}
                   >
@@ -826,16 +667,12 @@ export default function JarvisPage() {
                 disabled={!inputMessage.trim() || isLoading}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground p-4 rounded-2xl min-w-[48px]"
               >
-                {isLoading ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <Send size={18} />
-                )}
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
               </Button>
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

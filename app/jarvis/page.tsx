@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import type React from "react";
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import type React from "react"
+import { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -13,13 +13,18 @@ import {
   SelectValue,
   SelectGroup,
   SelectLabel,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+  SelectSeparator,
+} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import {
   Send,
   Mic,
   Paperclip,
+  Settings,
+  Download,
   Share,
+  RefreshCw,
+  Trash2,
   Pin,
   Search,
   Filter,
@@ -32,234 +37,190 @@ import {
   Save,
   Users,
   Link,
-  User,
-} from "lucide-react";
-import NavigationSidebar from "@/components/navigation-sidebar";
-import { LLM_PROVIDERS, getModelById } from "@/lib/llm-providers";
-import { useRouter } from "next/navigation";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { RaceGeometricLogo } from "@/components/race-geometric-logo";
-import { KnowledgeGraph } from "@/components/knowledge-graph-background";
+} from "lucide-react"
+import Logo2D from "@/components/logo-2d"
+import NavigationSidebar from "@/components/navigation-sidebar"
+import { LLM_PROVIDERS, getModelById } from "@/lib/llm-providers"
+import { useRouter } from "next/navigation"
 
-const EnhancedBackground = ({ children }: { children: React.ReactNode }) => (
-  <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
-    {/* Animated gradient orbs */}
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl animate-gentle-pulse" />
-      <div
-        className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-cyan-600/20 rounded-full blur-3xl animate-gentle-pulse"
-        style={{ animationDelay: "2s" }}
-      />
-      <div
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-pink-600/10 rounded-full blur-3xl animate-gentle-pulse"
-        style={{ animationDelay: "4s" }}
-      />
-    </div>
-
-    {/* Knowledge Graph Background */}
-    <KnowledgeGraph />
-
-    {/* Content */}
-    <div className="relative z-10">{children}</div>
-  </div>
-);
+const CleanBackground = ({ children }: { children: React.ReactNode }) => (
+  <div className="min-h-screen bg-background">{children}</div>
+)
 
 interface Message {
-  id: string;
-  content: string;
-  sender: "user" | "assistant";
-  timestamp: Date;
+  id: string
+  content: string
+  sender: "user" | "assistant"
+  timestamp: Date
   resources?: Array<{
-    title: string;
-    url: string;
-    snippet: string;
-  }>;
+    title: string
+    url: string
+    snippet: string
+  }>
 }
 
 interface ChatSession {
-  id: string;
-  title: string;
-  preview: string;
-  timestamp: string;
-  createdAt: Date;
-  isPinned?: boolean;
-  isShared?: boolean;
-  category: "recent" | "pinned" | "project" | "shared";
-  projectName?: string;
-  topic: string;
+  id: string
+  title: string
+  preview: string
+  timestamp: string
+  createdAt: Date
+  isPinned?: boolean
+  category: "recent" | "pinned" | "project"
+  projectName?: string
+  topic?: string
 }
 
 interface FilterState {
-  searchText: string;
-  dateRange: { from: Date | null; to: Date | null };
-  user: string;
-  userGroup: string;
+  searchText: string
+  dateRange: { from: Date | null; to: Date | null }
+  category: string
+  topic: string
 }
 
 interface ChatAction {
-  type: "rename" | "share" | "save" | "delete";
-  chatId: string;
+  type: "rename" | "share" | "save" | "delete"
+  chatId: string
 }
 
 interface ShareOptions {
-  type: "external" | "collaborator";
-  link?: string;
-  collaboratorEmail?: string;
+  type: "external" | "collaborator"
+  link?: string
+  collaboratorEmail?: string
 }
 
 interface ProjectSave {
-  projectName: string;
-  folderName?: string;
+  projectName: string
+  folderName?: string
 }
 
 export default function JarvisPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      content:
-        "Welcome to JARVIS Chat! How can I assist with your research today?",
+      content: "Welcome to JARVIS Chat! How can I assist with your research today?",
       sender: "assistant",
       timestamp: new Date(),
     },
-  ]);
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([
+  ])
+  const [inputMessage, setInputMessage] = useState("")
+  const [selectedModel, setSelectedModel] = useState("gpt-4o")
+  const [activeTab, setActiveTab] = useState<"recent" | "pinned" | "project">("recent")
+  const [isLoading, setIsLoading] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState<FilterState>({
+    searchText: "",
+    dateRange: { from: null, to: null },
+    category: "",
+    topic: "",
+  })
+
+  const [hoveredChat, setHoveredChat] = useState<string | null>(null)
+  const [showChatActions, setShowChatActions] = useState<string | null>(null)
+  const [showShareModal, setShowShareModal] = useState<string | null>(null)
+  const [showSaveModal, setShowSaveModal] = useState<string | null>(null)
+  const [showDatePicker, setShowDatePicker] = useState(false)
+
+  const chatSessions: ChatSession[] = [
     {
       id: "1",
-      title: "Quantum Research Discussion",
-      preview:
-        "Exploring quantum computing applications in machine learning...",
-      timestamp: "2 hours ago",
+      title: "Quantum Research 1",
+      preview: "Latest findings on quantum entanglement",
+      timestamp: "Today, 2:45 PM",
       createdAt: new Date(),
       category: "recent",
-      isPinned: false,
-      isShared: false,
-      projectName: "Quantum ML Project",
       topic: "quantum-computing",
     },
     {
       id: "2",
-      title: "Literature Review Analysis",
-      preview: "Analyzing recent papers on neural network architectures...",
-      timestamp: "1 day ago",
+      title: "Machine Learning Models",
+      preview: "Discussion about neural network architectures",
+      timestamp: "Today, 1:30 PM",
       createdAt: new Date(),
       category: "recent",
-      isPinned: true,
-      isShared: false,
-      projectName: "Deep Learning Survey",
       topic: "machine-learning",
     },
     {
       id: "3",
-      title: "Data Processing Pipeline",
-      preview: "Discussing automated data preprocessing techniques...",
-      timestamp: "3 days ago",
-      createdAt: new Date(),
+      title: "AI Ethics Discussion",
+      preview: "Exploring ethical implications of AI research",
+      timestamp: "Yesterday, 4:20 PM",
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
       category: "recent",
-      isPinned: false,
-      isShared: false,
-      topic: "data-science",
+      topic: "ai-ethics",
     },
-  ]);
-  const [inputMessage, setInputMessage] = useState("");
-  const [selectedModel, setSelectedModel] = useState("gpt-4o");
-  const [activeTab, setActiveTab] = useState<
-    "recent" | "pinned" | "project" | "shared"
-  >("recent");
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+    {
+      id: "4",
+      title: "Important Research",
+      preview: "Critical findings for the project",
+      timestamp: "Yesterday, 4:20 PM",
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      category: "pinned",
+      isPinned: true,
+      topic: "research-methods",
+    },
+    {
+      id: "5",
+      title: "Project Alpha Discussion",
+      preview: "Team collaboration on AI models",
+      timestamp: "2 days ago",
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      category: "project",
+      projectName: "Project Alpha",
+      topic: "project-management",
+    },
+  ]
 
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<FilterState>({
-    searchText: "",
-    dateRange: { from: null, to: null },
-    user: "",
-    userGroup: "",
-  });
-
-  const [hoveredChat, setHoveredChat] = useState<string | null>(null);
-  const [showChatActions, setShowChatActions] = useState<string | null>(null);
-  const [showShareModal, setShowShareModal] = useState<string | null>(null);
-  const [shareLink, setShareLink] = useState<string>("");
-  const [showLinkCopied, setShowLinkCopied] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const router = useRouter();
+  const router = useRouter()
 
   const getFilteredSessions = () => {
-    const sessions = chatSessions.filter((session) => {
+    return chatSessions.filter((session) => {
       // Text search filter
       if (filters.searchText) {
-        const searchLower = filters.searchText.toLowerCase();
-        const matchesTitle = session.title.toLowerCase().includes(searchLower);
-        const matchesPreview = session.preview
-          .toLowerCase()
-          .includes(searchLower);
-        const matchesProject = session.projectName
-          ?.toLowerCase()
-          .includes(searchLower);
-        if (!matchesTitle && !matchesPreview && !matchesProject) return false;
+        const searchLower = filters.searchText.toLowerCase()
+        const matchesTitle = session.title.toLowerCase().includes(searchLower)
+        const matchesPreview = session.preview.toLowerCase().includes(searchLower)
+        const matchesProject = session.projectName?.toLowerCase().includes(searchLower)
+        if (!matchesTitle && !matchesPreview && !matchesProject) return false
       }
 
       // Date range filter
       if (filters.dateRange.from || filters.dateRange.to) {
-        const sessionDate = new Date(session.createdAt);
-        if (filters.dateRange.from && sessionDate < filters.dateRange.from)
-          return false;
-        if (filters.dateRange.to && sessionDate > filters.dateRange.to)
-          return false;
+        const sessionDate = new Date(session.createdAt)
+        if (filters.dateRange.from && sessionDate < filters.dateRange.from) return false
+        if (filters.dateRange.to && sessionDate > filters.dateRange.to) return false
       }
 
-      // User filter
-      if (
-        filters.user &&
-        !session.user?.toLowerCase().includes(filters.user.toLowerCase())
-      ) {
-        return false;
+      // Category filter
+      if (filters.category && !session.category.toLowerCase().includes(filters.category.toLowerCase())) {
+        return false
       }
 
-      // User group filter (lab/collaborator)
-      if (
-        filters.userGroup &&
-        session.userGroup &&
-        !session.userGroup
-          .toLowerCase()
-          .includes(filters.userGroup.toLowerCase())
-      ) {
-        return false;
+      // Topic filter
+      if (filters.topic && session.topic && !session.topic.toLowerCase().includes(filters.topic.toLowerCase())) {
+        return false
       }
 
-      return true;
-    });
-
-    switch (activeTab) {
-      case "recent":
-        return sessions;
-      case "pinned":
-        return sessions.filter((session) => session.isPinned);
-      case "project":
-        return sessions.filter((session) => session.projectName);
-      case "shared":
-        return sessions.filter((session) => session.isShared);
-      default:
-        return sessions;
-    }
-  };
+      return true
+    })
+  }
 
   const handleNewChat = () => {
-    const newChatId = Date.now().toString();
+    const newChatId = Date.now().toString()
     setMessages([
       {
         id: "1",
-        content:
-          "Welcome to JARVIS Chat! How can I assist with your research today?",
+        content: "Welcome to JARVIS Chat! How can I assist with your research today?",
         sender: "assistant",
         timestamp: new Date(),
       },
-    ]);
-    setInputMessage("");
+    ])
+    setInputMessage("")
 
     // Add new chat session to the beginning of the list
     const newSession: ChatSession = {
@@ -270,32 +231,32 @@ export default function JarvisPage() {
       createdAt: new Date(),
       category: "recent",
       topic: "general",
-    };
+    }
 
-    console.log("Created new chat session:", newSession);
-  };
+    console.log("Created new chat session:", newSession)
+  }
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    scrollToBottom()
+  }, [messages])
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+    if (!inputMessage.trim() || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       content: inputMessage,
       sender: "user",
       timestamp: new Date(),
-    };
+    }
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInputMessage("");
-    setIsLoading(true);
+    setMessages((prev) => [...prev, userMessage])
+    setInputMessage("")
+    setIsLoading(true)
 
     try {
       const response = await fetch("/api/chat", {
@@ -308,13 +269,13 @@ export default function JarvisPage() {
           model: selectedModel,
           includeResources: true,
         }),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error("Failed to get response");
+        throw new Error("Failed to get response")
       }
 
-      const data = await response.json();
+      const data = await response.json()
 
       const assistantMessage: Message = {
         id: data.message.id,
@@ -322,175 +283,129 @@ export default function JarvisPage() {
         sender: "assistant",
         timestamp: new Date(data.message.timestamp),
         resources: data.message.resources,
-      };
+      }
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage])
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("Error sending message:", error)
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content:
-          "I apologize, but I'm having trouble connecting right now. Please try again later.",
+        content: "I apologize, but I'm having trouble connecting right now. Please try again later.",
         sender: "assistant",
         timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      }
+      setMessages((prev) => [...prev, errorMessage])
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+      e.preventDefault()
+      handleSendMessage()
     }
-  };
+  }
 
-  const filteredSessions = getFilteredSessions();
+  const filteredSessions = getFilteredSessions().filter((session) => session.category === activeTab)
 
   const allModels = LLM_PROVIDERS.flatMap((provider) =>
     provider.models.map((model) => ({
       ...model,
       providerName: provider.name,
       fullId: model.id,
-    }))
-  );
+    })),
+  )
 
-  const selectedModelInfo = getModelById(selectedModel);
+  const selectedModelInfo = getModelById(selectedModel)
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0]
     if (file) {
-      setSelectedFile(file);
-      console.log("File selected:", file.name);
+      setSelectedFile(file)
+      console.log("File selected:", file.name)
     }
-  };
+  }
 
   const handleVoiceInput = async () => {
     if (!isRecording) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        setIsRecording(true);
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        setIsRecording(true)
 
         setTimeout(() => {
-          setIsRecording(false);
-          stream.getTracks().forEach((track) => track.stop());
-          console.log("Voice recording completed");
-        }, 3000);
+          setIsRecording(false)
+          stream.getTracks().forEach((track) => track.stop())
+          console.log("Voice recording completed")
+        }, 3000)
       } catch (error) {
-        console.error("Error accessing microphone:", error);
+        console.error("Error accessing microphone:", error)
       }
     } else {
-      setIsRecording(false);
+      setIsRecording(false)
     }
-  };
+  }
 
   const handleChatAction = (action: ChatAction) => {
     switch (action.type) {
       case "rename":
-        const newTitle = prompt("Enter new chat title:");
+        const newTitle = prompt("Enter new chat title:")
         if (newTitle) {
-          setChatSessions((prev) =>
-            prev.map((session) =>
-              session.id === action.chatId
-                ? { ...session, title: newTitle }
-                : session
-            )
-          );
-          console.log("[v0] Renamed chat:", action.chatId, "to:", newTitle);
+          console.log("Renaming chat:", action.chatId, "to:", newTitle)
+          // Update chat title in state
         }
-        break;
+        break
       case "share":
-        setShowShareModal(action.chatId);
-        break;
+        setShowShareModal(action.chatId)
+        break
       case "save":
-        router.push("/dashboard");
-        break;
+        router.push("/dashboard")
+        break
       case "delete":
         if (confirm("Are you sure you want to delete this chat?")) {
-          setChatSessions((prev) =>
-            prev.filter((session) => session.id !== action.chatId)
-          );
-          console.log("[v0] Deleted chat:", action.chatId);
+          console.log("Deleting chat:", action.chatId)
+          // Remove chat from state
         }
-        break;
+        break
     }
-    setShowChatActions(null);
-  };
+    setShowChatActions(null)
+  }
 
   const handleShare = (chatId: string, options: ShareOptions) => {
     if (options.type === "external") {
-      const shareLink = `${window.location.origin}/shared/${chatId}`;
-      navigator.clipboard.writeText(shareLink).then(() => {
-        setShareLink(shareLink);
-        setShowLinkCopied(true);
-        setTimeout(() => setShowLinkCopied(false), 3000);
-        console.log("[v0] Created external share link:", shareLink);
-      });
+      const shareLink = `${window.location.origin}/shared/${chatId}`
+      navigator.clipboard.writeText(shareLink)
+      console.log("Created external share link:", shareLink)
+      // Move to shared folder with external indicator
     } else if (options.type === "collaborator") {
-      const email = prompt("Enter collaborator email:");
+      const email = prompt("Enter collaborator email:")
       if (email) {
-        const collaboratorLink = `${
-          window.location.origin
-        }/collaborate/${chatId}?email=${encodeURIComponent(email)}`;
-        navigator.clipboard.writeText(collaboratorLink).then(() => {
-          setShareLink(collaboratorLink);
-          setShowLinkCopied(true);
-          setTimeout(() => setShowLinkCopied(false), 3000);
-          console.log(
-            "[v0] Shared with collaborator:",
-            email,
-            "Link:",
-            collaboratorLink
-          );
-        });
+        console.log("Sharing with collaborator:", email)
+        // Move to shared folder with collaborator indicator
       }
     }
-    setShowShareModal(null);
-  };
-
-  const togglePin = (chatId: string) => {
-    setChatSessions((prev) =>
-      prev.map((session) =>
-        session.id === chatId
-          ? { ...session, isPinned: !session.isPinned }
-          : session
-      )
-    );
-    console.log("[v0] Toggled pin for chat:", chatId);
-  };
-
-  const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [shareFeedback, setShareFeedback] = useState("");
+    setShowShareModal(null)
+  }
 
   return (
-    <EnhancedBackground>
+    <CleanBackground>
       <div className="h-screen flex">
         <NavigationSidebar />
 
         {/* Chat Sidebar */}
-        <div className="w-80 glass-effect border-r border-white/20 dark:border-slate-700/50 flex flex-col backdrop-blur-xl bg-white/80 dark:bg-slate-900/80">
+        <div className="w-80 bg-card border-r border-border flex flex-col">
           {/* Sidebar Header */}
-          <div className="p-4 border-b border-white/20 dark:border-slate-700/50 bg-white/50 dark:bg-slate-800/50">
+          <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
-                <RaceGeometricLogo
-                  size={24}
-                  variant="primary"
-                  showText={false}
-                />
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  Chats
-                </span>
+                <Logo2D size="sm" />
+                <span className="font-semibold text-foreground">Chats</span>
               </div>
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-2">
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 w-8 p-0 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white hover:scale-110 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="text-muted-foreground hover:text-foreground hover:bg-accent"
                   onClick={handleNewChat}
                 >
                   <Plus size={16} />
@@ -500,25 +415,17 @@ export default function JarvisPage() {
 
             {/* Search */}
             <div className="relative mb-4">
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-slate-400"
-                size={16}
-              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
               <Input
                 placeholder="Search conversations..."
-                className="pl-10 pr-12 glass-effect border-white/30 dark:border-slate-600/50 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 rounded-full bg-white/70 dark:bg-slate-800/70 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200"
+                className="pl-10 bg-input border-border text-foreground placeholder-muted-foreground"
                 value={filters.searchText}
-                onChange={(e) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    searchText: e.target.value,
-                  }))
-                }
+                onChange={(e) => setFilters((prev) => ({ ...prev, searchText: e.target.value }))}
               />
               <Button
                 size="sm"
                 variant="ghost"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 rounded-full hover:bg-white/50 dark:hover:bg-slate-700/50 hover:scale-110 transition-all duration-200"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2"
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter size={14} />
@@ -526,27 +433,17 @@ export default function JarvisPage() {
             </div>
 
             {showFilters && (
-              /* Enhanced filter panel with glass effects */
-              <div className="mb-4 p-3 glass-effect bg-white/60 dark:bg-slate-800/60 rounded-lg border border-white/30 dark:border-slate-600/50 space-y-3 backdrop-blur-sm">
+              <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-900 dark:text-white">
-                    Filters
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowFilters(false)}
-                    className="h-6 w-6 p-0"
-                  >
+                  <span className="text-sm font-medium text-foreground">Filters</span>
+                  <Button size="sm" variant="ghost" onClick={() => setShowFilters(false)} className="h-6 w-6 p-0">
                     <X size={12} />
                   </Button>
                 </div>
 
                 {/* Date Range Filter with Calendar */}
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">
-                    Date Range
-                  </label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Date Range</label>
                   <div className="space-y-2">
                     <Button
                       variant="outline"
@@ -556,12 +453,7 @@ export default function JarvisPage() {
                     >
                       <Calendar size={12} className="mr-2" />
                       {filters.dateRange.from || filters.dateRange.to
-                        ? `${
-                            filters.dateRange.from?.toLocaleDateString() ||
-                            "Start"
-                          } - ${
-                            filters.dateRange.to?.toLocaleDateString() || "End"
-                          }`
+                        ? `${filters.dateRange.from?.toLocaleDateString() || "Start"} - ${filters.dateRange.to?.toLocaleDateString() || "End"}`
                         : "Select date range"}
                     </Button>
                     {showDatePicker && (
@@ -573,12 +465,7 @@ export default function JarvisPage() {
                           onChange={(e) =>
                             setFilters((prev) => ({
                               ...prev,
-                              dateRange: {
-                                ...prev.dateRange,
-                                from: e.target.value
-                                  ? new Date(e.target.value)
-                                  : null,
-                              },
+                              dateRange: { ...prev.dateRange, from: e.target.value ? new Date(e.target.value) : null },
                             }))
                           }
                         />
@@ -589,12 +476,7 @@ export default function JarvisPage() {
                           onChange={(e) =>
                             setFilters((prev) => ({
                               ...prev,
-                              dateRange: {
-                                ...prev.dateRange,
-                                to: e.target.value
-                                  ? new Date(e.target.value)
-                                  : null,
-                              },
+                              dateRange: { ...prev.dateRange, to: e.target.value ? new Date(e.target.value) : null },
                             }))
                           }
                         />
@@ -603,40 +485,26 @@ export default function JarvisPage() {
                   </div>
                 </div>
 
-                {/* User Filter */}
+                {/* Category Filter - Text Input */}
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">
-                    User
-                  </label>
+                  <label className="text-xs text-muted-foreground mb-1 block">Category</label>
                   <Input
-                    placeholder="Enter user name..."
+                    placeholder="Enter category..."
                     className="text-xs"
-                    value={filters.user}
-                    onChange={(e) =>
-                      setFilters((prev) => ({ ...prev, user: e.target.value }))
-                    }
+                    value={filters.category}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
                   />
                 </div>
 
-                {/* User Group Filter */}
+                {/* Topic Filter - Text Input */}
                 <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">
-                    User Group
-                  </label>
-                  <select
-                    className="w-full text-xs p-2 border rounded-md bg-background"
-                    value={filters.userGroup}
-                    onChange={(e) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        userGroup: e.target.value,
-                      }))
-                    }
-                  >
-                    <option value="">All Groups</option>
-                    <option value="lab">Lab</option>
-                    <option value="collaborator">Collaborator</option>
-                  </select>
+                  <label className="text-xs text-muted-foreground mb-1 block">Topic</label>
+                  <Input
+                    placeholder="Enter topic..."
+                    className="text-xs"
+                    value={filters.topic}
+                    onChange={(e) => setFilters((prev) => ({ ...prev, topic: e.target.value }))}
+                  />
                 </div>
 
                 {/* Clear Filters */}
@@ -647,8 +515,8 @@ export default function JarvisPage() {
                     setFilters({
                       searchText: "",
                       dateRange: { from: null, to: null },
-                      user: "",
-                      userGroup: "",
+                      category: "",
+                      topic: "",
                     })
                   }
                   className="w-full text-xs"
@@ -659,18 +527,23 @@ export default function JarvisPage() {
             )}
 
             {/* Tabs */}
-            <div className="flex space-x-1 bg-white/50 dark:bg-slate-800/50 p-1 rounded-full border border-white/30 dark:border-slate-600/50">
-              {["Recent", "Pinned", "Projects", "Shared"].map((tab) => (
+            <div className="flex space-x-1 bg-muted rounded-lg p-1">
+              {[
+                { key: "recent", label: "Recent" },
+                { key: "pinned", label: "Pinned" },
+                { key: "project", label: "Projects" },
+                { key: "shared", label: "Shared" },
+              ].map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab.toLowerCase() as any)}
-                  className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-200 ${
-                    activeTab === tab.toLowerCase()
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
-                      : "text-slate-600 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-slate-700/70 hover:text-slate-900 dark:hover:text-white"
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key as any)}
+                  className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all ${
+                    activeTab === tab.key
+                      ? "bg-background text-primary shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                   }`}
                 >
-                  {tab}
+                  {tab.label}
                 </button>
               ))}
             </div>
@@ -681,26 +554,22 @@ export default function JarvisPage() {
             <div className="space-y-4">
               {/* Today Section */}
               {(() => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
 
                 const todaySessions = filteredSessions.filter((session) => {
-                  const sessionDate = new Date(session.createdAt);
-                  sessionDate.setHours(0, 0, 0, 0);
-                  return sessionDate.getTime() === today.getTime();
-                });
+                  const sessionDate = new Date(session.createdAt)
+                  sessionDate.setHours(0, 0, 0, 0)
+                  return sessionDate.getTime() === today.getTime()
+                })
 
-                if (todaySessions.length === 0) return null;
+                if (todaySessions.length === 0) return null
 
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-3 px-2">
-                      <h3 className="text-sm font-medium text-foreground">
-                        Today
-                      </h3>
-                      <span className="text-xs text-muted-foreground">
-                        {todaySessions.length} Total
-                      </span>
+                      <h3 className="text-sm font-medium text-foreground">Today</h3>
+                      <span className="text-xs text-muted-foreground">{todaySessions.length} Total</span>
                     </div>
                     <div className="space-y-2">
                       {todaySessions.map((session) => (
@@ -711,103 +580,68 @@ export default function JarvisPage() {
                           onMouseLeave={() => setHoveredChat(null)}
                         >
                           <div className="flex items-start justify-between mb-1">
-                            <h4 className="font-medium text-foreground text-sm truncate flex-1">
-                              {session.title}
-                            </h4>
+                            <h4 className="font-medium text-foreground text-sm truncate flex-1">{session.title}</h4>
                             <div className="flex items-center space-x-1">
-                              {session.isPinned && (
-                                <Pin
-                                  size={12}
-                                  className="text-primary flex-shrink-0"
-                                />
-                              )}
+                              {session.isPinned && <Pin size={12} className="text-primary flex-shrink-0" />}
                               {hoveredChat === session.id && (
                                 <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
+                                    className="h-6 w-6 p-0"
                                     onClick={(e) => {
-                                      e.stopPropagation();
-                                      togglePin(session.id);
+                                      e.stopPropagation()
+                                      // Toggle pin status
+                                      console.log("Toggling pin for chat:", session.id)
                                     }}
                                   >
                                     <Pin
                                       size={10}
-                                      className={
-                                        session.isPinned
-                                          ? "text-blue-600 fill-current"
-                                          : "text-muted-foreground hover:text-blue-600"
-                                      }
+                                      className={session.isPinned ? "text-primary" : "text-muted-foreground"}
                                     />
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
+                                    className="h-6 w-6 p-0"
                                     onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "rename",
-                                        chatId: session.id,
-                                      });
+                                      e.stopPropagation()
+                                      handleChatAction({ type: "rename", chatId: session.id })
                                     }}
                                   >
-                                    <Edit3
-                                      size={10}
-                                      className="text-muted-foreground hover:text-blue-600"
-                                    />
+                                    <Edit3 size={10} />
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
+                                    className="h-6 w-6 p-0"
                                     onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "share",
-                                        chatId: session.id,
-                                      });
+                                      e.stopPropagation()
+                                      handleChatAction({ type: "share", chatId: session.id })
                                     }}
                                   >
-                                    <Share
-                                      size={10}
-                                      className="text-muted-foreground hover:text-blue-600"
-                                    />
+                                    <Share size={10} />
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
+                                    className="h-6 w-6 p-0"
                                     onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "save",
-                                        chatId: session.id,
-                                      });
+                                      e.stopPropagation()
+                                      handleChatAction({ type: "save", chatId: session.id })
                                     }}
                                   >
-                                    <Save
-                                      size={10}
-                                      className="text-muted-foreground hover:text-blue-600"
-                                    />
+                                    <Save size={10} />
                                   </Button>
                                 </div>
                               )}
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                            {session.preview}
-                          </p>
+                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{session.preview}</p>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                              {session.timestamp}
-                            </span>
+                            <span className="text-xs text-muted-foreground">{session.timestamp}</span>
                             {session.projectName && (
-                              <Badge
-                                variant="secondary"
-                                className="text-xs bg-primary/10 text-primary"
-                              >
+                              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
                                 {session.projectName}
                               </Badge>
                             )}
@@ -816,36 +650,30 @@ export default function JarvisPage() {
                       ))}
                     </div>
                   </div>
-                );
+                )
               })()}
 
               {/* Previous 7 Days Section */}
               {(() => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
 
-                const sevenDaysAgo = new Date(today);
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                const sevenDaysAgo = new Date(today)
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-                const previousWeekSessions = filteredSessions.filter(
-                  (session) => {
-                    const sessionDate = new Date(session.createdAt);
-                    sessionDate.setHours(0, 0, 0, 0);
-                    return sessionDate < today && sessionDate >= sevenDaysAgo;
-                  }
-                );
+                const previousWeekSessions = filteredSessions.filter((session) => {
+                  const sessionDate = new Date(session.createdAt)
+                  sessionDate.setHours(0, 0, 0, 0)
+                  return sessionDate < today && sessionDate >= sevenDaysAgo
+                })
 
-                if (previousWeekSessions.length === 0) return null;
+                if (previousWeekSessions.length === 0) return null
 
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-3 px-2">
-                      <h3 className="text-sm font-medium text-foreground">
-                        Previous 7 Days
-                      </h3>
-                      <span className="text-xs text-muted-foreground">
-                        {previousWeekSessions.length}
-                      </span>
+                      <h3 className="text-sm font-medium text-foreground">Previous 7 Days</h3>
+                      <span className="text-xs text-muted-foreground">{previousWeekSessions.length}</span>
                     </div>
                     <div className="space-y-2">
                       {previousWeekSessions.map((session) => (
@@ -856,85 +684,53 @@ export default function JarvisPage() {
                           onMouseLeave={() => setHoveredChat(null)}
                         >
                           <div className="flex items-start justify-between mb-1">
-                            <h4 className="font-medium text-foreground text-sm truncate flex-1">
-                              {session.title}
-                            </h4>
+                            <h4 className="font-medium text-foreground text-sm truncate flex-1">{session.title}</h4>
                             <div className="flex items-center space-x-1">
-                              {session.isPinned && (
-                                <Pin
-                                  size={12}
-                                  className="text-primary flex-shrink-0"
-                                />
-                              )}
+                              {session.isPinned && <Pin size={12} className="text-primary flex-shrink-0" />}
                               {hoveredChat === session.id && (
                                 <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
+                                    className="h-6 w-6 p-0"
                                     onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "rename",
-                                        chatId: session.id,
-                                      });
+                                      e.stopPropagation()
+                                      handleChatAction({ type: "rename", chatId: session.id })
                                     }}
                                   >
-                                    <Edit3
-                                      size={10}
-                                      className="text-muted-foreground hover:text-blue-600"
-                                    />
+                                    <Edit3 size={10} />
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
+                                    className="h-6 w-6 p-0"
                                     onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "share",
-                                        chatId: session.id,
-                                      });
+                                      e.stopPropagation()
+                                      handleChatAction({ type: "share", chatId: session.id })
                                     }}
                                   >
-                                    <Share
-                                      size={10}
-                                      className="text-muted-foreground hover:text-blue-600"
-                                    />
+                                    <Share size={10} />
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
+                                    className="h-6 w-6 p-0"
                                     onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "save",
-                                        chatId: session.id,
-                                      });
+                                      e.stopPropagation()
+                                      handleChatAction({ type: "save", chatId: session.id })
                                     }}
                                   >
-                                    <Save
-                                      size={10}
-                                      className="text-muted-foreground hover:text-blue-600"
-                                    />
+                                    <Save size={10} />
                                   </Button>
                                 </div>
                               )}
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                            {session.preview}
-                          </p>
+                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{session.preview}</p>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                              {session.timestamp}
-                            </span>
+                            <span className="text-xs text-muted-foreground">{session.timestamp}</span>
                             {session.projectName && (
-                              <Badge
-                                variant="secondary"
-                                className="text-xs bg-primary/10 text-primary"
-                              >
+                              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
                                 {session.projectName}
                               </Badge>
                             )}
@@ -943,34 +739,30 @@ export default function JarvisPage() {
                       ))}
                     </div>
                   </div>
-                );
+                )
               })()}
 
               {/* Older Sessions Section */}
               {(() => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
 
-                const sevenDaysAgo = new Date(today);
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                const sevenDaysAgo = new Date(today)
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
                 const olderSessions = filteredSessions.filter((session) => {
-                  const sessionDate = new Date(session.createdAt);
-                  sessionDate.setHours(0, 0, 0, 0);
-                  return sessionDate < sevenDaysAgo;
-                });
+                  const sessionDate = new Date(session.createdAt)
+                  sessionDate.setHours(0, 0, 0, 0)
+                  return sessionDate < sevenDaysAgo
+                })
 
-                if (olderSessions.length === 0) return null;
+                if (olderSessions.length === 0) return null
 
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-3 px-2">
-                      <h3 className="text-sm font-medium text-foreground">
-                        Older
-                      </h3>
-                      <span className="text-xs text-muted-foreground">
-                        {olderSessions.length}
-                      </span>
+                      <h3 className="text-sm font-medium text-foreground">Older</h3>
+                      <span className="text-xs text-muted-foreground">{olderSessions.length}</span>
                     </div>
                     <div className="space-y-2">
                       {olderSessions.map((session) => (
@@ -981,85 +773,53 @@ export default function JarvisPage() {
                           onMouseLeave={() => setHoveredChat(null)}
                         >
                           <div className="flex items-start justify-between mb-1">
-                            <h4 className="font-medium text-foreground text-sm truncate flex-1">
-                              {session.title}
-                            </h4>
+                            <h4 className="font-medium text-foreground text-sm truncate flex-1">{session.title}</h4>
                             <div className="flex items-center space-x-1">
-                              {session.isPinned && (
-                                <Pin
-                                  size={12}
-                                  className="text-primary flex-shrink-0"
-                                />
-                              )}
+                              {session.isPinned && <Pin size={12} className="text-primary flex-shrink-0" />}
                               {hoveredChat === session.id && (
                                 <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
+                                    className="h-6 w-6 p-0"
                                     onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "rename",
-                                        chatId: session.id,
-                                      });
+                                      e.stopPropagation()
+                                      handleChatAction({ type: "rename", chatId: session.id })
                                     }}
                                   >
-                                    <Edit3
-                                      size={10}
-                                      className="text-muted-foreground hover:text-blue-600"
-                                    />
+                                    <Edit3 size={10} />
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
+                                    className="h-6 w-6 p-0"
                                     onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "share",
-                                        chatId: session.id,
-                                      });
+                                      e.stopPropagation()
+                                      handleChatAction({ type: "share", chatId: session.id })
                                     }}
                                   >
-                                    <Share
-                                      size={10}
-                                      className="text-muted-foreground hover:text-blue-600"
-                                    />
+                                    <Share size={10} />
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 w-6 p-0 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
+                                    className="h-6 w-6 p-0"
                                     onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "save",
-                                        chatId: session.id,
-                                      });
+                                      e.stopPropagation()
+                                      handleChatAction({ type: "save", chatId: session.id })
                                     }}
                                   >
-                                    <Save
-                                      size={10}
-                                      className="text-muted-foreground hover:text-blue-600"
-                                    />
+                                    <Save size={10} />
                                   </Button>
                                 </div>
                               )}
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                            {session.preview}
-                          </p>
+                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{session.preview}</p>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                              {session.timestamp}
-                            </span>
+                            <span className="text-xs text-muted-foreground">{session.timestamp}</span>
                             {session.projectName && (
-                              <Badge
-                                variant="secondary"
-                                className="text-xs bg-primary/10 text-primary"
-                              >
+                              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
                                 {session.projectName}
                               </Badge>
                             )}
@@ -1068,7 +828,7 @@ export default function JarvisPage() {
                       ))}
                     </div>
                   </div>
-                );
+                )
               })()}
             </div>
           </ScrollArea>
@@ -1077,23 +837,11 @@ export default function JarvisPage() {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-card p-6 rounded-lg border border-border max-w-md w-full mx-4">
                 <h3 className="text-lg font-semibold mb-4">Share Chat</h3>
-                {showLinkCopied && (
-                  <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
-                    <p className="text-sm text-green-800 dark:text-green-200">
-                      ✓ Link copied to clipboard!
-                    </p>
-                    <p className="text-xs text-green-600 dark:text-green-300 mt-1 font-mono break-all">
-                      {shareLink}
-                    </p>
-                  </div>
-                )}
                 <div className="space-y-3">
                   <Button
                     variant="outline"
                     className="w-full justify-start bg-transparent"
-                    onClick={() =>
-                      handleShare(showShareModal, { type: "external" })
-                    }
+                    onClick={() => handleShare(showShareModal, { type: "external" })}
                   >
                     <Link size={16} className="mr-2" />
                     Create shareable link
@@ -1104,9 +852,7 @@ export default function JarvisPage() {
                   <Button
                     variant="outline"
                     className="w-full justify-start bg-transparent"
-                    onClick={() =>
-                      handleShare(showShareModal, { type: "collaborator" })
-                    }
+                    onClick={() => handleShare(showShareModal, { type: "collaborator" })}
                   >
                     <Users size={16} className="mr-2" />
                     Share with collaborator
@@ -1115,132 +861,10 @@ export default function JarvisPage() {
                     </Badge>
                   </Button>
                 </div>
-                <div className="flex justify-end mt-4">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowShareModal(null)}
-                  >
+                <div className="flex justify-end space-x-2 mt-4">
+                  <Button variant="outline" onClick={() => setShowShareModal(null)}>
                     Cancel
                   </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {shareModalOpen && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-background p-6 rounded-lg max-w-md w-full mx-4 border">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Share Chat</h3>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShareModalOpen(false)}
-                  >
-                    <X size={16} />
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Share Link
-                    </label>
-                    <div className="flex gap-2">
-                      <Input value={shareLink} readOnly className="text-xs" />
-                      <Button
-                        size="sm"
-                        onClick={async () => {
-                          await navigator.clipboard.writeText(shareLink);
-                          setShareFeedback("Link copied to clipboard!");
-                          setTimeout(() => setShareFeedback(""), 3000);
-                        }}
-                      >
-                        Copy
-                      </Button>
-                    </div>
-                    {shareFeedback && (
-                      <p className="text-xs text-green-600 mt-1">
-                        {shareFeedback}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Share on Social Media
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          window.open(
-                            `https://wa.me/?text=${encodeURIComponent(
-                              shareLink
-                            )}`,
-                            "_blank"
-                          )
-                        }
-                        className="text-xs"
-                      >
-                        WhatsApp
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          window.open(
-                            `mailto:?subject=Check out this research chat&body=${encodeURIComponent(
-                              shareLink
-                            )}`,
-                            "_blank"
-                          )
-                        }
-                        className="text-xs"
-                      >
-                        Email
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          window.open(
-                            `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-                              shareLink
-                            )}`,
-                            "_blank"
-                          )
-                        }
-                        className="text-xs"
-                      >
-                        LinkedIn
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          window.open(`https://www.instagram.com/`, "_blank")
-                        }
-                        className="text-xs"
-                      >
-                        Instagram
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          window.open(
-                            `https://discord.com/channels/@me`,
-                            "_blank"
-                          )
-                        }
-                        className="text-xs"
-                      >
-                        Discord
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1250,88 +874,75 @@ export default function JarvisPage() {
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col">
           {/* Chat Header */}
-          <div className="p-4 border-b border-white/20 dark:border-slate-700/50 glass-effect bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+          <div className="p-4 border-b border-border bg-card">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => router.push("/jarvis")}
-                  className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
-                >
-                  <RaceGeometricLogo
-                    size={32}
-                    variant="primary"
-                    showText={false}
-                  />
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                    <span className="text-primary-foreground text-sm font-bold">R</span>
+                  </div>
                   <div>
-                    <h2 className="font-semibold text-slate-900 dark:text-white">
-                      JARVIS Research Assistant
-                    </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <h2 className="font-semibold text-foreground">JARVIS Research Assistant</h2>
+                    <p className="text-xs text-muted-foreground">
                       {selectedModelInfo
                         ? `${selectedModelInfo.provider.name} • ${selectedModelInfo.model.name}`
                         : "Powered by AI"}
                     </p>
                   </div>
-                </button>
+                </div>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
                 <Select value={selectedModel} onValueChange={setSelectedModel}>
-                  <SelectTrigger className="w-[180px] h-8 text-xs bg-card border-border rounded-full">
+                  <SelectTrigger className="w-[180px] h-8 text-xs bg-card border-border">
                     <div className="flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
-                      <SelectValue>
-                        {selectedModelInfo?.model.name || "GPT-4o"}
-                      </SelectValue>
+                      <SelectValue>{selectedModelInfo?.model.name || "GPT-4o"}</SelectValue>
                     </div>
                   </SelectTrigger>
                   <SelectContent className="w-[320px] bg-card border-border">
                     {LLM_PROVIDERS.map((provider) => (
                       <SelectGroup key={provider.id}>
-                        <SelectLabel className="text-xs font-semibold">
-                          {provider.name}
-                        </SelectLabel>
+                        <SelectLabel className="text-xs font-semibold">{provider.name}</SelectLabel>
                         {provider.models.map((model) => (
-                          <SelectItem
-                            key={model.id}
-                            value={model.id}
-                            className="text-xs py-3"
-                          >
+                          <SelectItem key={model.id} value={model.id} className="text-xs py-3">
                             <div className="flex flex-col gap-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium">
-                                  {model.name}
-                                </span>
+                                <span className="font-medium">{model.name}</span>
                                 {model.isPro && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs h-4 px-1 rounded-full"
-                                  >
+                                  <Badge variant="secondary" className="text-xs h-4 px-1">
                                     PRO
                                   </Badge>
                                 )}
                               </div>
                               <span className="text-[10px] text-muted-foreground">
-                                {model.id === "gpt-4o" &&
-                                  "Best for complex reasoning and analysis"}
-                                {model.id === "gpt-4o-mini" &&
-                                  "Fast, efficient for simple tasks"}
-                                {model.id === "o1-preview" &&
-                                  "Advanced reasoning with chain-of-thought"}
-                                {model.id === "o1-mini" &&
-                                  "Lightweight reasoning model"}
-                                {model.id === "claude-3-5-sonnet" &&
-                                  "Best for creative and nuanced content"}
-                                {model.id === "claude-3-5-haiku" &&
-                                  "Fast, lightweight Claude model"}
-                                {model.id === "gemini-1.5-pro" &&
-                                  "Google's most capable model"}
-                                {model.id === "gemini-1.5-flash" &&
-                                  "Fast, efficient Gemini model"}
+                                {model.id === "gpt-4o" && "Best for complex reasoning and analysis"}
+                                {model.id === "gpt-4o-mini" && "Fast, efficient for simple tasks"}
+                                {model.id === "o1-preview" && "Advanced reasoning with chain-of-thought"}
+                                {model.id === "o1-mini" && "Lightweight reasoning model"}
+                                {model.id === "claude-3-5-sonnet" && "Best for creative and nuanced content"}
+                                {model.id === "claude-3-5-haiku" && "Fast Claude model for quick tasks"}
+                                {model.id === "claude-3-opus" && "Most capable Claude for complex work"}
+                                {model.id === "gemini-1.5-pro" && "Google's best for multimodal tasks"}
+                                {model.id === "gemini-1.5-flash" && "Fast Google model for quick responses"}
+                                {model.id === "gemini-2.0-flash-exp" && "Experimental features and capabilities"}
+                                {model.id === "llama-3.1-sonar-large" && "Open-source with web search"}
+                                {model.id === "llama-3.1-sonar-small" && "Lightweight with web search"}
+                                {model.id === "llama-3.1-sonar-huge" && "Most powerful open-source option"}
+                                {model.id === "grok-2-1212" && "Latest Grok with real-time knowledge"}
+                                {model.id === "grok-2-vision-1212" && "Grok with image understanding"}
+                                {model.id === "deepseek-r1" && "Specialized for research tasks"}
+                                {model.id === "deepseek-r1-distill-llama-70b" && "Research-focused, large model"}
+                                {model.id === "mixtral-8x7b" && "Efficient mixture of experts model"}
+                                {model.id === "mixtral-8x22b" && "Large MoE for complex tasks"}
+                                {model.id === "mistral-large" && "Mistral's flagship model"}
+                                {model.id === "mistral-nemo" && "Balanced performance model"}
+                                {model.id === "nemotron-70b" && "NVIDIA's large language model"}
                               </span>
                             </div>
                           </SelectItem>
                         ))}
+                        <SelectSeparator />
                       </SelectGroup>
                     ))}
                   </SelectContent>
@@ -1340,63 +951,72 @@ export default function JarvisPage() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 w-8 p-0 rounded-full hover:bg-accent hover:scale-110 transition-all duration-200"
-                  onClick={() => router.push("/profile")}
+                  className="text-muted-foreground bg-card/30 backdrop-blur-sm border-border/50"
                 >
-                  <User size={16} />
+                  <Settings size={16} />
                 </Button>
-
-                <ThemeToggle />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground bg-card/30 backdrop-blur-sm border-border/50"
+                >
+                  <Download size={16} />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground bg-card/30 backdrop-blur-sm border-border/50"
+                >
+                  <Share size={16} />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground bg-card/30 backdrop-blur-sm border-border/50"
+                >
+                  <RefreshCw size={16} />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground bg-card/30 backdrop-blur-sm border-border/50"
+                >
+                  <Trash2 size={16} />
+                </Button>
               </div>
             </div>
           </div>
 
           {/* Messages Area */}
-          <ScrollArea className="flex-1 p-6 bg-transparent">
+          <ScrollArea className="flex-1 p-6 bg-background">
             <div className="max-w-5xl mx-auto space-y-6 px-4">
               {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.sender === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
+                <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-[85%] p-5 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 ${
+                    className={`max-w-[85%] p-5 rounded-2xl ${
                       message.sender === "user"
-                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white"
-                        : "glass-effect bg-white/90 dark:bg-slate-800/90 text-slate-900 dark:text-white border border-white/30 dark:border-slate-600/50 backdrop-blur-sm"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card text-card-foreground border border-border"
                     }`}
                   >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                      {message.content}
-                    </p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
 
                     {message.resources && message.resources.length > 0 && (
                       <div className="mt-4 space-y-3">
-                        <div className="text-xs font-medium text-muted-foreground mb-3">
-                          Related Resources:
-                        </div>
+                        <div className="text-xs font-medium text-muted-foreground mb-3">Related Resources:</div>
                         {message.resources.map((resource, index) => (
-                          <div
-                            key={index}
-                            className="bg-muted p-4 rounded-xl border border-border"
-                          >
+                          <div key={index} className="bg-muted p-4 rounded-xl border border-border">
                             <div className="flex items-start justify-between">
                               <div className="flex-1 pr-3">
-                                <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-2">
-                                  {resource.title}
-                                </h4>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                                <h4 className="text-sm font-medium text-foreground mb-2">{resource.title}</h4>
+                                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                                   {resource.snippet}
                                 </p>
                               </div>
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() =>
-                                  window.open(resource.url, "_blank")
-                                }
+                                onClick={() => window.open(resource.url, "_blank")}
                                 className="ml-2 p-2 h-8 w-8 hover:bg-primary/10"
                               >
                                 <ExternalLink size={14} />
@@ -1408,16 +1028,9 @@ export default function JarvisPage() {
                     )}
 
                     <p
-                      className={`text-xs mt-3 ${
-                        message.sender === "user"
-                          ? "text-white/70"
-                          : "text-slate-500 dark:text-slate-400"
-                      }`}
+                      className={`text-xs mt-3 ${message.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}
                     >
-                      {message.timestamp.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
                 </div>
@@ -1425,12 +1038,10 @@ export default function JarvisPage() {
 
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="glass-effect bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm p-5 rounded-2xl border border-white/30 dark:border-slate-600/50 shadow-sm">
+                  <div className="bg-card/70 backdrop-blur-sm p-5 rounded-2xl border border-border/50 shadow-sm">
                     <div className="flex items-center space-x-3">
-                      <Loader2 className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm text-slate-500 dark:text-slate-400">
-                        JARVIS is thinking...
-                      </span>
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <span className="text-sm text-muted-foreground">JARVIS is thinking...</span>
                     </div>
                   </div>
                 </div>
@@ -1440,24 +1051,19 @@ export default function JarvisPage() {
           </ScrollArea>
 
           {/* Input Area */}
-          <div className="p-6 border-t border-white/20 dark:border-slate-700/50 glass-effect bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+          <div className="p-6 border-t border-border bg-card">
             <div className="max-w-5xl mx-auto px-4">
               {selectedFile && (
-                <div className="mb-4 p-3 glass-effect bg-white/70 dark:bg-slate-800/70 rounded-xl border border-white/30 dark:border-slate-600/50 flex items-center justify-between backdrop-blur-sm">
+                <div className="mb-4 p-3 bg-muted rounded-xl border border-border flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <Paperclip
-                      size={16}
-                      className="text-slate-500 dark:text-slate-400"
-                    />
-                    <span className="text-sm text-slate-900 dark:text-white font-medium">
-                      {selectedFile.name}
-                    </span>
+                    <Paperclip size={16} className="text-muted-foreground" />
+                    <span className="text-sm text-foreground font-medium">{selectedFile.name}</span>
                   </div>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => setSelectedFile(null)}
-                    className="text-slate-500 dark:text-red-500 hover:text-red-600 p-1 h-6 w-6"
+                    className="text-muted-foreground hover:text-destructive p-1 h-6 w-6"
                   >
                     ×
                   </Button>
@@ -1471,7 +1077,7 @@ export default function JarvisPage() {
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Ask JARVIS anything about your research..."
-                    className="pr-24 py-4 glass-effect border-white/30 dark:border-slate-600/50 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 rounded-full text-base bg-white/70 dark:bg-slate-800/70 focus:bg-white/90 dark:focus:bg-slate-800/90 transition-all duration-200 shadow-lg focus:shadow-xl"
+                    className="pr-24 py-4 bg-input border-border text-foreground placeholder-muted-foreground rounded-2xl text-base"
                     disabled={isLoading}
                   />
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
@@ -1485,7 +1091,7 @@ export default function JarvisPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-slate-500 dark:text-blue-500 hover:text-blue-600 p-2 h-8 w-8 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200"
+                      className="text-muted-foreground hover:text-foreground p-2 h-8 w-8"
                       disabled={isLoading}
                       onClick={() => fileInputRef.current?.click()}
                     >
@@ -1495,11 +1101,7 @@ export default function JarvisPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className={`p-2 h-8 w-8 rounded-full hover:scale-110 transition-all duration-200 ${
-                        isRecording
-                          ? "text-red-500 bg-red-100 dark:bg-red-900/30"
-                          : "text-slate-500 dark:text-blue-500 hover:text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30"
-                      }`}
+                      className={`text-muted-foreground hover:text-foreground p-2 h-8 w-8 ${isRecording ? "text-destructive animate-pulse" : ""}`}
                       disabled={isLoading}
                       onClick={handleVoiceInput}
                     >
@@ -1510,15 +1112,15 @@ export default function JarvisPage() {
                 <Button
                   onClick={handleSendMessage}
                   disabled={!inputMessage.trim() || isLoading}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white p-4 rounded-full min-w-[48px] hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground p-4 rounded-2xl min-w-[48px]"
                 >
-                  {isLoading ? <Loader2 size={18} /> : <Send size={18} />}
+                  {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                 </Button>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </EnhancedBackground>
-  );
+    </CleanBackground>
+  )
 }

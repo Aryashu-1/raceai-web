@@ -1,11 +1,11 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
-    const { query, interest } = await request.json();
+    const { query, interest } = await request.json()
 
     if (!process.env.TAVILY_API_KEY) {
-      throw new Error("TAVILY_API_KEY not configured");
+      throw new Error("TAVILY_API_KEY not configured")
     }
 
     const response = await fetch("https://api.tavily.com/search", {
@@ -22,13 +22,13 @@ export async function POST(request: NextRequest) {
         include_raw_content: false,
         max_results: 3,
       }),
-    });
+    })
 
     if (!response.ok) {
-      throw new Error("Failed to fetch from Tavily API");
+      throw new Error("Failed to fetch from Tavily API")
     }
 
-    const data = await response.json();
+    const data = await response.json()
 
     // Parse the results to extract researcher information
     const researchers =
@@ -41,12 +41,12 @@ export async function POST(request: NextRequest) {
         image: `/professional-researcher-${index + 1}.png`,
         description: extractDescription(result.content),
         tags: [interest, ...extractTags(result.content)].slice(0, 3),
-      })) || [];
+      })) || []
 
-    return NextResponse.json({ researchers });
+    return NextResponse.json({ researchers })
   } catch (error) {
-    console.error("Error in search-researchers API:", error);
-    return NextResponse.json({ researchers: [] }, { status: 500 });
+    console.error("Error in search-researchers API:", error)
+    return NextResponse.json({ researchers: [] }, { status: 500 })
   }
 }
 
@@ -55,35 +55,29 @@ function extractResearcherName(title: string, content: string): string {
   const nameMatch =
     title.match(/Dr\.\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/) ||
     content.match(/Dr\.\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/) ||
-    title.match(/([A-Z][a-z]+\s+[A-Z][a-z]+)/);
+    title.match(/([A-Z][a-z]+\s+[A-Z][a-z]+)/)
 
-  return nameMatch ? `Dr. ${nameMatch[1]}` : "Researcher";
+  return nameMatch ? `Dr. ${nameMatch[1]}` : "Researcher"
 }
 
 function extractInstitution(content: string): string {
   const institutionMatch =
     content.match(/(University|Institute|College|Lab)[^.]*/) ||
-    content.match(/(MIT|Stanford|Harvard|Berkeley|CMU)[^.]*/);
+    content.match(/(MIT|Stanford|Harvard|Berkeley|CMU)[^.]*/)
 
-  return institutionMatch
-    ? institutionMatch[0].slice(0, 50)
-    : "Research Institution";
+  return institutionMatch ? institutionMatch[0].slice(0, 50) : "Research Institution"
 }
 
 function extractCitations(content: string): string {
-  const citationMatch =
-    content.match(/(\d+[KM]?\+?\s*citations?)/) ||
-    content.match(/h-index[:\s]*(\d+)/);
+  const citationMatch = content.match(/(\d+[KM]?\+?\s*citations?)/) || content.match(/h-index[:\s]*(\d+)/)
 
-  return citationMatch ? citationMatch[1] : "10K+";
+  return citationMatch ? citationMatch[1] : "10K+"
 }
 
 function extractDescription(content: string): string {
   // Extract first meaningful sentence
-  const sentences = content.split(".").filter((s) => s.length > 50);
-  return sentences[0]
-    ? sentences[0].slice(0, 120) + "..."
-    : "Leading researcher in the field";
+  const sentences = content.split(".").filter((s) => s.length > 50)
+  return sentences[0] ? sentences[0].slice(0, 120) + "..." : "Leading researcher in the field"
 }
 
 function extractTags(content: string): string[] {
@@ -96,10 +90,8 @@ function extractTags(content: string): string[] {
     "natural language processing",
     "robotics",
     "data science",
-  ];
-  const foundTerms = commonTerms.filter((term) =>
-    content.toLowerCase().includes(term)
-  );
+  ]
+  const foundTerms = commonTerms.filter((term) => content.toLowerCase().includes(term))
 
-  return foundTerms.slice(0, 2);
+  return foundTerms.slice(0, 2)
 }

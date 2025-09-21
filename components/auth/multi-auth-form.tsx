@@ -1,236 +1,184 @@
-"use client";
+"use client"
 
-import type React from "react";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AriaAssistant } from "@/components/aria-assistant";
-import { Eye, EyeOff, Mail, Smartphone, CheckCircle } from "lucide-react";
+import type React from "react"
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AriaAssistant } from "@/components/aria-assistant"
+import { Eye, EyeOff, Mail, Smartphone, CheckCircle } from "lucide-react"
 
 interface MultiAuthFormProps {
-  onComplete: (userData: any) => void;
+  onComplete: (userData: any) => void
 }
 
 export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [authMethod, setAuthMethod] = useState<"password" | "google" | "otp">(
-    "password"
-  );
-  const [otpMethod, setOtpMethod] = useState<"email" | "mobile">("mobile");
+  const [showPassword, setShowPassword] = useState(false)
+  const [authMethod, setAuthMethod] = useState<"password" | "google" | "otp">("password")
+  const [otpMethod, setOtpMethod] = useState<"email" | "mobile">("mobile")
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     phone: "",
     otp: "",
-  });
-  const [step, setStep] = useState<"auth" | "verify">("auth");
-  const [loading, setLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
+  })
+  const [step, setStep] = useState<"auth" | "verify">("auth")
+  const [loading, setLoading] = useState(false)
+  const [otpSent, setOtpSent] = useState(false)
   const [ariaMessage, setAriaMessage] = useState(
-    "Welcome! I'm ARIA, your research assistant. Let's get you started with the best sign-in method for you."
-  );
+    "Welcome! I'm ARIA, your research assistant. Let's get you started with the best sign-in method for you.",
+  )
 
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
+    const script = document.createElement("script")
+    script.src = "https://accounts.google.com/gsi/client"
+    script.async = true
+    script.defer = true
+    document.head.appendChild(script)
 
     script.onload = () => {
       if (window.google) {
         window.google.accounts.id.initialize({
-          client_id:
-            process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "demo-client-id",
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "demo-client-id",
           callback: handleGoogleCallback,
           auto_select: false,
           cancel_on_tap_outside: false,
-        });
+        })
       }
-    };
+    }
 
     return () => {
-      document.head.removeChild(script);
-    };
-  }, []);
+      document.head.removeChild(script)
+    }
+  }, [])
 
   const handleGoogleCallback = (response: any) => {
     try {
       // In a real app, you'd verify the JWT token on your backend
-      const payload = JSON.parse(atob(response.credential.split(".")[1]));
-      setAriaMessage("Perfect! Google sign-in successful. Welcome to RACE AI!");
+      const payload = JSON.parse(atob(response.credential.split(".")[1]))
+      setAriaMessage("Perfect! Google sign-in successful. Welcome to RACE AI!")
       setTimeout(() => {
         onComplete({
           method: "google",
           email: payload.email,
           name: payload.name,
           picture: payload.picture,
-        });
-      }, 1000);
+        })
+      }, 1000)
     } catch (error) {
-      console.error("Google sign-in error:", error);
-      setAriaMessage(
-        "Oops! There was an issue with Google sign-in. Let's try another method."
-      );
+      console.error("Google sign-in error:", error)
+      setAriaMessage("Oops! There was an issue with Google sign-in. Let's try another method.")
     }
-  };
+  }
 
   const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setAriaMessage(
-      "Great choice! Email sign-in gives you the most secure access to all features."
-    );
+    e.preventDefault()
+    setLoading(true)
+    setAriaMessage("Great choice! Email sign-in gives you the most secure access to all features.")
 
     setTimeout(() => {
-      setLoading(false);
-      onComplete({ method: "email", email: formData.email });
-    }, 1500);
-  };
+      setLoading(false)
+      onComplete({ method: "email", email: formData.email })
+    }, 1500)
+  }
 
   const handleGoogleAuth = () => {
-    setAriaMessage(
-      "Google sign-in is super convenient! You'll be up and running in seconds."
-    );
+    setAriaMessage("Google sign-in is super convenient! You'll be up and running in seconds.")
 
     if (window.google?.accounts?.id) {
       window.google.accounts.id.prompt((notification: any) => {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           // Fallback to one-tap if prompt fails
-          window.google.accounts.id.renderButton(
-            document.getElementById("google-signin-button"),
-            {
-              theme: "outline",
-              size: "large",
-              width: "100%",
-              text: "continue_with",
-            }
-          );
+          window.google.accounts.id.renderButton(document.getElementById("google-signin-button"), {
+            theme: "outline",
+            size: "large",
+            width: "100%",
+            text: "continue_with",
+          })
         }
-      });
+      })
     } else {
       // Demo fallback with better UX
-      setLoading(true);
+      setLoading(true)
       setTimeout(() => {
-        setLoading(false);
-        onComplete({
-          method: "google",
-          email: "demo@gmail.com",
-          name: "Demo User",
-        });
-      }, 2000);
+        setLoading(false)
+        onComplete({ method: "google", email: "demo@gmail.com", name: "Demo User" })
+      }, 2000)
     }
-  };
+  }
 
   const handleOTPAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    setLoading(true)
 
     if (step === "auth") {
-      const contactMethod = otpMethod === "email" ? "email" : "phone";
-      const contactValue =
-        otpMethod === "email" ? formData.email : formData.phone;
+      const contactMethod = otpMethod === "email" ? "email" : "phone"
+      const contactValue = otpMethod === "email" ? formData.email : formData.phone
 
-      setAriaMessage(`Sending verification code to your ${contactMethod}...`);
+      setAriaMessage(`Sending verification code to your ${contactMethod}...`)
 
       setTimeout(() => {
-        setStep("verify");
-        setOtpSent(true);
-        setLoading(false);
+        setStep("verify")
+        setOtpSent(true)
+        setLoading(false)
         setAriaMessage(
-          `Perfect! I've sent a 6-digit code to ${contactValue}. Check your ${
-            contactMethod === "email" ? "inbox" : "messages"
-          }.`
-        );
-      }, 2000);
+          `Perfect! I've sent a 6-digit code to ${contactValue}. Check your ${contactMethod === "email" ? "inbox" : "messages"}.`,
+        )
+      }, 2000)
     } else {
-      setAriaMessage("Verifying your code...");
+      setAriaMessage("Verifying your code...")
 
       setTimeout(() => {
         if (formData.otp.length === 6) {
-          setLoading(false);
-          setAriaMessage(
-            "Excellent! Code verified successfully. Welcome to RACE AI!"
-          );
+          setLoading(false)
+          setAriaMessage("Excellent! Code verified successfully. Welcome to RACE AI!")
           setTimeout(() => {
             onComplete({
               method: "otp",
-              [otpMethod === "email" ? "email" : "phone"]:
-                otpMethod === "email" ? formData.email : formData.phone,
-            });
-          }, 1000);
+              [otpMethod === "email" ? "email" : "phone"]: otpMethod === "email" ? formData.email : formData.phone,
+            })
+          }, 1000)
         } else {
-          setLoading(false);
-          setAriaMessage(
-            "Hmm, that code doesn't look right. Please check and try again."
-          );
+          setLoading(false)
+          setAriaMessage("Hmm, that code doesn't look right. Please check and try again.")
         }
-      }, 1500);
+      }, 1500)
     }
-  };
+  }
 
   const formatPhoneNumber = (value: string) => {
-    const phoneNumber = value.replace(/[^\d]/g, "");
-    const phoneNumberLength = phoneNumber.length;
-    if (phoneNumberLength < 4) return phoneNumber;
+    const phoneNumber = value.replace(/[^\d]/g, "")
+    const phoneNumberLength = phoneNumber.length
+    if (phoneNumberLength < 4) return phoneNumber
     if (phoneNumberLength < 7) {
-      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`
     }
-    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(
-      3,
-      6
-    )}-${phoneNumber.slice(6, 10)}`;
-  };
+    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
       {/* ARIA Assistant */}
       <div className="absolute top-8 left-8 z-10">
-        <AriaAssistant
-          message={ariaMessage}
-          state={loading ? "thinking" : "speaking"}
-          size="sm"
-          showMessage={true}
-        />
+        <AriaAssistant message={ariaMessage} state={loading ? "thinking" : "speaking"} size="sm" showMessage={true} />
       </div>
 
       <Card className="w-full max-w-md bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl font-bold text-white">
-            Get. Set. Race.
-          </CardTitle>
-          <CardDescription className="text-blue-100">
-            Choose your preferred way to access RACE AI
-          </CardDescription>
+          <CardTitle className="text-2xl font-bold text-white">Get. Set. Race.</CardTitle>
+          <CardDescription className="text-blue-100">Choose your preferred way to access RACE AI</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
-          <Tabs
-            value={authMethod}
-            onValueChange={(value) => setAuthMethod(value as any)}
-            className="w-full"
-          >
+          <Tabs value={authMethod} onValueChange={(value) => setAuthMethod(value as any)} className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-white/10">
-              <TabsTrigger
-                value="password"
-                className="data-[state=active]:bg-blue-500"
-              >
+              <TabsTrigger value="password" className="data-[state=active]:bg-blue-500">
                 <Mail className="w-4 h-4 mr-1" />
                 Email
               </TabsTrigger>
-              <TabsTrigger
-                value="google"
-                className="data-[state=active]:bg-blue-500"
-              >
+              <TabsTrigger value="google" className="data-[state=active]:bg-blue-500">
                 <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
@@ -251,10 +199,7 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
                 </svg>
                 Google
               </TabsTrigger>
-              <TabsTrigger
-                value="otp"
-                className="data-[state=active]:bg-blue-500"
-              >
+              <TabsTrigger value="otp" className="data-[state=active]:bg-blue-500">
                 <Smartphone className="w-4 h-4 mr-1" />
                 OTP
               </TabsTrigger>
@@ -271,12 +216,7 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
                     type="email"
                     placeholder="your.email@university.edu"
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                     className="bg-white/10 border-white/20 text-white placeholder:text-blue-200"
                     required
                     disabled={loading}
@@ -292,12 +232,7 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
                       type={showPassword ? "text" : "password"}
                       placeholder="Your secure password"
                       value={formData.password}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          password: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
                       className="bg-white/10 border-white/20 text-white placeholder:text-blue-200 pr-10"
                       required
                       disabled={loading}
@@ -310,19 +245,11 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
                       onClick={() => setShowPassword(!showPassword)}
                       disabled={loading}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                  disabled={loading}
-                >
+                <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white" disabled={loading}>
                   {loading ? "Signing In..." : "Sign In →"}
                 </Button>
               </form>
@@ -330,9 +257,7 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
 
             <TabsContent value="google" className="space-y-4 mt-6">
               <div className="text-center space-y-4">
-                <p className="text-blue-100 text-sm">
-                  Sign in with your Google account for instant access
-                </p>
+                <p className="text-blue-100 text-sm">Sign in with your Google account for instant access</p>
                 <div id="google-signin-button">
                   <Button
                     onClick={handleGoogleAuth}
@@ -373,26 +298,14 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
               {step === "auth" ? (
                 <form onSubmit={handleOTPAuth} className="space-y-4">
                   <div className="space-y-3">
-                    <Label className="text-white text-sm">
-                      Choose verification method
-                    </Label>
-                    <Tabs
-                      value={otpMethod}
-                      onValueChange={(value) => setOtpMethod(value as any)}
-                      className="w-full"
-                    >
+                    <Label className="text-white text-sm">Choose verification method</Label>
+                    <Tabs value={otpMethod} onValueChange={(value) => setOtpMethod(value as any)} className="w-full">
                       <TabsList className="grid w-full grid-cols-2 bg-white/5">
-                        <TabsTrigger
-                          value="mobile"
-                          className="data-[state=active]:bg-blue-500/50"
-                        >
+                        <TabsTrigger value="mobile" className="data-[state=active]:bg-blue-500/50">
                           <Smartphone className="w-3 h-3 mr-1" />
                           Mobile
                         </TabsTrigger>
-                        <TabsTrigger
-                          value="email"
-                          className="data-[state=active]:bg-blue-500/50"
-                        >
+                        <TabsTrigger value="email" className="data-[state=active]:bg-blue-500/50">
                           <Mail className="w-3 h-3 mr-1" />
                           Email
                         </TabsTrigger>
@@ -407,34 +320,21 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
                     <Input
                       id={otpMethod}
                       type={otpMethod === "email" ? "email" : "tel"}
-                      placeholder={
-                        otpMethod === "email"
-                          ? "your.email@university.edu"
-                          : "+1 (555) 123-4567"
-                      }
-                      value={
-                        otpMethod === "email" ? formData.email : formData.phone
-                      }
+                      placeholder={otpMethod === "email" ? "your.email@university.edu" : "+1 (555) 123-4567"}
+                      value={otpMethod === "email" ? formData.email : formData.phone}
                       onChange={(e) => {
-                        const value =
-                          otpMethod === "email"
-                            ? e.target.value
-                            : formatPhoneNumber(e.target.value);
+                        const value = otpMethod === "email" ? e.target.value : formatPhoneNumber(e.target.value)
                         setFormData((prev) => ({
                           ...prev,
                           [otpMethod === "email" ? "email" : "phone"]: value,
-                        }));
+                        }))
                       }}
                       className="bg-white/10 border-white/20 text-white placeholder:text-blue-200"
                       required
                       disabled={loading}
                     />
                   </div>
-                  <Button
-                    type="submit"
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                    disabled={loading}
-                  >
+                  <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white" disabled={loading}>
                     {loading ? "Sending Code..." : "Send Code →"}
                   </Button>
                 </form>
@@ -445,13 +345,10 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
                       <Label htmlFor="otp" className="text-white">
                         Verification Code
                       </Label>
-                      {otpSent && (
-                        <CheckCircle className="w-4 h-4 text-green-400" />
-                      )}
+                      {otpSent && <CheckCircle className="w-4 h-4 text-green-400" />}
                     </div>
                     <p className="text-xs text-blue-200 mb-2">
-                      Code sent to{" "}
-                      {otpMethod === "email" ? formData.email : formData.phone}
+                      Code sent to {otpMethod === "email" ? formData.email : formData.phone}
                     </p>
                     <Input
                       id="otp"
@@ -459,10 +356,8 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
                       placeholder="123456"
                       value={formData.otp}
                       onChange={(e) => {
-                        const value = e.target.value
-                          .replace(/\D/g, "")
-                          .slice(0, 6);
-                        setFormData((prev) => ({ ...prev, otp: value }));
+                        const value = e.target.value.replace(/\D/g, "").slice(0, 6)
+                        setFormData((prev) => ({ ...prev, otp: value }))
                       }}
                       className="bg-white/10 border-white/20 text-white placeholder:text-blue-200 text-center text-lg tracking-widest"
                       maxLength={6}
@@ -482,9 +377,9 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
                     variant="ghost"
                     className="w-full text-blue-200 hover:text-white"
                     onClick={() => {
-                      setStep("auth");
-                      setOtpSent(false);
-                      setFormData((prev) => ({ ...prev, otp: "" }));
+                      setStep("auth")
+                      setOtpSent(false)
+                      setFormData((prev) => ({ ...prev, otp: "" }))
                     }}
                     disabled={loading}
                   >
@@ -498,15 +393,13 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
           <div className="text-center">
             <p className="text-blue-200 text-sm">
               Don't have an account?{" "}
-              <button className="text-white hover:underline font-medium">
-                Create a new account
-              </button>
+              <button className="text-white hover:underline font-medium">Create a new account</button>
             </p>
           </div>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
 
 declare global {
@@ -514,11 +407,11 @@ declare global {
     google?: {
       accounts: {
         id: {
-          initialize: (config: any) => void;
-          prompt: (callback?: (notification: any) => void) => void;
-          renderButton: (element: HTMLElement, config: any) => void;
-        };
-      };
-    };
+          initialize: (config: any) => void
+          prompt: (callback?: (notification: any) => void) => void
+          renderButton: (element: HTMLElement, config: any) => void
+        }
+      }
+    }
   }
 }

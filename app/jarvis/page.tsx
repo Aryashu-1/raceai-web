@@ -882,7 +882,7 @@ export default function JarvisPage() {
                     <span className="text-primary-foreground text-sm font-bold">R</span>
                   </div>
                   <div>
-                    <h2 className="font-semibold text-foreground">JARVIS Research Assistant</h2>
+                    <h2 className="font-semibold text-foreground">JARVIS RACE Research Assistant</h2>
                     <p className="text-xs text-muted-foreground">
                       {selectedModelInfo
                         ? `${selectedModelInfo.provider.name} • ${selectedModelInfo.model.name}`

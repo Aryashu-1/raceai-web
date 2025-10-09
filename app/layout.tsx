@@ -4,8 +4,13 @@ import { Inter } from "next/font/google"
 import { Space_Grotesk } from "next/font/google"
 // import { ClerkProvider } from "@clerk/nextjs"
 import { ThemeProvider } from "@/components/theme-provider"
-import { ThemeToggle } from "@/components/theme-toggle"
 import "./globals.css"
+
+// NEW FEATURES - Add these imports
+import { NotificationProvider } from "@/lib/contexts/notification-context"
+import { ToastProvider } from "@/lib/contexts/toast-context"
+import { CommandPalette } from "@/components/command-palette"
+import { QuickCapture } from "@/components/quick-capture"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -34,7 +39,7 @@ export default function RootLayout({
   // const isValidClerkKey = publishableKey && publishableKey.startsWith("pk_") && publishableKey.length > 20
 
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -44,10 +49,18 @@ export default function RootLayout({
         />
         <meta name="api-keys-required" content="OPENAI_API_KEY for full functionality" />
       </head>
-      <body className="font-sans antialiased bg-background text-foreground">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={true}>
-          
-          {children}
+      <body className="font-sans antialiased bg-background text-foreground" suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={true}>
+          {/* NEW: Wrap with feature providers */}
+          <ToastProvider>
+            <NotificationProvider>
+              {children}
+
+              {/* NEW: Add global features */}
+              <CommandPalette />  {/* Press ⌘K or Ctrl+K to open */}
+              <QuickCapture />    {/* Floating + button in bottom-right */}
+            </NotificationProvider>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

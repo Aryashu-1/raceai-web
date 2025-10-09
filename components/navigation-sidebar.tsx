@@ -2,11 +2,11 @@
 
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { MessageSquare, Search, Users, Lightbulb, User } from "lucide-react"
-import Logo2D from "@/components/logo-2d"
+import { MessageSquare, Search, Users, Lightbulb, User, Settings, LayoutDashboard, FolderKanban } from "lucide-react"
+import ModernLogo from "@/components/modern-logo"
 import { ThemeToggle } from "./theme-toggle"
-import Image from "next/image";
-import myIcon from "@/assets/my-icon.png";
+import Image from "next/image"
+import { useState, useEffect } from "react"
 
 const navigationItems = [
   {
@@ -14,45 +14,71 @@ const navigationItems = [
     label: "Chat",
     icon: MessageSquare,
     path: "/jarvis",
-    description: "AI Research Assistant",
   },
   {
     id: "knowledge",
-    label: "Knowledge",
+    label: "Knowledge & Discovery",
     icon: Search,
     path: "/knowledge",
-    description: "Discovery & Research",
   },
   {
     id: "research",
-    label: "Research",
+    label: "Collaborate",
     icon: Users,
     path: "/research",
-    description: "Collaboration Hub",
   },
   {
     id: "problems",
     label: "SOTA",
     icon: Lightbulb,
     path: "/problems",
-    description: "State-of-the-Art Problems",
+  },
+]
+
+const secondaryNavItems = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    path: "/dashboard",
+  },
+  {
+    id: "projects",
+    label: "Projects",
+    icon: FolderKanban,
+    path: "/projects",
   },
 ]
 
 export default function NavigationSidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const [profilePicture, setProfilePicture] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Get user profile picture from localStorage
+    const savedProfileImage = localStorage.getItem("profile_image")
+    if (savedProfileImage) {
+      setProfilePicture(savedProfileImage)
+    }
+  }, [])
+
+  const handleLogoClick = () => {
+    // Check if user is signed in - you can replace this with actual auth check
+    const isSignedIn = true // Replace with: const isSignedIn = !!session or your auth state
+
+    if (isSignedIn) {
+      router.push("/jarvis")
+    } else {
+      router.push("/") // Sign up page
+    }
+  }
 
   return (
-    <div className="w-16 bg-white/10 backdrop-blur-md border-r shadow-sm  border-white/20 flex flex-col items-center pt-2 pb-4">
+    <div className="w-16 glass-card border-r border-border/50 flex flex-col items-center pt-2 pb-4 relative z-50">
       {/* Logo */}
-      <div className="mb-8 cursor-pointer" onClick={() => router.push("/jarvis")}>
-        <Image
-          src={myIcon}
-          alt="My PNG Icon"
-          className="h-[50px] mt-0 w-[50px] rounded-[10px]"
-
-        />
+      <div className="mb-8 cursor-pointer" onClick={handleLogoClick}>
+        <ModernLogo size={50} showText={false} />
       </div>
 
       {/* Navigation Items */}
@@ -67,52 +93,118 @@ export default function NavigationSidebar() {
               variant="ghost"
               size="sm"
               onClick={() => router.push(item.path)}
-              className={`w-12 h-12 p-0 rounded-xl transition-all duration-200 group hover:cursor-pointer relative ${
-                isActive ? "bg-primary text-secondary shadow-lg " : "text-gray-600 hover:text-primary hover:bg-white/20"
+              className={`w-12 h-12 p-0 rounded-full transition-all duration-200 group hover:cursor-pointer relative hover:scale-105 ${
+                isActive
+                  ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/15 dark:hover:bg-primary/25"
+                  : "bg-transparent hover:bg-muted dark:hover:bg-muted/50"
               }`}
               title={item.label}
             >
-              <Icon size={20} />
-
-              {/* Tooltip */}
-              <div className="absolute left-16 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                <div className="font-medium">{item.label}</div>
-                <div className="text-gray-300 text-xs">{item.description}</div>
-                <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 rotate-45"></div>
-              </div>
+              {isActive && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-sm" />
+              )}
+              <Icon
+                size={20}
+                className={isActive ? "text-primary dark:text-primary" : "text-primary dark:text-muted-foreground group-hover:text-primary dark:group-hover:text-foreground"}
+                strokeWidth={isActive ? 2.5 : 2}
+              />
             </Button>
           )
         })}
       </div>
-      
-         <div className="mt-[320px]">
+
+      {/* Divider */}
+      <div className="w-8 h-px bg-gray-300 dark:bg-border my-4"></div>
+
+      {/* Secondary Navigation Items */}
+      <div className="flex flex-col space-y-1">
+        {secondaryNavItems.map((item) => {
+          const Icon = item.icon
+          const isActive = pathname === item.path
+
+          return (
+            <Button
+              key={item.id}
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push(item.path)}
+              className={`w-12 h-12 p-0 rounded-full transition-all duration-200 group hover:cursor-pointer relative hover:scale-105 ${
+                isActive
+                  ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/15 dark:hover:bg-primary/25"
+                  : "bg-transparent hover:bg-muted dark:hover:bg-muted/50"
+              }`}
+              title={item.label}
+            >
+              {isActive && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-sm" />
+              )}
+              <Icon
+                size={20}
+                className={isActive ? "text-primary dark:text-primary" : "text-primary dark:text-muted-foreground group-hover:text-primary dark:group-hover:text-foreground"}
+                strokeWidth={isActive ? 2.5 : 2}
+              />
+            </Button>
+          )
+        })}
+      </div>
+
+         <div className="mt-auto mb-4">
                 <ThemeToggle />
             </div>
       {/* Profile Section */}
-      <div className="mt-auto flex flex-col items-center space-y-4">
+      <div className="flex flex-col items-center space-y-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push("/settings")}
+          className={`w-12 h-12 p-0 rounded-full transition-all duration-200 group relative hover:scale-105 ${
+            pathname === "/settings"
+              ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/15 dark:hover:bg-primary/25"
+              : "bg-transparent hover:bg-muted dark:hover:bg-muted/50"
+          }`}
+          title="Settings"
+        >
+          {pathname === "/settings" && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-sm" />
+          )}
+          <Settings
+            size={20}
+            className={pathname === "/settings" ? "text-primary dark:text-primary" : "text-primary dark:text-muted-foreground group-hover:text-primary dark:group-hover:text-foreground"}
+            strokeWidth={pathname === "/settings" ? 2.5 : 2}
+          />
+        </Button>
+
         <Button
           variant="ghost"
           size="sm"
           onClick={() => router.push("/profile")}
-          className={`w-12 h-12 p-0 rounded-xl transition-all duration-200 group relative ${
+          className={`w-12 h-12 p-0 rounded-full transition-all duration-200 group relative overflow-hidden hover:scale-105 ${
             pathname === "/profile"
-              ? "bg-primary text-white shadow-lg"
-              : "text-gray-600 hover:text-primary hover:bg-white/20"
+              ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/15 dark:hover:bg-primary/25"
+              : "bg-transparent hover:bg-muted dark:hover:bg-muted/50"
           }`}
           title="Profile"
         >
-          <User size={20} />
-
-           
-           
-      
-
-          {/* Tooltip */}
-          <div className="absolute left-16 top-1/2 transform -translate-y-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-            <div className="font-medium">Profile</div>
-            <div className="text-gray-300 text-xs">User Settings</div>
-            <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 rotate-45"></div>
-          </div>
+          {pathname === "/profile" && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-sm" />
+          )}
+          {profilePicture ? (
+            <div className={pathname === "/profile" ? "ring-2 ring-primary rounded-full" : ""}>
+              <Image
+                src={profilePicture}
+                alt="Profile"
+                width={32}
+                height={32}
+                className="rounded-full object-cover"
+              />
+            </div>
+          ) : (
+            <User
+              size={20}
+              className={pathname === "/profile" ? "text-primary dark:text-primary" : "text-primary dark:text-muted-foreground group-hover:text-primary dark:group-hover:text-foreground"}
+              strokeWidth={pathname === "/profile" ? 2.5 : 2}
+            />
+          )}
         </Button>
 
         {/* Active Indicator */}

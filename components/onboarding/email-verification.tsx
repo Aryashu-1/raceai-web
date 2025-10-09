@@ -5,6 +5,8 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import ModernLogo from "@/components/modern-logo"
+import { MessageCircle, Sparkles } from "lucide-react"
 
 interface EmailVerificationProps {
   email: string
@@ -108,12 +110,42 @@ export default function EmailVerification({ email, onNext, onBack }: EmailVerifi
   }
 
   return (
-    <div className="flex items-start justify-center p-4 pt-8">
-      <div className="w-full max-w-md">
-        <div className="bg-card/90 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-blue-400/20 relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 via-transparent to-blue-500/5 rounded-2xl blur-sm"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background relative">
+      {/* Animated Background */}
+      <div className="animated-background">
+        <div className="floating-particle"></div>
+        <div className="floating-particle"></div>
+        <div className="floating-particle"></div>
+        <div className="floating-particle"></div>
+        <div className="floating-particle"></div>
+      </div>
 
-          <div className="text-center mb-8 relative z-10">
+      <div className="w-full max-w-2xl relative z-10 space-y-6">
+        {/* JARVIS Welcome Chat */}
+        <div className="card-default p-6 book-page page-flip-enter">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center flex-shrink-0">
+              <MessageCircle className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="font-semibold text-foreground">JARVIS</h3>
+                <Sparkles className="w-4 h-4 text-blue-500" />
+              </div>
+              <p className="text-muted-foreground leading-relaxed">
+                Welcome to Race AI! I'm JARVIS, your AI research assistant. I'm here to help you discover insights,
+                analyze papers, and accelerate your research journey. Let's verify your email to get started!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Email Verification Card */}
+        <div className="card-default p-8 book-page page-flip-enter">
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <ModernLogo size={48} showText={false} />
+            </div>
             <h1 className="text-3xl font-bold text-foreground mb-2">Verify Email</h1>
             <p className="text-muted-foreground">
               We sent a 6-digit code to
@@ -122,7 +154,7 @@ export default function EmailVerification({ email, onNext, onBack }: EmailVerifi
             </p>
           </div>
 
-          <div className="space-y-6 relative z-10">
+          <div className="space-y-6">
             <div className="flex justify-center space-x-3">
               {code.map((digit, index) => (
                 <Input
@@ -134,7 +166,7 @@ export default function EmailVerification({ email, onNext, onBack }: EmailVerifi
                   value={digit}
                   onChange={(e) => handleCodeChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
-                  className={`w-12 h-12 text-center text-lg font-bold ${error ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}`}
+                  className={`w-14 h-14 text-center text-lg font-bold ${error ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}`}
                   disabled={isVerifying}
                 />
               ))}
@@ -152,23 +184,23 @@ export default function EmailVerification({ email, onNext, onBack }: EmailVerifi
               {resendCountdown > 0 ? (
                 <p className="text-sm text-muted-foreground">Resend code in {resendCountdown}s</p>
               ) : (
-                <Button variant="ghost" onClick={handleResend} className="text-sm" disabled={isVerifying}>
+                <button onClick={handleResend} className="btn-ghost text-sm" disabled={isVerifying}>
                   Resend Code
-                </Button>
+                </button>
               )}
             </div>
 
             <div className="flex space-x-3">
-              <Button variant="outline" onClick={onBack} className="flex-1 bg-transparent" disabled={isVerifying}>
+              <button onClick={onBack} className="flex-1 btn-secondary" disabled={isVerifying}>
                 Back
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={handleManualVerify}
                 disabled={code.some((digit) => !digit) || isVerifying}
-                className="flex-1"
+                className="flex-1 btn-primary"
               >
                 {isVerifying ? "Verifying..." : "Verify"}
-              </Button>
+              </button>
             </div>
           </div>
         </div>

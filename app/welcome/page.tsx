@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
 import ARIAAssistant, { useARIAConversation } from "@/components/aria-assistant"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
+import GeometricBackground from "@/components/geometric-background"
 import {
   BookOpen,
   Users,
@@ -45,7 +45,7 @@ const getPersonalizedContent = (role: string, level: string) => {
       quickActions: [
         { icon: Search, title: "Literature Search", description: "Find papers in your field", color: "bg-blue-500" },
         { icon: FileText, title: "Thesis Planner", description: "Organize your dissertation", color: "bg-green-500" },
-        { icon: BarChart3, title: "Research Analytics", description: "Track your progress", color: "bg-purple-500" },
+        { icon: BarChart3, title: "Research Analytics", description: "Track your progress", color: "bg-[#0052CC]" },
         { icon: Users, title: "Collaboration Hub", description: "Connect with advisors", color: "bg-orange-500" },
       ],
       suggestions: [
@@ -87,7 +87,7 @@ const getPersonalizedContent = (role: string, level: string) => {
       quickActions: [
         { icon: BookOpen, title: "Study Assistant", description: "Get help with coursework", color: "bg-green-500" },
         { icon: Calendar, title: "Assignment Tracker", description: "Never miss a deadline", color: "bg-blue-500" },
-        { icon: Users, title: "Study Groups", description: "Find study partners", color: "bg-purple-500" },
+        { icon: Users, title: "Study Groups", description: "Find study partners", color: "bg-[#0052CC]" },
         {
           icon: Lightbulb,
           title: "Research Starter",
@@ -113,7 +113,7 @@ const getPersonalizedContent = (role: string, level: string) => {
       quickActions: [
         { icon: Search, title: "Research Hub", description: "Discover relevant papers", color: "bg-blue-500" },
         { icon: Target, title: "Goal Tracker", description: "Monitor research objectives", color: "bg-green-500" },
-        { icon: Users, title: "Collaboration", description: "Connect with peers", color: "bg-purple-500" },
+        { icon: Users, title: "Collaboration", description: "Connect with peers", color: "bg-[#0052CC]" },
         { icon: BarChart3, title: "Progress Analytics", description: "Track your development", color: "bg-orange-500" },
       ],
       suggestions: [
@@ -188,9 +188,12 @@ export default function WelcomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen relative">
+      <div className="dark:block hidden">
+        <GeometricBackground variant="tesseract" />
+      </div>
       {/* Header */}
-      <div className="border-b border-border bg-card/50 backdrop-blur-sm">
+      <div className="border-b border-border/50 glass-card backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Welcome to RACE AI</h1>
@@ -199,8 +202,7 @@ export default function WelcomePage() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <Button onClick={handleGetStarted} className="primary-button">
+            <Button onClick={handleGetStarted} className="btn-primary shadow-lg hover:shadow-xl transition-all duration-200">
               Enter Full Platform
             </Button>
           </div>
@@ -222,7 +224,9 @@ export default function WelcomePage() {
             </div>
 
             {/* Quick Actions */}
-            <Card className="aria-card">
+            <div className="group relative">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-300" />
+              <Card className="relative glass-card border-border/50 transition-all duration-300">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-primary" />
@@ -236,7 +240,7 @@ export default function WelcomePage() {
                     <button
                       key={index}
                       onClick={() => handleQuickAction(action.title)}
-                      className="p-4 rounded-lg border border-border hover:border-primary/50 transition-all duration-200 text-left group hover:shadow-md"
+                      className="p-4 glass-card border border-border/50 hover:border-primary/50 transition-all duration-200 text-left group hover:shadow-lg"
                     >
                       <div className="flex items-start gap-3">
                         <div className={cn("p-2 rounded-lg text-white", action.color)}>
@@ -255,9 +259,12 @@ export default function WelcomePage() {
                 </div>
               </CardContent>
             </Card>
+            </div>
 
             {/* Try ARIA Section */}
-            <Card className="aria-card">
+            <div className="group relative">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-300" />
+              <Card className="relative glass-card border-border/50 transition-all duration-300">
               <CardHeader>
                 <CardTitle>Chat with ARIA</CardTitle>
                 <CardDescription>Ask me anything about research - I'm here to help!</CardDescription>
@@ -281,20 +288,23 @@ export default function WelcomePage() {
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Ask ARIA anything about research..."
-                    className="onboarding-input flex-1"
+                    className="glass-card border-border/50 focus:border-primary/50 transition-all duration-200 flex-1"
                   />
-                  <Button type="submit" className="primary-button">
+                  <Button type="submit" className="btn-primary shadow-lg hover:shadow-xl transition-all duration-200">
                     <MessageSquare className="w-4 h-4" />
                   </Button>
                 </form>
               </CardContent>
             </Card>
+            </div>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Profile Stats */}
-            <Card className="aria-card">
+            <div className="group relative">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-300" />
+              <Card className="relative glass-card border-border/50 transition-all duration-300">
               <CardHeader>
                 <CardTitle className="text-lg">Your Research Profile</CardTitle>
               </CardHeader>
@@ -321,6 +331,7 @@ export default function WelcomePage() {
                 </div>
               </CardContent>
             </Card>
+            </div>
 
             {/* Quick Start Guide */}
             {showQuickStart && (
@@ -353,7 +364,7 @@ export default function WelcomePage() {
                       <span>Enter the full platform when ready</span>
                     </div>
                   </div>
-                  <Button onClick={handleGetStarted} className="w-full primary-button mt-4">
+                  <Button onClick={handleGetStarted} className="w-full btn-primary shadow-lg hover:shadow-xl transition-all duration-200 mt-4">
                     Start Your Research Journey
                   </Button>
                 </CardContent>
@@ -361,7 +372,9 @@ export default function WelcomePage() {
             )}
 
             {/* Settings */}
-            <Card className="aria-card">
+            <div className="group relative">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-300" />
+              <Card className="relative glass-card border-border/50 transition-all duration-300">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Settings className="w-4 h-4" />
@@ -382,6 +395,7 @@ export default function WelcomePage() {
                 </div>
               </CardContent>
             </Card>
+            </div>
           </div>
         </div>
       </div>

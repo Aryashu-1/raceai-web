@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Convert messages to the format expected by the AI SDK
     const aiMessages = messages.map((msg: any) => ({
-      role: msg.sender === "user" ? "user" : "assistant",
+      role: msg.sender === "user" ? ("user" as const) : ("assistant" as const),
       content: msg.content,
     }))
 

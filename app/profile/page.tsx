@@ -1,17 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
-  Edit,
+  Edit2,
   Save,
   X,
-  Github,
   ExternalLink,
   BookOpen,
   Award,
@@ -19,321 +17,353 @@ import {
   GraduationCap,
   Mail,
   Calendar,
+  Plus,
+  Camera,
+  Github,
+  Globe,
+  Twitter,
+  Linkedin,
+  Check,
 } from "lucide-react"
 import NavigationSidebar from "@/components/navigation-sidebar"
-import { CursiveRLogo } from "@/components/cursive-r-logo"
+import ModernLogo from "@/components/modern-logo"
+import GeometricBackground from "@/components/geometric-background"
 
-export default function ProfilePage() {
-  const [user] = useState({
-    fullName: "Meghana",
-    firstName: "Meghana",
-    lastName: "",
-    imageUrl: "/professional-researcher-avatar.png",
-    primaryEmailAddress: { emailAddress: "mrbhat@usc.edu" },
-    institution: "USC",
-    role: "Researcher",
-    researchFocus: "Machine Learning",
-    joinedDate: "2024",
-  })
+interface EditableFieldProps {
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+  multiline?: boolean
+  className?: string
+}
 
+const EditableField: React.FC<EditableFieldProps> = ({ value, onChange, placeholder, multiline = false, className = "" }) => {
   const [isEditing, setIsEditing] = useState(false)
-  const [profileData, setProfileData] = useState({
-    researchInterests: ["Machine Learning", "Artificial Intelligence", "Neural Networks", "Computer Vision"],
-    hIndex: "12",
-    googleScholar: "https://scholar.google.com/citations?user=example",
-    github: "https://github.com/meghana",
-    orcid: "0000-0000-0000-0000",
-    institution: "University of Southern California",
-    department: "Computer Science",
-    bio: "Passionate researcher focused on advancing machine learning techniques and their applications in real-world scenarios. Currently exploring neural architecture search and computer vision applications.",
-    publications: "28",
-    citations: "847",
-    currentProjects: [
-      "Neural Architecture Optimization",
-      "Computer Vision for Healthcare",
-      "Federated Learning Systems",
-    ],
-  })
+  const [tempValue, setTempValue] = useState(value)
 
   const handleSave = () => {
-    // Here you would save the data to your backend
+    onChange(tempValue)
     setIsEditing(false)
   }
 
-  const addResearchInterest = (interest: string) => {
-    if (interest && !profileData.researchInterests.includes(interest)) {
-      setProfileData({
-        ...profileData,
-        researchInterests: [...profileData.researchInterests, interest],
-      })
+  const handleCancel = () => {
+    setTempValue(value)
+    setIsEditing(false)
+  }
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-2">
+        {multiline ? (
+          <Textarea
+            value={tempValue}
+            onChange={(e) => setTempValue(e.target.value)}
+            className="flex-1 rounded-lg border-blue-500 focus:ring-blue-500"
+            style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}
+            autoFocus
+          />
+        ) : (
+          <Input
+            value={tempValue}
+            onChange={(e) => setTempValue(e.target.value)}
+            className="flex-1 rounded-lg border-blue-500 focus:ring-blue-500"
+            style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}
+            autoFocus
+          />
+        )}
+        <Button size="sm" onClick={handleSave} className="btn-primary px-3 py-1">
+          <Check size={14} />
+        </Button>
+        <Button size="sm" variant="ghost" onClick={handleCancel} className="px-3 py-1">
+          <X size={14} />
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`group flex items-center gap-2 ${className}`}>
+      <span className="flex-1" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}>
+        {value || placeholder}
+      </span>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => setIsEditing(true)}
+        className="opacity-0 group-hover:opacity-100 transition-opacity rounded-lg px-2 py-1"
+      >
+        <Edit2 size={14} className="text-blue-500" />
+      </Button>
+    </div>
+  )
+}
+
+export default function ProfilePage() {
+  const [profileImage, setProfileImage] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const imageUrl = reader.result as string
+        setProfileImage(imageUrl)
+        localStorage.setItem('profile_image', imageUrl)
+      }
+      reader.readAsDataURL(file)
     }
   }
 
-  const removeResearchInterest = (interest: string) => {
+  useEffect(() => {
+    const savedImage = localStorage.getItem('profile_image')
+    if (savedImage) {
+      setProfileImage(savedImage)
+    }
+  }, [])
+
+  const [profileData, setProfileData] = useState({
+    fullName: "Meghana Arbhat",
+    email: "mrbhat@usc.edu",
+    institution: "University of Southern California",
+    department: "Computer Science",
+    role: "PhD Researcher",
+    bio: "Passionate researcher focused on advancing machine learning techniques and their applications in real-world scenarios. Currently exploring neural architecture search and computer vision applications.",
+    location: "Los Angeles, CA",
+    website: "https://meghana.ai",
+    googleScholar: "https://scholar.google.com/citations?user=example",
+    github: "https://github.com/meghana",
+    twitter: "@meghana",
+    linkedin: "meghana-arbhat",
+    orcid: "0000-0000-0000-0000",
+    researchInterests: ["Machine Learning", "Artificial Intelligence", "Neural Networks", "Computer Vision", "NLP"],
+    publications: "28",
+    citations: "847",
+    hIndex: "12",
+    currentProjects: [
+      { name: "Neural Architecture Search", status: "Active" },
+      { name: "Vision Transformers", status: "Active" },
+      { name: "Federated Learning", status: "Planning" },
+    ],
+  })
+
+  const updateField = (field: string) => (value: string) => {
+    setProfileData({ ...profileData, [field]: value })
+  }
+
+  const [newInterest, setNewInterest] = useState("")
+  const [imageUrl, setImageUrl] = useState("/professional-researcher-avatar.png")
+
+  const addInterest = () => {
+    if (newInterest.trim()) {
+      setProfileData({
+        ...profileData,
+        researchInterests: [...profileData.researchInterests, newInterest.trim()]
+      })
+      setNewInterest("")
+    }
+  }
+
+  const removeInterest = (index: number) => {
     setProfileData({
       ...profileData,
-      researchInterests: profileData.researchInterests.filter((i) => i !== interest),
+      researchInterests: profileData.researchInterests.filter((_, i) => i !== index)
     })
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="layout-container relative">
+      <GeometricBackground variant="torus" />
       <NavigationSidebar />
 
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-5xl mx-auto p-6">
-          <div className="mb-8 flex items-center gap-4">
-            <CursiveRLogo size={48} />
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Research Profile
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400">Manage your academic profile and research interests</p>
-            </div>
-          </div>
+      <main className="layout-main">
+        {/* Header Section */}
+        <header className="layout-header bg-card/50 backdrop-blur-sm border-b border-border/50 p-8 relative z-10">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-start gap-8">
+              <div className="relative group">
+                <Avatar className="h-32 w-32 ring-4 ring-primary/20">
+                  <AvatarImage src={profileImage || undefined} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">
+                    {profileData.fullName.split(" ").map(n => n[0]).join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity border-2 border-background"
+                >
+                  <Camera size={16} />
+                </Button>
+              </div>
 
-          <Card className="mb-8 overflow-hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50">
-            <div className="relative h-32 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm"></div>
-            </div>
-
-            <CardContent className="relative -mt-16 pb-8">
-              <div className="flex flex-col lg:flex-row items-start lg:items-end gap-6">
-                <div className="relative">
-                  <Avatar className="w-32 h-32 border-4 border-white dark:border-slate-800 shadow-xl">
-                    <AvatarImage src={user.imageUrl || "/placeholder.svg"} alt={user.fullName} />
-                    <AvatarFallback className="text-2xl bg-gradient-to-br from-blue-500 to-purple-500 text-white">
-                      {user.firstName?.[0]}
-                      {user.lastName?.[0] || "R"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 rounded-full border-4 border-white dark:border-slate-800 flex items-center justify-center">
-                    <div className="w-3 h-3 bg-white rounded-full"></div>
-                  </div>
+              <div className="flex-1 space-y-4">
+                <div>
+                  <h1 className="text-3xl font-bold mb-2 text-foreground" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}>
+                    <EditableField value={profileData.fullName} onChange={updateField("fullName")} />
+                  </h1>
+                  <p className="text-primary text-lg font-medium">
+                    <EditableField value={profileData.role} onChange={updateField("role")} />
+                  </p>
                 </div>
 
-                <div className="flex-1 w-full">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6">
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{user.fullName}</h2>
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 dark:text-slate-400 mb-2">
-                        <div className="flex items-center gap-1">
-                          <Mail className="w-4 h-4" />
-                          {user.primaryEmailAddress.emailAddress}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          {profileData.institution}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <GraduationCap className="w-4 h-4" />
-                          {user.role}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          Joined {user.joinedDate}
-                        </div>
-                      </div>
-                      <p className="text-slate-700 dark:text-slate-300 text-sm">{profileData.department}</p>
-                    </div>
-                    <Button
-                      onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-                    >
-                      {isEditing ? <Save size={16} /> : <Edit size={16} />}
-                      <span className="ml-2">{isEditing ? "Save Changes" : "Edit Profile"}</span>
-                    </Button>
+                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap size={16} className="text-primary" />
+                    <EditableField value={profileData.institution} onChange={updateField("institution")} />
                   </div>
-
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-white/60 dark:bg-slate-700/60 backdrop-blur-xl rounded-xl border border-slate-200/50 dark:border-slate-600/50">
-                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-                        {profileData.hIndex}
-                      </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">H-Index</div>
-                    </div>
-                    <div className="text-center p-4 bg-white/60 dark:bg-slate-700/60 backdrop-blur-xl rounded-xl border border-slate-200/50 dark:border-slate-600/50">
-                      <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">
-                        {profileData.publications}
-                      </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Publications</div>
-                    </div>
-                    <div className="text-center p-4 bg-white/60 dark:bg-slate-700/60 backdrop-blur-xl rounded-xl border border-slate-200/50 dark:border-slate-600/50">
-                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
-                        {profileData.citations}
-                      </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Citations</div>
-                    </div>
-                    <div className="text-center p-4 bg-white/60 dark:bg-slate-700/60 backdrop-blur-xl rounded-xl border border-slate-200/50 dark:border-slate-600/50">
-                      <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-1">
-                        {profileData.currentProjects.length}
-                      </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Active Projects</div>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin size={16} className="text-primary" />
+                    <EditableField value={profileData.location} onChange={updateField("location")} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail size={16} className="text-primary" />
+                    <EditableField value={profileData.email} onChange={updateField("email")} />
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          <div className="grid lg:grid-cols-2 gap-8">
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center text-slate-900 dark:text-white">
-                  <BookOpen className="mr-3 w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  Research Interests
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {profileData.researchInterests.map((interest, index) => (
-                    <Badge
-                      key={index}
-                      className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-2 px-3 py-1"
-                    >
-                      {interest}
-                      {isEditing && (
-                        <X
-                          size={14}
-                          className="cursor-pointer hover:text-red-500 transition-colors"
-                          onClick={() => removeResearchInterest(interest)}
-                        />
-                      )}
-                    </Badge>
-                  ))}
+              <div className="flex flex-col gap-3">
+                <div className="card-default p-4 text-center border border-primary/20 hover:border-primary/40 transition-colors">
+                  <div className="text-2xl font-bold text-foreground">
+                    <EditableField value={profileData.publications} onChange={updateField("publications")} />
+                  </div>
+                  <div className="text-xs text-muted-foreground font-medium">Publications</div>
                 </div>
-                {isEditing && (
-                  <Input
-                    placeholder="Add research interest (press Enter)"
-                    className="bg-white/80 dark:bg-slate-700/80 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400"
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        addResearchInterest(e.currentTarget.value)
-                        e.currentTarget.value = ""
-                      }
-                    }}
-                  />
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center text-slate-900 dark:text-white">
-                  <ExternalLink className="mr-3 w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  Academic Links
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
-                    Google Scholar
-                  </label>
-                  {isEditing ? (
-                    <Input
-                      value={profileData.googleScholar}
-                      onChange={(e) => setProfileData({ ...profileData, googleScholar: e.target.value })}
-                      placeholder="Google Scholar URL"
-                      className="bg-white/80 dark:bg-slate-700/80 border-slate-300 dark:border-slate-600"
-                    />
-                  ) : (
-                    <a
-                      href={profileData.googleScholar}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                    >
-                      <Award size={16} className="mr-2" />
-                      View Scholar Profile
-                    </a>
-                  )}
+                <div className="card-default p-4 text-center border border-primary/20 hover:border-primary/40 transition-colors">
+                  <div className="text-2xl font-bold text-foreground">
+                    <EditableField value={profileData.citations} onChange={updateField("citations")} />
+                  </div>
+                  <div className="text-xs text-muted-foreground font-medium">Citations</div>
                 </div>
-
-                <div>
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">GitHub</label>
-                  {isEditing ? (
-                    <Input
-                      value={profileData.github}
-                      onChange={(e) => setProfileData({ ...profileData, github: e.target.value })}
-                      placeholder="GitHub URL"
-                      className="bg-white/80 dark:bg-slate-700/80 border-slate-300 dark:border-slate-600"
-                    />
-                  ) : (
-                    <a
-                      href={profileData.github}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                    >
-                      <Github size={16} className="mr-2" />
-                      View GitHub Profile
-                    </a>
-                  )}
+                <div className="card-default p-4 text-center border border-primary/20 hover:border-primary/40 transition-colors">
+                  <div className="text-2xl font-bold text-foreground">
+                    <EditableField value={profileData.hIndex} onChange={updateField("hIndex")} />
+                  </div>
+                  <div className="text-xs text-muted-foreground font-medium">h-index</div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </header>
 
-                <div>
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">ORCID</label>
-                  {isEditing ? (
-                    <Input
-                      value={profileData.orcid}
-                      onChange={(e) => setProfileData({ ...profileData, orcid: e.target.value })}
-                      placeholder="ORCID ID"
-                      className="bg-white/80 dark:bg-slate-700/80 border-slate-300 dark:border-slate-600"
-                    />
-                  ) : (
-                    <p className="text-slate-600 dark:text-slate-400 font-mono text-sm">{profileData.orcid}</p>
-                  )}
+        {/* Main Content */}
+        <div className="layout-content max-w-6xl mx-auto p-8 space-y-6 relative z-10">
+          {/* Bio Section */}
+          <div className="card-default p-6 border border-border/50 bg-card/50 backdrop-blur-sm">
+            <h2 className="text-xl font-bold mb-4 text-foreground">
+              About
+            </h2>
+            <EditableField
+              value={profileData.bio}
+              onChange={updateField("bio")}
+              placeholder="Add your bio..."
+              multiline
+              className="text-muted-foreground"
+            />
+          </div>
+
+          {/* Research Interests */}
+          <div className="card-default p-6 border border-border/50 bg-card/50 backdrop-blur-sm">
+            <h2 className="text-xl font-bold mb-4 text-foreground">
+              Research Interests
+            </h2>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {profileData.researchInterests.map((interest, index) => (
+                <Badge
+                  key={index}
+                  className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  {interest}
+                  <button
+                    onClick={() => removeInterest(index)}
+                    className="hover:text-primary/80"
+                  >
+                    <X size={14} />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Add research interest..."
+                value={newInterest}
+                onChange={(e) => setNewInterest(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && addInterest()}
+                className="rounded-lg border-border/50"
+              />
+              <Button onClick={addInterest} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <Plus size={16} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Links Section */}
+          <div className="card-default p-6 border border-border/50 bg-card/50 backdrop-blur-sm">
+            <h2 className="text-xl font-bold mb-4 text-foreground">
+              Links & Profiles
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <Globe className="text-primary" size={20} />
+                <EditableField value={profileData.website} onChange={updateField("website")} placeholder="Add website..." />
+              </div>
+              <div className="flex items-center gap-3">
+                <BookOpen className="text-primary" size={20} />
+                <EditableField value={profileData.googleScholar} onChange={updateField("googleScholar")} placeholder="Add Google Scholar..." />
+              </div>
+              <div className="flex items-center gap-3">
+                <Github className="text-primary" size={20} />
+                <EditableField value={profileData.github} onChange={updateField("github")} placeholder="Add GitHub..." />
+              </div>
+              <div className="flex items-center gap-3">
+                <Twitter className="text-primary" size={20} />
+                <EditableField value={profileData.twitter} onChange={updateField("twitter")} placeholder="Add Twitter..." />
+              </div>
+              <div className="flex items-center gap-3">
+                <Linkedin className="text-primary" size={20} />
+                <EditableField value={profileData.linkedin} onChange={updateField("linkedin")} placeholder="Add LinkedIn..." />
+              </div>
+              <div className="flex items-center gap-3">
+                <Award className="text-primary" size={20} />
+                <EditableField value={profileData.orcid} onChange={updateField("orcid")} placeholder="Add ORCID..." />
+              </div>
+            </div>
+          </div>
+
+          {/* Current Projects */}
+          <div className="card-default p-6 border border-border/50 bg-card/50 backdrop-blur-sm">
+            <h2 className="text-xl font-bold mb-4 text-foreground">
+              Current Projects
+            </h2>
+            <div className="space-y-3">
+              {profileData.currentProjects.map((project, index) => (
+                <div key={index} className="flex items-center justify-between p-4 bg-muted/50 hover:bg-muted transition-colors border border-border/30 rounded-lg">
+                  <span className="font-medium text-foreground">
+                    {project.name}
+                  </span>
+                  <Badge
+                    className={project.status === "Active" ? "bg-success/20 text-success border-success/30" : "bg-muted text-muted-foreground border-border"}
+                  >
+                    {project.status}
+                  </Badge>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center text-slate-900 dark:text-white">
-                  <Award className="mr-3 w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  Current Projects
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {profileData.currentProjects.map((project, index) => (
-                    <div
-                      key={index}
-                      className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600"
-                    >
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">{project}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                        <span className="text-xs text-slate-600 dark:text-slate-400">Active</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Biography */}
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-slate-900 dark:text-white">Biography</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isEditing ? (
-                  <Textarea
-                    value={profileData.bio}
-                    onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                    placeholder="Tell us about your research background and interests..."
-                    rows={4}
-                    className="bg-white/80 dark:bg-slate-700/80 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400"
-                  />
-                ) : (
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{profileData.bio}</p>
-                )}
-              </CardContent>
-            </Card>
+              ))}
+              <Button className="w-full btn-primary">
+                <Plus size={16} className="mr-2" />
+                Add Project
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

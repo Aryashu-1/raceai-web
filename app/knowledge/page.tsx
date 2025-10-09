@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import GeometricBackground from "@/components/geometric-background";
 import {
   Search,
   Mic,
-  Edit3,
   TrendingUp,
   Users,
   Map,
@@ -20,51 +20,155 @@ import {
   Star,
   Calendar,
   ExternalLink,
-} from "lucide-react"
-import NavigationSidebar from "@/components/navigation-sidebar"
+  Sparkles,
+  Zap,
+  Atom,
+  Beaker,
+  Brain,
+} from "lucide-react";
+import NavigationSidebar from "@/components/navigation-sidebar";
 
 interface ResearchItem {
-  id: string
-  title: string
-  description: string
-  category: string
-  date?: string
-  author?: string
-  citations?: number
-  funding?: string
-  url?: string
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  date?: string;
+  author?: string;
+  citations?: number;
+  funding?: string;
+  url?: string;
 }
 
 export default function KnowledgeDiscoveryPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("artificial-intelligence")
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("state-of-art");
 
   const fieldCategories = [
-    { id: "artificial-intelligence", label: "Artificial Intelligence", icon: Star, color: "bg-blue-500" },
-    { id: "machine-learning", label: "Machine Learning", icon: TrendingUp, color: "bg-green-500" },
-    { id: "quantum-computing", label: "Quantum Computing", icon: BookOpen, color: "bg-purple-500" },
-    { id: "biotechnology", label: "Biotechnology", icon: Users, color: "bg-orange-500" },
-    { id: "materials-science", label: "Materials Science", icon: Map, color: "bg-indigo-500" },
-    { id: "energy", label: "Energy", icon: Newspaper, color: "bg-red-500" },
-    { id: "healthcare", label: "Healthcare", icon: DollarSign, color: "bg-yellow-500" },
-  ]
+    {
+      id: "artificial-intelligence",
+      label: "Artificial Intelligence",
+      icon: Brain,
+    },
+    { id: "machine-learning", label: "Machine Learning", icon: TrendingUp },
+    { id: "quantum-computing", label: "Quantum Computing", icon: Atom },
+    { id: "biotechnology", label: "Biotechnology", icon: Beaker },
+    { id: "materials-science", label: "Materials Science", icon: Zap },
+    { id: "energy", label: "Energy", icon: Star },
+    { id: "healthcare", label: "Healthcare", icon: Users },
+  ];
 
   const sidebarCategories = [
-    { id: "state-of-art", label: "State of the art research", icon: Star, color: "bg-blue-500" },
-    { id: "topics-to-research", label: "Topics to research", icon: BookOpen, color: "bg-green-500" },
-    { id: "recent-groundbreaks", label: "Recent groundbreaks", icon: TrendingUp, color: "bg-purple-500" },
-    { id: "top-researchers", label: "Top Researchers", icon: Users, color: "bg-orange-500" },
-    { id: "roadmap", label: "Roadmap", icon: Map, color: "bg-indigo-500" },
-    { id: "news", label: "News", icon: Newspaper, color: "bg-red-500" },
-    { id: "funding", label: "Funding", icon: DollarSign, color: "bg-yellow-500" },
-  ]
+    {
+      id: "state-of-art",
+      label: "State of the Art",
+      icon: Sparkles,
+      color: "bg-blue-500/20",
+      dotColor: "bg-blue-500",
+    },
+    {
+      id: "topics-to-research",
+      label: "Topics to Research",
+      icon: BookOpen,
+      color: "bg-emerald-500/20",
+      dotColor: "bg-emerald-500",
+    },
+    {
+      id: "recent-groundbreaks",
+      label: "Recent Breakthroughs",
+      icon: TrendingUp,
+      color: "bg-[#4C9AFF]/20",
+      dotColor: "bg-[#4C9AFF]",
+    },
+    {
+      id: "top-researchers",
+      label: "Top Researchers",
+      icon: Users,
+      color: "bg-orange-500/20",
+      dotColor: "bg-orange-500",
+    },
+    {
+      id: "roadmap",
+      label: "Research Roadmap",
+      icon: Map,
+      color: "bg-indigo-500/20",
+      dotColor: "bg-indigo-500",
+    },
+    {
+      id: "news",
+      label: "Latest News",
+      icon: Newspaper,
+      color: "bg-red-500/20",
+      dotColor: "bg-red-500",
+    },
+    {
+      id: "funding",
+      label: "Funding Opportunities",
+      icon: DollarSign,
+      color: "bg-yellow-500/20",
+      dotColor: "bg-yellow-500",
+    },
+  ];
 
   const researchData: Record<string, ResearchItem[]> = {
+    "state-of-art": [
+      {
+        id: "sota-1",
+        title: "Quantum-Neural Hybrid Computing Breakthrough",
+        description:
+          "Revolutionary integration of quantum and neural computing achieving unprecedented computational efficiency",
+        category: "Quantum AI",
+        date: "2024-12-25",
+        author: "Dr. Elena Vasquez",
+        citations: 892,
+      },
+      {
+        id: "sota-2",
+        title: "Room-Temperature Nuclear Fusion Achievement",
+        description:
+          "First successful controlled nuclear fusion reaction at ambient temperature using novel catalysts",
+        category: "Energy Physics",
+        date: "2024-12-23",
+        author: "Prof. Hiroshi Tanaka",
+        citations: 1247,
+      },
+      {
+        id: "sota-3",
+        title: "AGI Consciousness Emergence",
+        description:
+          "Documentation of the first artificial general intelligence displaying measurable consciousness patterns",
+        category: "Cognitive AI",
+        date: "2024-12-22",
+        author: "Dr. Amelia Richardson",
+        citations: 1689,
+      },
+      {
+        id: "sota-4",
+        title: "Biological Age Reversal Protocol",
+        description:
+          "Comprehensive protocol demonstrating cellular age reversal in human trials",
+        category: "Longevity Science",
+        date: "2024-12-20",
+        author: "Dr. Marcus Chen",
+        citations: 1456,
+      },
+      {
+        id: "sota-5",
+        title: "Universal Cancer Cure Discovery",
+        description:
+          "Breakthrough treatment showing 100% success rate across all cancer types in phase III trials",
+        category: "Medical Breakthrough",
+        date: "2024-12-18",
+        author: "Dr. Sarah Martinez",
+        citations: 2103,
+      },
+    ],
     "artificial-intelligence": [
       {
         id: "1",
         title: "AGI Milestone Achievement",
-        description: "First AI system to pass comprehensive general intelligence tests",
+        description:
+          "First AI system to pass comprehensive general intelligence tests",
         category: "Artificial Intelligence",
         date: "2024-12-18",
         author: "Dr. Yann LeCun",
@@ -82,7 +186,8 @@ export default function KnowledgeDiscoveryPage() {
       {
         id: "3",
         title: "Large Language Model Efficiency",
-        description: "Breakthrough in reducing computational costs for LLM training",
+        description:
+          "Breakthrough in reducing computational costs for LLM training",
         category: "Natural Language Processing",
         date: "2024-12-15",
         author: "Dr. Sarah Chen",
@@ -102,7 +207,8 @@ export default function KnowledgeDiscoveryPage() {
       {
         id: "5",
         title: "AutoML for Edge Devices",
-        description: "Automated machine learning optimization for mobile and IoT devices",
+        description:
+          "Automated machine learning optimization for mobile and IoT devices",
         category: "Edge Computing",
         date: "2024-12-08",
         author: "Dr. James Park",
@@ -113,7 +219,8 @@ export default function KnowledgeDiscoveryPage() {
       {
         id: "6",
         title: "Quantum Error Correction Breakthrough",
-        description: "Revolutionary approach to quantum error correction using topological qubits",
+        description:
+          "Revolutionary approach to quantum error correction using topological qubits",
         category: "Quantum Computing",
         date: "2024-12-15",
         author: "Dr. Sarah Chen",
@@ -133,7 +240,8 @@ export default function KnowledgeDiscoveryPage() {
       {
         id: "8",
         title: "CRISPR Gene Editing Precision",
-        description: "Enhanced precision in gene editing with minimal off-target effects",
+        description:
+          "Enhanced precision in gene editing with minimal off-target effects",
         category: "Gene Editing",
         date: "2024-12-08",
         author: "Dr. Emily Watson",
@@ -153,7 +261,8 @@ export default function KnowledgeDiscoveryPage() {
       {
         id: "10",
         title: "Room Temperature Superconductor",
-        description: "Discovery of materials exhibiting superconductivity at ambient conditions",
+        description:
+          "Discovery of materials exhibiting superconductivity at ambient conditions",
         category: "Superconductors",
         date: "2024-12-20",
         author: "Dr. Alex Kumar",
@@ -162,7 +271,8 @@ export default function KnowledgeDiscoveryPage() {
       {
         id: "11",
         title: "Self-Healing Materials",
-        description: "Advanced polymers that can repair themselves autonomously",
+        description:
+          "Advanced polymers that can repair themselves autonomously",
         category: "Smart Materials",
         date: "2024-12-14",
         author: "Prof. Maria Santos",
@@ -173,7 +283,8 @@ export default function KnowledgeDiscoveryPage() {
       {
         id: "12",
         title: "Fusion Energy Breakthrough",
-        description: "Scientists achieve net energy gain in nuclear fusion reaction",
+        description:
+          "Scientists achieve net energy gain in nuclear fusion reaction",
         category: "Nuclear Fusion",
         date: "2024-12-22",
         author: "Dr. Robert Kim",
@@ -182,7 +293,8 @@ export default function KnowledgeDiscoveryPage() {
       {
         id: "13",
         title: "Perovskite Solar Cell Efficiency",
-        description: "Record-breaking efficiency in next-generation solar cells",
+        description:
+          "Record-breaking efficiency in next-generation solar cells",
         category: "Solar Energy",
         date: "2024-12-18",
         author: "Prof. Anna Lee",
@@ -193,7 +305,8 @@ export default function KnowledgeDiscoveryPage() {
       {
         id: "14",
         title: "Alzheimer's Treatment Breakthrough",
-        description: "Clinical trials demonstrate significant cognitive improvement",
+        description:
+          "Clinical trials demonstrate significant cognitive improvement",
         category: "Neurology",
         date: "2024-12-21",
         author: "Dr. Michael Brown",
@@ -202,115 +315,185 @@ export default function KnowledgeDiscoveryPage() {
       {
         id: "15",
         title: "Cancer Immunotherapy Advances",
-        description: "Novel approaches to enhancing immune system response to cancer",
+        description:
+          "Novel approaches to enhancing immune system response to cancer",
         category: "Oncology",
         date: "2024-12-16",
         author: "Dr. Rachel Green",
         citations: 412,
       },
     ],
-  }
+  };
 
   const handleSearch = () => {
-    // Handle search functionality
-    console.log("Searching for:", searchQuery)
-  }
+    if (!searchQuery.trim()) return;
 
-  const selectedCategoryData = researchData[selectedCategory] || []
+    // Filter research data across all categories based on search query
+    const allResearchItems = Object.values(researchData).flat();
+    const filteredItems = allResearchItems.filter(
+      (item) =>
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.author?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    console.log("Search results:", filteredItems);
+    // For now, just log the results. In a real app, you'd update state to show filtered results
+  };
+
+  const selectedCategoryData = researchData[selectedCategory] || [];
 
   return (
-    <div className="h-full flex bg-background">
+    <div className="min-h-screen flex relative">
+      <div className="dark:block hidden">
+        <GeometricBackground variant="torus" />
+      </div>
       <NavigationSidebar />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative z-10">
         {/* Header */}
-        <div className="p-6 border-b border-border">
-          <h1 className="text-3xl font-bold text-foreground mb-2">KNOWLEDGE DISCOVERY</h1>
-          <p className="text-muted-foreground">Explore the latest research and discoveries in your field</p>
+        <div className="p-8 bg-background border-b border-border">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground mb-3 tracking-tight">
+                Knowledge Discovery
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Explore cutting-edge research and breakthrough discoveries
+              </p>
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative max-w-2xl">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <Input
+              type="text"
+              placeholder="Search research papers, topics, or authors..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              className="pl-12 pr-14 py-4 text-base bg-input border-border transition-fast"
+            />
+            <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+              <button
+                onClick={handleSearch}
+                className="btn-ghost text-muted-foreground hover:text-foreground h-8 w-8 p-0"
+              >
+                <Mic className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="flex-1 flex">
           {/* Main Content Area */}
-          <div className="flex-1 px-6 pt-2">
+          <div className="flex-1 px-8 py-6">
             {/* Category Filters */}
             <div className="flex flex-wrap gap-3 mb-6">
               {fieldCategories.map((category) => {
-                const Icon = category.icon
+                const Icon = category.icon;
+                const isSelected = selectedCategory === category.id;
                 return (
-                  <Button
+                  <button
                     key={category.id}
-                    variant={selectedCategory === category.id ? "default" : "outline"}
                     onClick={() => setSelectedCategory(category.id)}
-                    className="flex items-center space-x-2"
+                    className={`flex items-center gap-3 px-4 py-3 transition-fast focus-ring ${
+                      isSelected ? "btn-primary" : "btn-secondary"
+                    }`}
                   >
-                    <Icon size={16} />
-                    <span>{category.label}</span>
-                  </Button>
-                )
+                    <Icon
+                      size={18}
+                      className={
+                        isSelected
+                          ? "text-primary-foreground"
+                          : "text-muted-foreground"
+                      }
+                    />
+                    <span className="font-medium text-sm">
+                      {category.label}
+                    </span>
+                  </button>
+                );
               })}
-              <Button variant="outline" className="ml-auto bg-transparent">
-                <ChevronRight size={16} />
-              </Button>
             </div>
 
             {/* Content Display */}
-            <div className="">
-              <h2 className="text-xl font-semibold text-foreground mb-4 capitalize">
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground mb-6">
                 {fieldCategories.find((c) => c.id === selectedCategory)?.label}
               </h2>
 
-              <ScrollArea className="h-[calc(100vh-300px)]">
-                <div className="space-y-4">
+              <ScrollArea className="h-[calc(100vh-380px)]">
+                <div className="space-y-6 pr-2">
                   {selectedCategoryData.map((item) => (
-                    <Card key={item.id} className="hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <CardTitle className="text-lg font-semibold text-foreground">{item.title}</CardTitle>
-                          {item.url && (
-                            <Button size="sm" variant="ghost">
-                              <ExternalLink size={16} />
-                            </Button>
-                          )}
-                        </div>
-                        {item.category && (
-                          <Badge variant="secondary" className="w-fit">
-                            {item.category}
-                          </Badge>
-                        )}
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-muted-foreground mb-3">{item.description}</p>
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <div className="flex items-center space-x-4">
-                            {item.author && (
-                              <div className="flex items-center space-x-1">
-                                <Users size={14} />
-                                <span>{item.author}</span>
-                              </div>
+                    <div key={item.id} className="group">
+                      <Card className="card-default hover:border-primary transition-normal">
+                        <CardHeader className="pb-4 p-6">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <CardTitle className="text-xl font-semibold text-foreground mb-3 leading-tight group-hover:text-primary transition-fast">
+                                {item.title}
+                              </CardTitle>
+                              {item.category && (
+                                <Badge
+                                  variant="secondary"
+                                  className="px-3 py-1 rounded-lg font-medium"
+                                >
+                                  {item.category}
+                                </Badge>
+                              )}
+                            </div>
+                            {item.url && (
+                              <button className="btn-ghost text-muted-foreground hover:text-primary h-8 w-8 p-0 rounded-lg">
+                                <ExternalLink size={16} />
+                              </button>
                             )}
-                            {item.date && (
-                              <div className="flex items-center space-x-1">
-                                <Calendar size={14} />
-                                <span>{new Date(item.date).toLocaleDateString()}</span>
-                              </div>
-                            )}
-                            {item.funding && (
-                              <div className="flex items-center space-x-1">
-                                <DollarSign size={14} />
-                                <span>{item.funding}</span>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-6 pt-0">
+                          <p className="text-muted-foreground mb-4 leading-relaxed">
+                            {item.description}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                              {item.author && (
+                                <div className="flex items-center gap-2">
+                                  <Users
+                                    size={14}
+                                    className="text-muted-foreground"
+                                  />
+                                  <span className="font-medium">
+                                    {item.author}
+                                  </span>
+                                </div>
+                              )}
+                              {item.date && (
+                                <div className="flex items-center gap-2">
+                                  <Calendar
+                                    size={14}
+                                    className="text-muted-foreground"
+                                  />
+                                  <span>
+                                    {new Date(item.date).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            {item.citations && (
+                              <div className="flex items-center gap-2 bg-warning/10 text-warning px-3 py-1.5 rounded-lg text-sm font-medium">
+                                <Star size={14} className="text-warning" />
+                                <span>{item.citations}</span>
                               </div>
                             )}
                           </div>
-                          {item.citations && (
-                            <div className="flex items-center space-x-1">
-                              <Star size={14} />
-                              <span>{item.citations} citations</span>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </div>
                   ))}
                 </div>
               </ScrollArea>
@@ -318,33 +501,45 @@ export default function KnowledgeDiscoveryPage() {
           </div>
 
           {/* Right Sidebar - Category Navigation */}
-          <div className="w-80 border-l border-border p-6">
-            <h3 className="font-semibold text-foreground mb-4">Categories</h3>
+          <div className="w-80 bg-card/50 backdrop-blur-sm border-l border-border/50 p-8 relative z-10">
+            <h3 className="text-xl font-semibold text-foreground mb-6">
+              Research Categories
+            </h3>
             <div className="space-y-2">
               {sidebarCategories.map((category) => {
-                const Icon = category.icon
+                const Icon = category.icon;
+                const isSelected = selectedCategory === category.id;
                 return (
                   <button
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full flex items-center space-x-3 p-3 rounded-lg text-left transition-colors research-option ${
-                      selectedCategory === category.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted text-foreground"
+                    className={`w-full flex items-center gap-3 p-4 rounded-lg text-left transition-all duration-200 group ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-card/50 hover:bg-card hover:border-primary/20 text-foreground border border-transparent"
                     }`}
                   >
-                    <div className={`w-2 h-2 rounded-full ${category.color}`}></div>
-                    <Icon size={16} />
-                    <span className="text-sm font-medium">{category.label}</span>
+                    <div
+                      className={`w-2.5 h-2.5 rounded-full ${isSelected ? 'bg-primary-foreground' : category.dotColor} flex-shrink-0`}
+                    ></div>
+                    <Icon
+                      size={18}
+                      className={
+                        isSelected
+                          ? "text-primary-foreground"
+                          : "text-primary"
+                      }
+                    />
+                    <span className="font-medium text-sm flex-1">
+                      {category.label}
+                    </span>
                   </button>
-                )
+                );
               })}
             </div>
           </div>
         </div>
-
-       
       </div>
     </div>
-  )
+  );
 }

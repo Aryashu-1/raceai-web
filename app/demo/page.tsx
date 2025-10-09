@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import JarvisAssistant, { useJarvisConversation } from "@/components/jarvis-assistant"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
 
 export default function DemoPage() {
@@ -109,7 +108,6 @@ export default function DemoPage() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <ThemeToggle />
             <Button
               onClick={handleSignUp}
               className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2 rounded-full"

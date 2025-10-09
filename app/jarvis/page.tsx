@@ -1311,14 +1311,16 @@ export default function JarvisPage() {
           {/* Share Modal */}
           {showShareModal && (
             <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+              className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]"
+              style={{ pointerEvents: 'auto', backdropFilter: 'blur(8px)' }}
               onClick={() => {
                 setShowShareModal(null);
                 setShowCopiedNotification(false);
               }}
             >
               <div
-                className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4"
+                className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 relative z-[10000]"
+                style={{ pointerEvents: 'auto' }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <h3 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
@@ -1338,7 +1340,8 @@ export default function JarvisPage() {
                 <div className="space-y-3">
                   <Button
                     variant="outline"
-                    className="w-full justify-start bg-transparent hover:bg-accent"
+                    className="w-full justify-start bg-transparent hover:bg-accent cursor-pointer"
+                    style={{ pointerEvents: 'auto' }}
                     onClick={() =>
                       handleShare(showShareModal, { type: "external" })
                     }
@@ -1351,7 +1354,8 @@ export default function JarvisPage() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full justify-start bg-transparent hover:bg-accent"
+                    className="w-full justify-start bg-transparent hover:bg-accent cursor-pointer"
+                    style={{ pointerEvents: 'auto' }}
                     onClick={() =>
                       handleShare(showShareModal, { type: "collaborator" })
                     }
@@ -1366,6 +1370,8 @@ export default function JarvisPage() {
                 <div className="flex justify-end space-x-2 mt-4">
                   <Button
                     variant="outline"
+                    className="cursor-pointer"
+                    style={{ pointerEvents: 'auto' }}
                     onClick={() => {
                       setShowShareModal(null);
                       setShowCopiedNotification(false);
@@ -1381,11 +1387,13 @@ export default function JarvisPage() {
           {/* Save Modal */}
           {showSaveModal && (
             <div
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+              className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]"
+              style={{ pointerEvents: 'auto', backdropFilter: 'blur(8px)' }}
               onClick={() => setShowSaveModal(null)}
             >
               <div
-                className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4"
+                className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 relative z-[10000]"
+                style={{ pointerEvents: 'auto' }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <h3 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
@@ -1396,23 +1404,27 @@ export default function JarvisPage() {
                     <label className="text-sm font-medium mb-2 block">
                       Project Name
                     </label>
-                    <Input placeholder="Enter project name..." />
+                    <Input placeholder="Enter project name..." style={{ pointerEvents: 'auto' }} />
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-2 block">
                       Folder (Optional)
                     </label>
-                    <Input placeholder="Enter folder name..." />
+                    <Input placeholder="Enter folder name..." style={{ pointerEvents: 'auto' }} />
                   </div>
                 </div>
                 <div className="flex justify-end space-x-2 mt-6">
                   <Button
                     variant="outline"
+                    className="cursor-pointer"
+                    style={{ pointerEvents: 'auto' }}
                     onClick={() => setShowSaveModal(null)}
                   >
                     Cancel
                   </Button>
                   <Button
+                    className="cursor-pointer"
+                    style={{ pointerEvents: 'auto' }}
                     onClick={() => {
                       console.log("Saving chat:", showSaveModal);
                       setShowSaveModal(null);
@@ -1428,11 +1440,13 @@ export default function JarvisPage() {
           {/* Delete Confirmation Modal */}
           {showDeleteModal && (
             <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+              className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]"
+              style={{ pointerEvents: 'auto', backdropFilter: 'blur(8px)' }}
               onClick={() => setShowDeleteModal(null)}
             >
               <div
-                className="bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4"
+                className="bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 relative z-[10000]"
+                style={{ pointerEvents: 'auto' }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center gap-3 mb-4">
@@ -1472,19 +1486,21 @@ export default function JarvisPage() {
                 <div className="flex justify-end space-x-2 mt-6">
                   <Button
                     variant="outline"
+                    className="border-2 border-primary text-primary hover:bg-primary/10 cursor-pointer"
+                    style={{ pointerEvents: 'auto' }}
                     onClick={() => setShowDeleteModal(null)}
-                    className="border-2 border-primary text-primary hover:bg-primary/10"
                   >
                     Cancel
                   </Button>
                   <Button
                     variant="destructive"
+                    className="bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700 cursor-pointer"
+                    style={{ pointerEvents: 'auto' }}
                     onClick={() => {
                       if (showDeleteModal) {
                         handleDeleteChat(showDeleteModal);
                       }
                     }}
-                    className="bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700"
                   >
                     Delete
                   </Button>

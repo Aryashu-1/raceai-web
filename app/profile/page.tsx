@@ -29,6 +29,8 @@ import NavigationSidebar from "@/components/navigation-sidebar"
 import ModernLogo from "@/components/modern-logo"
 import GeometricBackground from "@/components/geometric-background"
 
+import { User, useUser } from "../context/UserContext";
+
 interface EditableFieldProps {
   value: string
   onChange: (value: string) => void
@@ -81,6 +83,7 @@ const EditableField: React.FC<EditableFieldProps> = ({ value, onChange, placehol
     )
   }
 
+
   return (
     <div className={`group flex items-center gap-2 ${className}`}>
       <span className="flex-1" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}>
@@ -121,31 +124,57 @@ export default function ProfilePage() {
       setProfileImage(savedImage)
     }
   }, [])
+    const { user, updateUser } = useUser();
+  console.log("Inside profile page")
+  console.log(user);
 
   const [profileData, setProfileData] = useState({
-    fullName: "Meghana Arbhat",
-    email: "mrbhat@usc.edu",
-    institution: "University of Southern California",
-    department: "Computer Science",
-    role: "PhD Researcher",
-    bio: "Passionate researcher focused on advancing machine learning techniques and their applications in real-world scenarios. Currently exploring neural architecture search and computer vision applications.",
-    location: "Los Angeles, CA",
-    website: "https://meghana.ai",
-    googleScholar: "https://scholar.google.com/citations?user=example",
-    github: "https://github.com/meghana",
-    twitter: "@meghana",
-    linkedin: "meghana-arbhat",
-    orcid: "0000-0000-0000-0000",
-    researchInterests: ["Machine Learning", "Artificial Intelligence", "Neural Networks", "Computer Vision", "NLP"],
-    publications: "28",
-    citations: "847",
-    hIndex: "12",
-    currentProjects: [
-      { name: "Neural Architecture Search", status: "Active" },
-      { name: "Vision Transformers", status: "Active" },
-      { name: "Federated Learning", status: "Planning" },
-    ],
-  })
+    fullName: "",
+    email: "",
+    institution: "",
+    department: "",
+    role: "",
+    bio: "",
+    location: "",
+    website: "",
+    googleScholar: "",
+    github: "",
+    twitter: "",
+    linkedin: "",
+    orcid: "",
+    researchInterests: [] as string[],
+    publications: "",
+    citations: "",
+    hIndex: "",
+    currentProjects: [] as { name: string; status: string }[],
+  });
+
+  useEffect(() => {
+    if (user) {
+      // Map context user data into profile fields
+      setProfileData((prev) => ({
+        ...prev,
+        fullName: user.firstName ||"" + user.lastName || "" || "",
+        email: user.email || "",
+        institution: user.institution || "",
+        department: user.department || "",
+        role: user.role || "",
+        bio: user.bio || "",
+        location: user.location || "",
+        website: user.website || "",
+        googleScholar: user.googleScholar || "",
+        github: user.github || "",
+        twitter: user.twitter || "",
+        linkedin: user.linkedin || "",
+        orcid: user.orcid || "",
+        researchInterests: user.researchInterests || [],
+        publications: user.publications || "",
+        citations: user.citations || "",
+        hIndex: user.hIndex || "",
+        currentProjects: user.currentProjects || [],
+      }));
+    }
+  }, [user]);
 
   const updateField = (field: string) => (value: string) => {
     setProfileData({ ...profileData, [field]: value })

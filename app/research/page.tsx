@@ -35,20 +35,32 @@ import {
 } from "lucide-react"
 import NavigationSidebar from "@/components/navigation-sidebar"
 import GeometricBackground from "@/components/geometric-background"
+import { useProjects } from "@/app/context/ProjectContext";
 
-interface ProjectFolder {
-  id: string
-  name: string
-  type: "folder" | "file"
-  children?: ProjectFolder[]
-  fileType?: string
-  size?: string
-  lastModified?: string
-  content?: string
-  description?: string
-  collaborators?: Collaborator[]
-  associatedChats?: ChatSession[]
-  notes?: Note[]
+
+export interface ProjectCollaborator {
+  id: string;
+  email: string;
+  role: string;
+  status: "online" | "offline" | "away";
+}
+
+export interface ProjectNode {
+  id: string;
+  name: string;
+  type: "folder" | "file";
+  description?: string;
+  fileType?: string;
+  size?: string | null;
+  lastModified?: string;
+  collaborators?: ProjectCollaborator[];
+  children?: ProjectNode[];
+}
+
+interface ProjectContextType {
+  projects: ProjectNode[];
+  setProjects: (list: ProjectNode[]) => void;
+  clearProjects: () => void;
 }
 
 interface Collaborator {
@@ -86,8 +98,7 @@ interface ChatMessage {
 }
 
 export default function ResearchCollaborationPage() {
-  const [selectedFile, setSelectedFile] = useState<ProjectFolder | null>(null)
-  const [selectedFolder, setSelectedFolder] = useState<ProjectFolder | null>(null)
+ 
   const [viewMode, setViewMode] = useState<"overview" | "folder" | "file">("overview")
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["1", "2"]))
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -104,133 +115,10 @@ export default function ResearchCollaborationPage() {
   const [podcastUrl, setPodcastUrl] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isChatLoading, setIsChatLoading] = useState(false)
-
-  const projectStructure: ProjectFolder[] = [
-    {
-      id: "1",
-      name: "University of Southern California",
-      type: "folder",
-      description: "Main university research projects and collaborations",
-      collaborators: [
-        { id: "1", name: "Dr. Sarah Chen", email: "schen@usc.edu", role: "Principal Investigator", status: "online" },
-        { id: "2", name: "Alex Rodriguez", email: "arodriguez@usc.edu", role: "Graduate Student", status: "away" },
-      ],
-      associatedChats: [
-        { id: "chat-1", title: "Project Planning Discussion", lastMessage: "Let's review the research timeline", timestamp: new Date(Date.now() - 3600000), participants: ["Dr. Sarah Chen", "Alex Rodriguez"], messageCount: 15 },
-      ],
-      children: [
-        {
-          id: "1-1",
-          name: "Labs",
-          type: "folder",
-          description: "Research laboratory projects and collaborations",
-          children: [
-            {
-              id: "1-1-1",
-              name: "CompBIO Lab",
-              type: "folder",
-              description: "Computational Biology research projects",
-              collaborators: [
-                { id: "3", name: "Dr. Michael Kim", email: "mkim@usc.edu", role: "Lab Director", status: "online" },
-                { id: "4", name: "Emily Watson", email: "ewatson@usc.edu", role: "Postdoc", status: "offline" },
-              ],
-              associatedChats: [
-                { id: "chat-2", title: "Weekly Lab Meeting", lastMessage: "Next meeting Tuesday at 2 PM", timestamp: new Date(Date.now() - 7200000), participants: ["Dr. Michael Kim", "Emily Watson"], messageCount: 8 },
-                { id: "chat-3", title: "Research Progress", lastMessage: "Submitted the latest findings", timestamp: new Date(Date.now() - 86400000), participants: ["Emily Watson"], messageCount: 23 },
-              ],
-              notes: [
-                { id: "note-1", title: "Experiment Protocol", content: "Updated protocol for RNA sequencing analysis", createdAt: new Date(Date.now() - 172800000), updatedAt: new Date(Date.now() - 86400000), author: "Emily Watson" },
-                { id: "note-2", title: "Literature Review", content: "Key papers on computational methods", createdAt: new Date(Date.now() - 259200000), updatedAt: new Date(Date.now() - 172800000), author: "Dr. Michael Kim" },
-              ],
-              children: [
-                {
-                  id: "1-1-1-1",
-                  name: "Reference paper.pdf",
-                  type: "file",
-                  fileType: "pdf",
-                  size: "2.4 MB",
-                  lastModified: "2 days ago",
-                  content: "This is a comprehensive research paper on computational biology methods and their applications in modern genomics research...",
-                },
-              ],
-            },
-            {
-              id: "1-1-2",
-              name: "Neuro Lab",
-              type: "folder",
-              description: "Neuroscience research and brain imaging studies",
-              collaborators: [
-                { id: "5", name: "Dr. Lisa Chang", email: "lchang@usc.edu", role: "Lab Director", status: "away" },
-              ],
-              associatedChats: [
-                { id: "chat-4", title: "Brain Imaging Project", lastMessage: "MRI data analysis complete", timestamp: new Date(Date.now() - 14400000), participants: ["Dr. Lisa Chang"], messageCount: 12 },
-              ],
-            },
-            {
-              id: "1-1-3",
-              name: "Levenson-Falk Lab",
-              type: "folder",
-              description: "Quantum computing and memory systems research",
-              collaborators: [
-                { id: "6", name: "Dr. Daniel Levenson-Falk", email: "dlevenson@usc.edu", role: "Principal Investigator", status: "online" },
-                { id: "7", name: "Jamie Park", email: "jpark@usc.edu", role: "PhD Student", status: "online" },
-              ],
-              associatedChats: [
-                { id: "chat-5", title: "Quantum Memory Research", lastMessage: "New results on CMOS integration", timestamp: new Date(Date.now() - 1800000), participants: ["Dr. Daniel Levenson-Falk", "Jamie Park"], messageCount: 31 },
-              ],
-              children: [
-                {
-                  id: "1-1-3-1",
-                  name: "CMOS memory",
-                  type: "folder",
-                  description: "CMOS-based quantum memory systems",
-                  collaborators: [
-                    { id: "8", name: "Taylor Kim", email: "tkim@usc.edu", role: "Research Assistant", status: "offline" },
-                  ],
-                  associatedChats: [
-                    { id: "chat-6", title: "CMOS Design Review", lastMessage: "Layout optimization completed", timestamp: new Date(Date.now() - 3600000), participants: ["Jamie Park", "Taylor Kim"], messageCount: 19 },
-                  ],
-                  notes: [
-                    { id: "note-3", title: "Design Specifications", content: "CMOS memory cell design parameters and constraints", createdAt: new Date(Date.now() - 432000000), updatedAt: new Date(Date.now() - 86400000), author: "Jamie Park" },
-                  ],
-                  children: [
-                    {
-                      id: "1-1-3-1-1",
-                      name: "Merge-mon qu...",
-                      type: "file",
-                      fileType: "pdf",
-                      size: "1.8 MB",
-                      lastModified: "1 week ago",
-                    },
-                    {
-                      id: "1-1-3-1-2",
-                      name: "Exciton Qubit...",
-                      type: "file",
-                      fileType: "pdf",
-                      size: "3.2 MB",
-                      lastModified: "3 days ago",
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-        {
-          id: "1-2",
-          name: "FQuIS",
-          type: "folder",
-          description: "Future Quantum Information Science program",
-          collaborators: [
-            { id: "9", name: "Dr. Maria Gonzalez", email: "mgonzalez@usc.edu", role: "Program Director", status: "online" },
-          ],
-          associatedChats: [
-            { id: "chat-7", title: "FQuIS Program Updates", lastMessage: "Grant proposal submitted", timestamp: new Date(Date.now() - 21600000), participants: ["Dr. Maria Gonzalez"], messageCount: 7 },
-          ],
-        },
-      ],
-    },
-  ]
+  const { projects } = useProjects()
+  const [selectedFile, setSelectedFile] = useState<ProjectNode | null>(null)
+const [selectedFolder, setSelectedFolder] = useState<ProjectNode | null>(null)
+const projectStructure: ProjectNode[] = projects
 
   const toggleFolder = (folderId: string) => {
     const newExpanded = new Set(expandedFolders)
@@ -242,7 +130,7 @@ export default function ResearchCollaborationPage() {
     setExpandedFolders(newExpanded)
   }
 
-  const handleFileSelect = (file: ProjectFolder) => {
+  const handleFileSelect = (file: ProjectNode) => {
     if (file.type === "file") {
       setSelectedFile(file)
       setSelectedFolder(null)
@@ -250,7 +138,7 @@ export default function ResearchCollaborationPage() {
     }
   }
 
-  const handleFolderSelect = (folder: ProjectFolder) => {
+  const handleFolderSelect = (folder: ProjectNode) => {
     if (folder.type === "folder") {
       setSelectedFolder(folder)
       setSelectedFile(null)
@@ -382,7 +270,7 @@ export default function ResearchCollaborationPage() {
     }
   }
 
-  const renderProjectTree = (items: ProjectFolder[], depth = 0) => {
+  const renderProjectTree = (items: ProjectNode[], depth = 0) => {
     return items.map((item) => (
       <div key={item.id} style={{ marginLeft: `${depth * 16}px` }}>
         <div

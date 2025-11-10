@@ -4,8 +4,13 @@ import { Inter } from "next/font/google"
 import { Space_Grotesk } from "next/font/google"
 // import { ClerkProvider } from "@clerk/nextjs"
 import { ThemeProvider } from "@/components/theme-provider"
+
 import "./globals.css"
 
+//context providers
+import { AuthProvider } from "./context/AuthContext";
+import { UserProvider } from "./context/UserContext";
+import { ProjectProvider } from "./context/ProjectContext"
 // NEW FEATURES - Add these imports
 import { NotificationProvider } from "@/lib/contexts/notification-context"
 import { ToastProvider } from "@/lib/contexts/toast-context"
@@ -50,6 +55,9 @@ export default function RootLayout({
         <meta name="api-keys-required" content="OPENAI_API_KEY for full functionality" />
       </head>
       <body className="font-sans antialiased bg-background text-foreground" suppressHydrationWarning>
+        <AuthProvider>
+          <UserProvider>
+            <ProjectProvider>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={true}>
           {/* NEW: Wrap with feature providers */}
           <ToastProvider>
@@ -62,6 +70,9 @@ export default function RootLayout({
             </NotificationProvider>
           </ToastProvider>
         </ThemeProvider>
+        </ProjectProvider>
+        </UserProvider>
+        </AuthProvider>
       </body>
     </html>
   )

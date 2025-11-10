@@ -9,6 +9,9 @@ import { useRouter } from "next/navigation";
 import { SimpleThemeToggle } from "@/components/theme-toggle";
 import AnimatedTechBackground from "@/components/animated-tech-background";
 import GeometricBackground from "@/components/geometric-background";
+import { useUser } from "./context/UserContext";
+import { useProjects } from "@/app/context/ProjectContext";
+
 
 interface AuthFormCardProps {
   onAuthSuccess: (userData: any, isNewUser?: boolean) => void;
@@ -32,6 +35,7 @@ const AuthFormCard: React.FC<AuthFormCardProps> = ({ onAuthSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { setProjects } = useProjects();
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
@@ -43,6 +47,8 @@ const AuthFormCard: React.FC<AuthFormCardProps> = ({ onAuthSuccess }) => {
     confirmPassword: "",
     submit: "",
   });
+  const router = useRouter();
+   const { updateUser } = useUser();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e || !e.target) return;
@@ -72,34 +78,94 @@ const AuthFormCard: React.FC<AuthFormCardProps> = ({ onAuthSuccess }) => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
 
-    setIsLoading(true);
-    setFormErrors((prev) => ({ ...prev, submit: "" }));
+const handleSubmit = async (e: React.FormEvent) => {
+   
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+  setIsLoading(true);
+  setFormErrors((prev) => ({ ...prev, submit: "" }));
 
-      const userData = {
+  try {
+    if (isSignUp) {
+      // store in context (no API call)
+      
+      updateUser({
         email: formData.email,
         password: formData.password,
-        authenticated: true,
-        onboarded: !isSignUp, // Existing users (sign-in) are already onboarded
-      };
-      localStorage.setItem("race_ai_user", JSON.stringify(userData));
-      onAuthSuccess(userData, isSignUp);
-    } catch (error) {
-      setFormErrors((prev) => ({
-        ...prev,
-        submit: "An unexpected error occurred",
-      }));
-    } finally {
-      setIsLoading(false);
+      });
+
+      
+      // Navigate to onboarding page
+      router.push("/onboarding");
+
+    } else {
+      // --- SIGNIN: call backend ---
+      const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/signin`;
+      console.log("🔹 Signing in via:", endpoint);
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      // Backend not found or down
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("❌ Backend response:", text);
+        throw new Error(`Signin failed (${response.status})`);
+      }
+
+      const result = await response.json();
+      console.log("✅ Signin response:", result);
+
+      const { user, token } = result;
+      if (!user || !token) {
+        throw new Error("Invalid response from server");
+      }
+
+      // Save to localStorage for persistence
+      localStorage.setItem("race_ai_user", JSON.stringify(user));
+      localStorage.setItem("race_ai_token", token);
+
+      // Update context
+      updateUser(user);
+      try {
+    const projectsResp = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/projects/structuredProjects/${user.id}`
+    );
+    if (projectsResp.ok) {
+      const projectsJson = await projectsResp.json();
+      setProjects(projectsJson);
+      console.log("✅ projects loaded into context", projectsJson.length);
+    } else {
+      console.warn("Projects fetch failed");
     }
-  };
+  } catch (err) {
+    console.warn("Projects fetch error", err);
+  }
+
+ 
+
+      // Notify parent if applicable
+      onAuthSuccess(user, false);
+    }
+  } catch (error: any) {
+    console.error("Auth Error:", error);
+    setFormErrors((prev) => ({
+      ...prev,
+      submit: error.message || "An unexpected error occurred",
+    }));
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);

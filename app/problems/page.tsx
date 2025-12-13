@@ -231,18 +231,35 @@ export default function SOTAProblemsPage() {
               <span className="text-sm text-muted-foreground">
                 FIND WORLD'S BIGGEST PROBLEMS
               </span>
-              <div className="relative">
-                <Search
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
-                  size={16}
-                />
-                <Input
+              <div className="flex items-center gap-3 w-80 px-4 h-10 rounded-md glass-card border border-border transition-all duration-200 focus-within:border-primary/50">
+
+                {/* Left search icon */}
+                <Search className="h-4 w-4 text-muted-foreground" />
+
+                {/* Input */}
+                <input
+                  type="text"
                   placeholder="Search a topic"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-12 w-80 glass-card border-border/50 focus:border-primary/50 transition-all duration-200"
+                  className="
+                    flex-1 
+                    bg-transparent 
+                    outline-none 
+                    border-none 
+                    text-sm
+                    placeholder:text-muted-foreground
+                  "
+                  style={{
+                  boxShadow: "none",
+                  WebkitBoxShadow: "none",
+                  outline: "none",
+                  border: "none",
+                }}
                 />
+
               </div>
+
             </div>
           </div>
 

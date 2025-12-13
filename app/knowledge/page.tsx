@@ -367,7 +367,7 @@ export default function KnowledgeDiscoveryPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="relative max-w-2xl">
+          {/* <div className="relative max-w-2xl">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-muted-foreground" />
             </div>
@@ -384,10 +384,48 @@ export default function KnowledgeDiscoveryPage() {
                 onClick={handleSearch}
                 className="btn-ghost text-muted-foreground hover:text-foreground h-8 w-8 p-0"
               >
-                <Mic className="h-4 w-4" />
+                <Mic className="h-4 w-4 text-black" />
               </button>
             </div>
+          </div> */}
+          <div className="max-w-2xl w-full h-12 px-4 flex items-center gap-3 rounded-lg border border-border bg-input">
+  
+            {/* Left Search Icon */}
+            <Search className="h-5 w-5 text-muted-foreground" />
+
+            {/* Input */}
+            <input
+              type="text"
+              placeholder="Search research papers, topics, or authors..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              className="
+                flex-1
+                bg-transparent
+                outline-none
+                border-none
+                text-base
+                placeholder:text-muted-foreground
+              "
+              style={{
+                  boxShadow: "none",
+                  WebkitBoxShadow: "none",
+                  outline: "none",
+                  border: "none",
+                }}
+
+            />
+
+            {/* Right Mic Button */}
+            <button
+              onClick={handleSearch}
+              className="h-8 w-8 flex items-center justify-center hover:text-foreground text-muted-foreground"
+            >
+              <Mic className="h-4 w-4 text-black" />
+            </button>
           </div>
+
         </div>
 
         <div className="flex-1 flex">

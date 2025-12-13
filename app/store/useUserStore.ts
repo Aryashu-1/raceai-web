@@ -1,5 +1,7 @@
 // src/store/useUserStore.ts
-import { create } from "zustand";
+"use client";
+
+import create from "zustand";
 import { persist } from "zustand/middleware";
 import { User } from "../types/user";
 
@@ -8,15 +10,14 @@ interface UserState {
   token: string | null;
   loading: boolean;
 
-  // Actions
   setUser: (user: User) => void;
   setToken: (token: string) => void;
   clearUser: () => void;
   setLoading: (state: boolean) => void;
 }
 
-export const useUserStore = create<UserState>()(
-  persist(
+export const useUserStore = create(
+  persist<UserState>(
     (set) => ({
       user: null,
       token: null,
@@ -28,7 +29,7 @@ export const useUserStore = create<UserState>()(
       setLoading: (state) => set({ loading: state }),
     }),
     {
-      name: "race-ai-user-storage", // key in localStorage
+      name: "race-ai-user-storage",
     }
   )
 );

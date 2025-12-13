@@ -1,0 +1,25 @@
+{
+  "chats": [
+    {
+      "id": "1765125027333",
+      "title": "Hello API",
+      "createdAt": "2025-12-07T16:30:27.333Z",
+      "updatedAt": "2025-12-07T16:30:31.346Z",
+      "messages": [
+        {
+          "id": "1765125031345",
+          "role": "user",
+          "content": "Hello API",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Hello API"
+            }
+          ],
+          "createdAt": "2025-12-07T16:30:31.345Z"
+        }
+      ],
+      "isPinned": false
+    }
+  ]
+}

@@ -11,6 +11,7 @@ import AnimatedTechBackground from "@/components/animated-tech-background";
 import GeometricBackground from "@/components/geometric-background";
 import { useUser } from "./context/UserContext";
 import { useProjects } from "@/app/context/ProjectContext";
+import { useChatContext } from "@/app/context/ChatContext";
 
 
 interface AuthFormCardProps {
@@ -36,6 +37,7 @@ const AuthFormCard: React.FC<AuthFormCardProps> = ({ onAuthSuccess }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { setProjects } = useProjects();
+  const { setChatSessions } = useChatContext();
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
@@ -48,7 +50,7 @@ const AuthFormCard: React.FC<AuthFormCardProps> = ({ onAuthSuccess }) => {
     submit: "",
   });
   const router = useRouter();
-   const { updateUser } = useUser();
+  const { updateUser } = useUser();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e || !e.target) return;
@@ -79,92 +81,113 @@ const AuthFormCard: React.FC<AuthFormCardProps> = ({ onAuthSuccess }) => {
   };
 
 
-const handleSubmit = async (e: React.FormEvent) => {
-   
-  e.preventDefault();
-  if (!validateForm()) return;
+  const handleSubmit = async (e: React.FormEvent) => {
 
-  setIsLoading(true);
-  setFormErrors((prev) => ({ ...prev, submit: "" }));
+    e.preventDefault();
+    if (!validateForm()) return;
 
-  try {
-    if (isSignUp) {
-      // store in context (no API call)
-      
-      updateUser({
-        email: formData.email,
-        password: formData.password,
-      });
+    setIsLoading(true);
+    setFormErrors((prev) => ({ ...prev, submit: "" }));
 
-      
-      // Navigate to onboarding page
-      router.push("/onboarding");
+    try {
+      if (isSignUp) {
+        // store in context (no API call)
 
-    } else {
-      // --- SIGNIN: call backend ---
-      const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/signin`;
-      console.log("🔹 Signing in via:", endpoint);
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        updateUser({
           email: formData.email,
           password: formData.password,
-        }),
-      });
+        });
 
-      // Backend not found or down
-      if (!response.ok) {
-        const text = await response.text();
-        console.error("❌ Backend response:", text);
-        throw new Error(`Signin failed (${response.status})`);
+
+        // Navigate to onboarding page
+        router.push("/onboarding");
+
+      } else {
+        // --- SIGNIN: call backend ---
+        const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/signin`;
+        console.log("🔹 Signing in via:", endpoint);
+
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          }),
+        });
+
+        // Backend not found or down
+        if (!response.ok) {
+          const text = await response.text();
+          console.error("❌ Backend response:", text);
+          throw new Error(`Signin failed (${response.status})`);
+        }
+
+        const result = await response.json();
+        console.log("✅ Signin response:", result);
+
+        const { user, token } = result;
+        if (!user || !token) {
+          throw new Error("Invalid response from server");
+        }
+
+        // Save to localStorage for persistence
+        localStorage.setItem("race_ai_user", JSON.stringify(user));
+        localStorage.setItem("race_ai_token", token);
+
+        // Update context
+        updateUser(user);
+
+        //load chats
+        try {
+          const chatsResp = await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/user/${user.id}`
+          );
+          if (chatsResp.ok) {
+            const chatsJson = await chatsResp.json();
+            setChatSessions(chatsJson);
+            console.log("✅ chats loaded into context", chatsJson.length);
+          } else {
+            console.warn("Chats fetch failed");
+          }
+        } catch (err) {
+          console.warn("Chats fetch error", err);
+        }
+
+
+
+
+        // load projects
+        try {
+          const projectsResp = await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/projects/structuredProjects/${user.id}`
+          );
+          if (projectsResp.ok) {
+            const projectsJson = await projectsResp.json();
+            setProjects(projectsJson);
+            console.log("✅ projects loaded into context", projectsJson.length);
+          } else {
+            console.warn("Projects fetch failed");
+          }
+        } catch (err) {
+          console.warn("Projects fetch error", err);
+        }
+
+
+
+        // Notify parent if applicable
+        onAuthSuccess(user, false);
       }
-
-      const result = await response.json();
-      console.log("✅ Signin response:", result);
-
-      const { user, token } = result;
-      if (!user || !token) {
-        throw new Error("Invalid response from server");
-      }
-
-      // Save to localStorage for persistence
-      localStorage.setItem("race_ai_user", JSON.stringify(user));
-      localStorage.setItem("race_ai_token", token);
-
-      // Update context
-      updateUser(user);
-      try {
-    const projectsResp = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/projects/structuredProjects/${user.id}`
-    );
-    if (projectsResp.ok) {
-      const projectsJson = await projectsResp.json();
-      setProjects(projectsJson);
-      console.log("✅ projects loaded into context", projectsJson.length);
-    } else {
-      console.warn("Projects fetch failed");
+    } catch (error: any) {
+      console.error("Auth Error:", error);
+      setFormErrors((prev) => ({
+        ...prev,
+        submit: error.message || "An unexpected error occurred",
+      }));
+    } finally {
+      setIsLoading(false);
     }
-  } catch (err) {
-    console.warn("Projects fetch error", err);
-  }
-
- 
-
-      // Notify parent if applicable
-      onAuthSuccess(user, false);
-    }
-  } catch (error: any) {
-    console.error("Auth Error:", error);
-    setFormErrors((prev) => ({
-      ...prev,
-      submit: error.message || "An unexpected error occurred",
-    }));
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
 
   const handleGoogleSignIn = async () => {
@@ -232,21 +255,19 @@ const handleSubmit = async (e: React.FormEvent) => {
         <div className="flex bg-muted rounded-lg p-1 mb-6">
           <button
             onClick={() => setIsSignUp(false)}
-            className={`flex-1 py-3 px-6 text-sm font-medium rounded-md transition-all duration-200 ${
-              !isSignUp
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex-1 py-3 px-6 text-sm font-medium rounded-md transition-all duration-200 ${!isSignUp
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+              }`}
           >
             Sign In
           </button>
           <button
             onClick={() => setIsSignUp(true)}
-            className={`flex-1 py-3 px-6 text-sm font-medium rounded-md transition-all duration-200 ${
-              isSignUp
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex-1 py-3 px-6 text-sm font-medium rounded-md transition-all duration-200 ${isSignUp
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+              }`}
           >
             Sign Up
           </button>
@@ -269,9 +290,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className={`w-full pl-11 pr-4 py-3 h-12 text-sm bg-input border border-border rounded-lg transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 ${
-                  formErrors.email ? "border-red-500" : ""
-                }`}
+                className={`w-full pl-11 pr-4 py-3 h-12 text-sm bg-input border border-border rounded-lg transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 ${formErrors.email ? "border-red-500" : ""
+                  }`}
                 placeholder="Enter your email"
                 disabled={isLoading}
               />
@@ -297,9 +317,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={handleInputChange}
-                className={`w-full pl-11 pr-12 py-3 h-12 bg-input border border-border rounded-lg transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 ${
-                  formErrors.password ? "border-red-500" : ""
-                }`}
+                className={`w-full pl-11 pr-12 py-3 h-12 bg-input border border-border rounded-lg transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 ${formErrors.password ? "border-red-500" : ""
+                  }`}
                 placeholder="Enter your password"
                 disabled={isLoading}
               />
@@ -337,9 +356,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                   type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className={`w-full pl-11 pr-12 py-3 h-12 bg-input border border-border rounded-lg transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 ${
-                    formErrors.confirmPassword ? "border-red-500" : ""
-                  }`}
+                  className={`w-full pl-11 pr-12 py-3 h-12 bg-input border border-border rounded-lg transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 ${formErrors.confirmPassword ? "border-red-500" : ""
+                    }`}
                   placeholder="Confirm your password"
                   disabled={isLoading}
                 />

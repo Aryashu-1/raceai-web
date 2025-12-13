@@ -4,6 +4,9 @@ import type React from "react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Block } from "@/app/types/blocks";
+
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import GeometricBackground from "@/components/geometric-background";
 import {
@@ -53,14 +56,20 @@ import NavigationSidebar from "@/components/navigation-sidebar";
 import { LLM_PROVIDERS, getModelById } from "@/lib/llm-providers";
 import { useRouter } from "next/navigation";
 import { SimpleThemeToggle } from "@/components/theme-toggle";
+import Markdown from "@/components/Markdown";
+import BlockRenderer from "@/components/BlockRenderer";
+import { ChatProvider } from "../context/ChatContext";
+import { useChatContext, ChatSession as ContextChatSession } from "../context/ChatContext";
 
 const CleanBackground = ({ children }: { children: React.ReactNode }) => (
   <div className="min-h-screen bg-background">{children}</div>
 );
 
+
+
 interface Message {
   id: string;
-  content: string;
+  content?: string;
   sender: "user" | "assistant";
   timestamp: Date;
   resources?: Array<{
@@ -68,9 +77,10 @@ interface Message {
     url: string;
     snippet: string;
   }>;
+  blocks?: Block[];
 }
 
-interface ChatSession {
+interface LocalChatSession {
   id: string;
   title: string;
   preview: string;
@@ -152,60 +162,41 @@ export default function JarvisPage() {
   const [deletedChats, setDeletedChats] = useState<string[]>([]);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string>("1");
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([
-    {
-      id: "1",
-      title: "Quantum Research 1",
-      preview: "Latest findings on quantum entanglement",
-      timestamp: "Today, 2:45 PM",
-      createdAt: new Date(),
-      category: "recent",
-      topic: "quantum-computing",
-    },
-    {
-      id: "2",
-      title: "Machine Learning Models",
-      preview: "Discussion about neural network architectures",
-      timestamp: "Today, 1:30 PM",
-      createdAt: new Date(),
-      category: "recent",
-      topic: "machine-learning",
-    },
-    {
-      id: "3",
-      title: "AI Ethics Discussion",
-      preview: "Exploring ethical implications of AI research",
-      timestamp: "Yesterday, 4:20 PM",
-      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      category: "recent",
-      topic: "ai-ethics",
-    },
-    {
-      id: "4",
-      title: "Important Research",
-      preview: "Critical findings for the project",
-      timestamp: "Yesterday, 4:20 PM",
-      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      category: "pinned",
-      isPinned: true,
-      topic: "research-methods",
-    },
-    {
-      id: "5",
-      title: "Project Alpha Discussion",
-      preview: "Team collaboration on AI models",
-      timestamp: "2 days ago",
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      category: "project",
-      projectName: "Project Alpha",
-      topic: "project-management",
-    },
-  ]);
+  const { chatSessions, setChatSessions } = useChatContext();
+
+  const mapContextMessageToLocal = (msg: any): Message => ({
+    id: msg.id,
+    content: msg.content,
+    sender: msg.role === "USER" ? "user" : "assistant",
+    timestamp: new Date(msg.createdAt),
+    blocks: [{ type: "paragraph", text: msg.content }],
+  });
+
+  const mapContextSessionToLocal = (session: ContextChatSession): LocalChatSession => ({
+    id: session.id,
+    title: session.title || "New Chat",
+    preview: session.messages.length > 0 ? session.messages[session.messages.length - 1].content : "No messages",
+    timestamp: new Date(session.updatedAt || session.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    createdAt: new Date(session.createdAt),
+    isPinned: session.isPinned,
+    category: session.isPinned ? "pinned" : "recent", // Simple logic for now
+    projectName: session.projectId, // Optional
+  });
+
+  const handleSelectSession = (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+    const session = chatSessions.find((s) => s.id === sessionId);
+    if (session) {
+      const mappedMessages = session.messages.map(mapContextMessageToLocal);
+      setMessages(mappedMessages);
+    }
+  };
 
   const router = useRouter();
 
   const getFilteredSessions = () => {
-    return chatSessions.filter((session) => {
+    const localSessions = chatSessions.map(mapContextSessionToLocal);
+    return localSessions.filter((session: LocalChatSession) => {
       // Filter out deleted chats
       if (deletedChats.includes(session.id)) {
         return false;
@@ -257,7 +248,7 @@ export default function JarvisPage() {
   const handleNewChat = () => {
     // Create a new chat session
     const newSessionId = Date.now().toString();
-    const newSession: ChatSession = {
+    const newSession: LocalChatSession = {
       id: newSessionId,
       title: "New Chat",
       preview: "Start a new conversation...",
@@ -270,7 +261,7 @@ export default function JarvisPage() {
     };
 
     // Add new session to the beginning of the list
-    setChatSessions([newSession, ...chatSessions]);
+    setChatSessions([newSession as unknown as ContextChatSession, ...chatSessions]);
 
     // Set as current session
     setCurrentSessionId(newSessionId);
@@ -305,20 +296,48 @@ export default function JarvisPage() {
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
 
+    // Local UI Message (blocks)
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: inputMessage,
+      blocks: [
+        {
+          type: "paragraph",
+          text: inputMessage
+        }
+      ],
       sender: "user",
       timestamp: new Date(),
     };
 
-    const isFirstUserMessage = messages.length === 1; // Only welcome message
+    const isFirstUserMessage = messages.length === 1;
     const userMessageContent = inputMessage;
 
+    // Render immediately
     setMessages((prev) => [...prev, userMessage]);
     setInputMessage("");
-    setUploadedFiles([]); // Clear uploaded files after sending message
+    setUploadedFiles([]);
     setIsLoading(true);
+
+    // // Save USER message to backend
+    // await fetch("http://localhost:5000/chat/message", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({
+    //     sessionId: currentSessionId,
+    //     senderId: "USER",
+    //     role: "USER",
+    //     content: userMessageContent,
+    //   }),
+    // });
+
+    // //get cointext of previous 5 messages in the chat
+    // const context = messages.slice(-5).map((msg) => ({
+    //   sender: msg.sender,
+    //   content: msg.blocks?.[0]?.text || msg.content || "",
+    // }));
+
+
+
 
     try {
       const response = await fetch("/api/chat", {
@@ -327,29 +346,39 @@ export default function JarvisPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: [...messages, userMessage],
+          messages: [
+            ...messages.map((msg) => ({
+              sender: msg.sender,
+              content:
+                msg.sender === "user"
+                  ? msg.blocks?.[0]?.text || msg.content || ""
+                  : msg.content || ""
+            })),
+            {
+              sender: "user",
+              content: inputMessage
+            }
+          ],
           model: selectedModel,
-          includeResources: true,
+          includeResources: true
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to get response");
-      }
+      if (!response.ok) throw new Error("Failed to get response");
 
       const data = await response.json();
 
       const assistantMessage: Message = {
         id: data.message.id,
-        content: data.message.content,
+        blocks: data.message.blocks, // <-- blocks structure returned from API
         sender: "assistant",
-        timestamp: new Date(data.message.timestamp),
+        timestamp: new Date(),
         resources: data.message.resources,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Update chat title if this is the first message in a new chat
+      // Auto-generate title for new chat
       if (isFirstUserMessage) {
         const newTitle = generateChatTitle(userMessageContent);
         setChatSessions((prev) =>
@@ -360,12 +389,29 @@ export default function JarvisPage() {
           )
         );
       }
+
+      // //post that assistant response to backend
+      // await fetch("http://localhost:5000/chat/message", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     sessionId: currentSessionId,
+      //     senderId: "ASSISTANT",
+      //     role: "ASSISTANT",
+      //     content: assistantMessage.blocks?.[0]?.text || assistantMessage.content || "",
+      //   }),
+      // });
+
     } catch (error) {
       console.error("Error sending message:", error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content:
-          "I apologize, but I'm having trouble connecting right now. Please try again later.",
+        blocks: [
+          {
+            type: "paragraph",
+            text: "I apologize, but I'm having trouble connecting right now. Please try again later."
+          }
+        ],
         sender: "assistant",
         timestamp: new Date(),
       };
@@ -586,1373 +632,1387 @@ export default function JarvisPage() {
 
       {/* Chat Sidebar */}
       <div className="hidden md:flex md:w-80 lg:w-96 border-r border-border bg-background flex-col relative z-10">
-          {/* Sidebar Header */}
-          <div className="p-4 border-b border-border">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <span className="font-semibold text-foreground">Chats</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-muted-foreground hover:text-foreground hover:cursor-pointer hover:bg-accent"
-                  onClick={handleNewChat}
-                >
-                  <Plus size={16} />
-                </Button>
-              </div>
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-border">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <span className="font-semibold text-foreground">Chats</span>
             </div>
-
-            {/* Search */}
-            <div>
-              <div className="relative mb-4 z-10">
-                <Search
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none"
-                  size={16}
-                />
-                <Input
-                  placeholder="Search conversations..."
-                  className="pl-10 pr-3 h-10"
-                  value={filters.searchText}
-                  onChange={(e) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      searchText: e.target.value,
-                    }))
-                  }
-                />
-                {/* <Button
+            <div className="flex items-center space-x-2">
+              <Button
                 size="sm"
                 variant="ghost"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                onClick={() => setShowFilters(!showFilters)}
+                className="text-muted-foreground hover:text-foreground hover:cursor-pointer hover:bg-accent"
+                onClick={handleNewChat}
               >
-                <Filter size={14} />
-              </Button> */}
-              </div>
-            </div>
-
-            {showFilters && (
-              <div className="mb-4 p-3 bg-muted/30 rounded-lg border border-border space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">
-                    Filters
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowFilters(false)}
-                    className="h-6 w-6 p-0"
-                  >
-                    <X size={12} />
-                  </Button>
-                </div>
-
-                {/* Date Range Filter with Calendar */}
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">
-                    Date Range
-                  </label>
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start text-xs bg-transparent"
-                      onClick={() => setShowDatePicker(!showDatePicker)}
-                    >
-                      <Calendar size={12} className="mr-2" />
-                      {filters.dateRange.from || filters.dateRange.to
-                        ? `${
-                            filters.dateRange.from?.toLocaleDateString() ||
-                            "Start"
-                          } - ${
-                            filters.dateRange.to?.toLocaleDateString() || "End"
-                          }`
-                        : "Select date range"}
-                    </Button>
-                    {showDatePicker && (
-                      <div className="p-2 bg-background border rounded-md space-y-2">
-                        <Input
-                          type="date"
-                          placeholder="From"
-                          className="text-xs"
-                          onChange={(e) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              dateRange: {
-                                ...prev.dateRange,
-                                from: e.target.value
-                                  ? new Date(e.target.value)
-                                  : null,
-                              },
-                            }))
-                          }
-                        />
-                        <Input
-                          type="date"
-                          placeholder="To"
-                          className="text-xs"
-                          onChange={(e) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              dateRange: {
-                                ...prev.dateRange,
-                                to: e.target.value
-                                  ? new Date(e.target.value)
-                                  : null,
-                              },
-                            }))
-                          }
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Category Filter - Text Input */}
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">
-                    Category
-                  </label>
-                  <Input
-                    placeholder="Enter category..."
-                    className="text-xs"
-                    value={filters.category}
-                    onChange={(e) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        category: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-
-                {/* Topic Filter - Text Input */}
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">
-                    Topic
-                  </label>
-                  <Input
-                    placeholder="Enter topic..."
-                    className="text-xs"
-                    value={filters.topic}
-                    onChange={(e) =>
-                      setFilters((prev) => ({ ...prev, topic: e.target.value }))
-                    }
-                  />
-                </div>
-
-                {/* Clear Filters */}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    setFilters({
-                      searchText: "",
-                      dateRange: { from: null, to: null },
-                      category: "",
-                      topic: "",
-                    })
-                  }
-                  className="w-full text-xs"
-                >
-                  Clear All Filters
-                </Button>
-              </div>
-            )}
-
-            {/* Tabs */}
-            <div className="flex space-x-1 bg-muted/30 rounded-lg p-1">
-              {[
-                { key: "recent", label: "Recent" },
-                { key: "pinned", label: "Pinned" },
-                { key: "project", label: "Projects" },
-                { key: "shared", label: "Shared" },
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key as any)}
-                  className={`flex-1 py-2 px-2 rounded-md text-xs font-medium hover:cursor-pointer transition-all ${
-                    activeTab === tab.key
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+                <Plus size={16} />
+              </Button>
             </div>
           </div>
 
-          {/* Chat Sessions */}
-          <ScrollArea className="flex-1 p-3">
-            <div className="space-y-5">
-              {/* Today Section */}
-              {(() => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-
-                const todaySessions = filteredSessions.filter((session) => {
-                  const sessionDate = new Date(session.createdAt);
-                  sessionDate.setHours(0, 0, 0, 0);
-                  return sessionDate.getTime() === today.getTime();
-                });
-
-                if (todaySessions.length === 0) return null;
-
-                return (
-                  <div>
-                    <div className="flex items-center justify-between mb-3 px-2">
-                      <h3 className="text-sm font-medium text-foreground">
-                        Today
-                      </h3>
-                      <span className="text-xs text-muted-foreground">
-                        {todaySessions.length} Total
-                      </span>
-                    </div>
-                    <div className="space-y-2">
-                      {todaySessions.map((session) => (
-                        <div
-                          key={session.id}
-                          className="group p-4 bg-background cursor-pointer transition-all border border-border/30 rounded-lg hover:border-primary/50 hover:bg-gradient-to-r hover:from-accent/40 hover:to-transparent backdrop-blur-sm"
-                          onClick={() => setCurrentSessionId(session.id)}
-                          onMouseEnter={() => setHoveredChat(session.id)}
-                          onMouseLeave={() => setHoveredChat(null)}
-                        >
-                          <div className="flex items-start justify-between mb-1">
-                            {editingChatId === session.id ? (
-                              <Input
-                                value={editingTitle}
-                                onChange={(e) =>
-                                  setEditingTitle(e.target.value)
-                                }
-                                onBlur={() => handleInlineRename(session.id)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    handleInlineRename(session.id);
-                                  } else if (e.key === "Escape") {
-                                    setEditingChatId(null);
-                                    setEditingTitle("");
-                                  }
-                                }}
-                                className="h-6 text-sm flex-1 mr-2"
-                                autoFocus
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            ) : (
-                              <h4 className="font-medium text-foreground text-sm truncate flex-1">
-                                {chatTitles[session.id] || session.title}
-                              </h4>
-                            )}
-                            <div className="flex items-center space-x-1">
-                              {/* Pin button - visible on hover or when pinned (blue) */}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className={`h-5 w-5 p-0 transition-all ${
-                                  pinnedChats.includes(session.id)
-                                    ? "opacity-100 bg-primary/10"
-                                    : hoveredChat === session.id
-                                    ? "hover:bg-primary/10 opacity-100"
-                                    : "opacity-0"
-                                }`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  togglePin(session.id);
-                                }}
-                              >
-                                {pinnedChats.includes(session.id) &&
-                                hoveredChat === session.id ? (
-                                  <PinOff size={12} className="text-primary" />
-                                ) : (
-                                  <Pin
-                                    size={12}
-                                    className={
-                                      pinnedChats.includes(session.id)
-                                        ? "text-primary fill-primary"
-                                        : "text-muted-foreground"
-                                    }
-                                  />
-                                )}
-                              </Button>
-                              {hoveredChat === session.id && (
-                                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "rename",
-                                        chatId: session.id,
-                                      });
-                                    }}
-                                  >
-                                    <Edit3 size={10} />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "share",
-                                        chatId: session.id,
-                                      });
-                                    }}
-                                  >
-                                    <Share size={10} />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "save",
-                                        chatId: session.id,
-                                      });
-                                    }}
-                                  >
-                                    <Save size={10} />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 hover:scale-125 hover:text-destructive transition-transform"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setShowDeleteModal(session.id);
-                                    }}
-                                  >
-                                    <Trash2 size={10} />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                            {session.preview}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                              {session.timestamp}
-                            </span>
-                            {session.projectName && (
-                              <Badge
-                                variant="secondary"
-                                className="text-xs bg-primary/10 text-primary"
-                              >
-                                {session.projectName}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Previous 7 Days Section */}
-              {(() => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-
-                const sevenDaysAgo = new Date(today);
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-                const previousWeekSessions = filteredSessions.filter(
-                  (session) => {
-                    const sessionDate = new Date(session.createdAt);
-                    sessionDate.setHours(0, 0, 0, 0);
-                    return sessionDate < today && sessionDate >= sevenDaysAgo;
-                  }
-                );
-
-                if (previousWeekSessions.length === 0) return null;
-
-                return (
-                  <div>
-                    <div className="flex items-center justify-between mb-3 px-2">
-                      <h3 className="text-sm font-medium text-foreground dark:text-white">
-                        Previous 7 Days
-                      </h3>
-                      <span className="text-xs text-muted-foreground dark:text-white/60">
-                        {previousWeekSessions.length}
-                      </span>
-                    </div>
-                    <div className="space-y-3">
-                      {previousWeekSessions.map((session) => (
-                        <div
-                          key={session.id}
-                          className="group relative p-4 bg-background cursor-pointer transition-all border border-border/30 rounded-lg hover:border-primary/50 hover:bg-gradient-to-r hover:from-accent/40 hover:to-transparent backdrop-blur-sm"
-                          onClick={() => setCurrentSessionId(session.id)}
-                          onMouseEnter={() => setHoveredChat(session.id)}
-                          onMouseLeave={() => setHoveredChat(null)}
-                        >
-                          <div className="flex items-start justify-between mb-1">
-                            {editingChatId === session.id ? (
-                              <Input
-                                value={editingTitle}
-                                onChange={(e) =>
-                                  setEditingTitle(e.target.value)
-                                }
-                                onBlur={() => handleInlineRename(session.id)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    handleInlineRename(session.id);
-                                  } else if (e.key === "Escape") {
-                                    setEditingChatId(null);
-                                    setEditingTitle("");
-                                  }
-                                }}
-                                className="h-6 text-sm flex-1 mr-2"
-                                autoFocus
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            ) : (
-                              <h4 className="font-medium text-foreground text-sm truncate flex-1">
-                                {chatTitles[session.id] || session.title}
-                              </h4>
-                            )}
-                            <div className="flex items-center space-x-1">
-                              {/* Pin button - visible on hover or when pinned (blue) */}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className={`h-5 w-5 p-0 transition-all ${
-                                  pinnedChats.includes(session.id)
-                                    ? "opacity-100 bg-primary/10"
-                                    : hoveredChat === session.id
-                                    ? "hover:bg-primary/10 opacity-100"
-                                    : "opacity-0"
-                                }`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  togglePin(session.id);
-                                }}
-                              >
-                                {pinnedChats.includes(session.id) &&
-                                hoveredChat === session.id ? (
-                                  <PinOff size={12} className="text-primary" />
-                                ) : (
-                                  <Pin
-                                    size={12}
-                                    className={
-                                      pinnedChats.includes(session.id)
-                                        ? "text-primary fill-primary"
-                                        : "text-muted-foreground"
-                                    }
-                                  />
-                                )}
-                              </Button>
-                              {hoveredChat === session.id && (
-                                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "rename",
-                                        chatId: session.id,
-                                      });
-                                    }}
-                                  >
-                                    <Edit3 size={10} />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "share",
-                                        chatId: session.id,
-                                      });
-                                    }}
-                                  >
-                                    <Share size={10} />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "save",
-                                        chatId: session.id,
-                                      });
-                                    }}
-                                  >
-                                    <Save size={10} />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 hover:scale-125 hover:text-destructive transition-transform"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setShowDeleteModal(session.id);
-                                    }}
-                                  >
-                                    <Trash2 size={10} />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                            {session.preview}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                              {session.timestamp}
-                            </span>
-                            {session.projectName && (
-                              <Badge
-                                variant="secondary"
-                                className="text-xs bg-primary/10 text-primary"
-                              >
-                                {session.projectName}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Older Sessions Section */}
-              {(() => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-
-                const sevenDaysAgo = new Date(today);
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-                const olderSessions = filteredSessions.filter((session) => {
-                  const sessionDate = new Date(session.createdAt);
-                  sessionDate.setHours(0, 0, 0, 0);
-                  return sessionDate < sevenDaysAgo;
-                });
-
-                if (olderSessions.length === 0) return null;
-
-                return (
-                  <div>
-                    <div className="flex items-center justify-between mb-3 px-2">
-                      <h3 className="text-sm font-medium text-foreground dark:text-white">
-                        Older
-                      </h3>
-                      <span className="text-xs text-muted-foreground dark:text-white/60">
-                        {olderSessions.length}
-                      </span>
-                    </div>
-                    <div className="space-y-3">
-                      {olderSessions.map((session) => (
-                        <div
-                          key={session.id}
-                          className="group relative p-4 bg-background cursor-pointer transition-all border border-border/30 rounded-lg hover:border-primary/50 hover:bg-gradient-to-r hover:from-accent/40 hover:to-transparent backdrop-blur-sm"
-                          onClick={() => setCurrentSessionId(session.id)}
-                          onMouseEnter={() => setHoveredChat(session.id)}
-                          onMouseLeave={() => setHoveredChat(null)}
-                        >
-                          <div className="flex items-start justify-between mb-1">
-                            {editingChatId === session.id ? (
-                              <Input
-                                value={editingTitle}
-                                onChange={(e) =>
-                                  setEditingTitle(e.target.value)
-                                }
-                                onBlur={() => handleInlineRename(session.id)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    handleInlineRename(session.id);
-                                  } else if (e.key === "Escape") {
-                                    setEditingChatId(null);
-                                    setEditingTitle("");
-                                  }
-                                }}
-                                className="h-6 text-sm flex-1 mr-2"
-                                autoFocus
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            ) : (
-                              <h4 className="font-medium text-foreground text-sm truncate flex-1">
-                                {chatTitles[session.id] || session.title}
-                              </h4>
-                            )}
-                            <div className="flex items-center space-x-1">
-                              {/* Pin button - visible on hover or when pinned (blue) */}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className={`h-5 w-5 p-0 transition-all ${
-                                  pinnedChats.includes(session.id)
-                                    ? "opacity-100 bg-primary/10"
-                                    : hoveredChat === session.id
-                                    ? "hover:bg-primary/10 opacity-100"
-                                    : "opacity-0"
-                                }`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  togglePin(session.id);
-                                }}
-                              >
-                                {pinnedChats.includes(session.id) &&
-                                hoveredChat === session.id ? (
-                                  <PinOff size={12} className="text-primary" />
-                                ) : (
-                                  <Pin
-                                    size={12}
-                                    className={
-                                      pinnedChats.includes(session.id)
-                                        ? "text-primary fill-primary"
-                                        : "text-muted-foreground"
-                                    }
-                                  />
-                                )}
-                              </Button>
-                              {hoveredChat === session.id && (
-                                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "rename",
-                                        chatId: session.id,
-                                      });
-                                    }}
-                                  >
-                                    <Edit3 size={10} />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "share",
-                                        chatId: session.id,
-                                      });
-                                    }}
-                                  >
-                                    <Share size={10} />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleChatAction({
-                                        type: "save",
-                                        chatId: session.id,
-                                      });
-                                    }}
-                                  >
-                                    <Save size={10} />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0 hover:scale-125 hover:text-destructive transition-transform"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setShowDeleteModal(session.id);
-                                    }}
-                                  >
-                                    <Trash2 size={10} />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                            {session.preview}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                              {session.timestamp}
-                            </span>
-                            {session.projectName && (
-                              <Badge
-                                variant="secondary"
-                                className="text-xs bg-primary/10 text-primary"
-                              >
-                                {session.projectName}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          </ScrollArea>
-
-          {/* Share Modal */}
-          {showShareModal && (
+          {/* Search */}
+          <div className="mb-4 w-full border-border">
             <div
-              className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]"
-              style={{ pointerEvents: 'auto', backdropFilter: 'blur(8px)' }}
-              onClick={() => {
-                setShowShareModal(null);
-                setShowCopiedNotification(false);
-              }}
+              className="
+                  flex items-center gap-3 
+                  h-10 px-4 
+                  rounded-lg
+                  focus-within:outline-none
+                  focus-within:ring-0
+                  focus-within:border-gray-600
+                  bg-transparent 
+                  border border-gray-600
+                "
             >
-              <div
-                className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 relative z-[10000]"
-                style={{ pointerEvents: 'auto' }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <h3 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
-                  Share Chat
-                </h3>
+              <Search className="w-4 h-4 text-muted-foreground" />
 
-                {/* Inline Copied Notification */}
-                {showCopiedNotification && (
-                  <div className="mb-4 bg-primary/10 border border-primary/20 text-primary px-4 py-3 rounded-lg flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                    <span className="font-medium text-sm">
-                      Link copied to clipboard
+              <input
+                type="text"
+                placeholder="Search conversations..."
+                className="
+                    w-full 
+                    bg-transparent 
+                    focus:outline-none
+                    focus:ring-0
+                    focus-visible:outline-none
+                    focus-visible:ring-0
+                    outline-none 
+                    border-none
+                    text-black
+                    placeholder:text-muted-foreground
+                  "
+                style={{
+                  boxShadow: "none",
+                  WebkitBoxShadow: "none",
+                  outline: "none",
+                  border: "none",
+                }}
+                value={filters.searchText}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    searchText: e.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+
+
+
+
+          {showFilters && (
+            <div className="mb-4 p-3 bg-muted/30 rounded-lg border border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">
+                  Filters
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowFilters(false)}
+                  className="h-6 w-6 p-0"
+                >
+                  <X size={12} />
+                </Button>
+              </div>
+
+              {/* Date Range Filter with Calendar */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Date Range
+                </label>
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start text-xs bg-transparent"
+                    onClick={() => setShowDatePicker(!showDatePicker)}
+                  >
+                    <Calendar size={12} className="mr-2" />
+                    {filters.dateRange.from || filters.dateRange.to
+                      ? `${filters.dateRange.from?.toLocaleDateString() ||
+                      "Start"
+                      } - ${filters.dateRange.to?.toLocaleDateString() || "End"
+                      }`
+                      : "Select date range"}
+                  </Button>
+                  {showDatePicker && (
+                    <div className="p-2 bg-background border rounded-md space-y-2">
+                      <Input
+                        type="date"
+                        placeholder="From"
+                        className="text-xs"
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            dateRange: {
+                              ...prev.dateRange,
+                              from: e.target.value
+                                ? new Date(e.target.value)
+                                : null,
+                            },
+                          }))
+                        }
+                      />
+                      <Input
+                        type="date"
+                        placeholder="To"
+                        className="text-xs"
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            dateRange: {
+                              ...prev.dateRange,
+                              to: e.target.value
+                                ? new Date(e.target.value)
+                                : null,
+                            },
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Category Filter - Text Input */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Category
+                </label>
+                <Input
+                  placeholder="Enter category..."
+                  className="text-xs"
+                  value={filters.category}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      category: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              {/* Topic Filter - Text Input */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Topic
+                </label>
+                <Input
+                  placeholder="Enter topic..."
+                  className="text-xs"
+                  value={filters.topic}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, topic: e.target.value }))
+                  }
+                />
+              </div>
+
+              {/* Clear Filters */}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  setFilters({
+                    searchText: "",
+                    dateRange: { from: null, to: null },
+                    category: "",
+                    topic: "",
+                  })
+                }
+                className="w-full text-xs"
+              >
+                Clear All Filters
+              </Button>
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div className="flex space-x-1 bg-muted/30 rounded-lg p-1">
+            {[
+              { key: "recent", label: "Recent" },
+              { key: "pinned", label: "Pinned" },
+              { key: "project", label: "Projects" },
+              { key: "shared", label: "Shared" },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as any)}
+                className={`flex-1 py-2 px-2 rounded-md text-xs font-medium hover:cursor-pointer transition-all ${activeTab === tab.key
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Chat Sessions */}
+        <ScrollArea className="flex-1 p-3">
+          <div className="space-y-5">
+            {/* Today Section */}
+            {(() => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+
+              const todaySessions = filteredSessions.filter((session) => {
+                const sessionDate = new Date(session.createdAt);
+                sessionDate.setHours(0, 0, 0, 0);
+                return sessionDate.getTime() === today.getTime();
+              });
+
+              if (todaySessions.length === 0) return null;
+
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-3 px-2">
+                    <h3 className="text-sm font-medium text-foreground">
+                      Today
+                    </h3>
+                    <span className="text-xs text-muted-foreground">
+                      {todaySessions.length} Total
                     </span>
                   </div>
-                )}
-
-                <div className="space-y-3">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-transparent hover:bg-accent cursor-pointer"
-                    style={{ pointerEvents: 'auto' }}
-                    onClick={() =>
-                      handleShare(showShareModal, { type: "external" })
-                    }
-                  >
-                    <Link size={16} className="mr-2" />
-                    Create shareable link
-                    <Badge variant="secondary" className="ml-auto text-xs">
-                      External
-                    </Badge>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-transparent hover:bg-accent cursor-pointer"
-                    style={{ pointerEvents: 'auto' }}
-                    onClick={() =>
-                      handleShare(showShareModal, { type: "collaborator" })
-                    }
-                  >
-                    <Users size={16} className="mr-2" />
-                    Share with collaborator
-                    <Badge variant="secondary" className="ml-auto text-xs">
-                      Internal
-                    </Badge>
-                  </Button>
-                </div>
-                <div className="flex justify-end space-x-2 mt-4">
-                  <Button
-                    variant="outline"
-                    className="cursor-pointer"
-                    style={{ pointerEvents: 'auto' }}
-                    onClick={() => {
-                      setShowShareModal(null);
-                      setShowCopiedNotification(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Save Modal */}
-          {showSaveModal && (
-            <div
-              className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]"
-              style={{ pointerEvents: 'auto', backdropFilter: 'blur(8px)' }}
-              onClick={() => setShowSaveModal(null)}
-            >
-              <div
-                className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 relative z-[10000]"
-                style={{ pointerEvents: 'auto' }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <h3 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
-                  Save to Project
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Project Name
-                    </label>
-                    <Input placeholder="Enter project name..." style={{ pointerEvents: 'auto' }} />
+                  <div className="space-y-2">
+                    {todaySessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className="group p-4 bg-background cursor-pointer transition-all border border-border/30 rounded-lg hover:border-primary/50 hover:bg-gradient-to-r hover:from-accent/40 hover:to-transparent backdrop-blur-sm"
+                        onClick={() => handleSelectSession(session.id)}
+                        onMouseEnter={() => setHoveredChat(session.id)}
+                        onMouseLeave={() => setHoveredChat(null)}
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          {editingChatId === session.id ? (
+                            <Input
+                              value={editingTitle}
+                              onChange={(e) =>
+                                setEditingTitle(e.target.value)
+                              }
+                              onBlur={() => handleInlineRename(session.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleInlineRename(session.id);
+                                } else if (e.key === "Escape") {
+                                  setEditingChatId(null);
+                                  setEditingTitle("");
+                                }
+                              }}
+                              className="h-6 text-sm flex-1 mr-2"
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <h4 className="font-medium text-foreground text-sm truncate flex-1">
+                              {chatTitles[session.id] || session.title}
+                            </h4>
+                          )}
+                          <div className="flex items-center space-x-1">
+                            {/* Pin button - visible on hover or when pinned (blue) */}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className={`h-5 w-5 p-0 transition-all ${pinnedChats.includes(session.id)
+                                ? "opacity-100 bg-primary/10"
+                                : hoveredChat === session.id
+                                  ? "hover:bg-primary/10 opacity-100"
+                                  : "opacity-0"
+                                }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                togglePin(session.id);
+                              }}
+                            >
+                              {pinnedChats.includes(session.id) &&
+                                hoveredChat === session.id ? (
+                                <PinOff size={12} className="text-primary" />
+                              ) : (
+                                <Pin
+                                  size={12}
+                                  className={
+                                    pinnedChats.includes(session.id)
+                                      ? "text-primary fill-primary"
+                                      : "text-muted-foreground"
+                                  }
+                                />
+                              )}
+                            </Button>
+                            {hoveredChat === session.id && (
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleChatAction({
+                                      type: "rename",
+                                      chatId: session.id,
+                                    });
+                                  }}
+                                >
+                                  <Edit3 size={10} />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleChatAction({
+                                      type: "share",
+                                      chatId: session.id,
+                                    });
+                                  }}
+                                >
+                                  <Share size={10} />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleChatAction({
+                                      type: "save",
+                                      chatId: session.id,
+                                    });
+                                  }}
+                                >
+                                  <Save size={10} />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 w-5 p-0 hover:scale-125 hover:text-destructive transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowDeleteModal(session.id);
+                                  }}
+                                >
+                                  <Trash2 size={10} />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                          {session.preview}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">
+                            {session.timestamp}
+                          </span>
+                          {session.projectName && (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-primary/10 text-primary"
+                            >
+                              {session.projectName}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Folder (Optional)
-                    </label>
-                    <Input placeholder="Enter folder name..." style={{ pointerEvents: 'auto' }} />
-                  </div>
                 </div>
-                <div className="flex justify-end space-x-2 mt-6">
-                  <Button
-                    variant="outline"
-                    className="cursor-pointer"
-                    style={{ pointerEvents: 'auto' }}
-                    onClick={() => setShowSaveModal(null)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    className="cursor-pointer"
-                    style={{ pointerEvents: 'auto' }}
-                    onClick={() => {
-                      console.log("Saving chat:", showSaveModal);
-                      setShowSaveModal(null);
-                    }}
-                  >
-                    Save
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+              );
+            })()}
 
-          {/* Delete Confirmation Modal */}
-          {showDeleteModal && (
-            <div
-              className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]"
-              style={{ pointerEvents: 'auto', backdropFilter: 'blur(8px)' }}
-              onClick={() => setShowDeleteModal(null)}
-            >
-              <div
-                className="bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 relative z-[10000]"
-                style={{ pointerEvents: 'auto' }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                    <svg
-                      className="w-6 h-6 text-red-600 dark:text-red-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                      Delete Chat?
+            {/* Previous 7 Days Section */}
+            {(() => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+
+              const sevenDaysAgo = new Date(today);
+              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+              const previousWeekSessions = filteredSessions.filter(
+                (session) => {
+                  const sessionDate = new Date(session.createdAt);
+                  sessionDate.setHours(0, 0, 0, 0);
+                  return sessionDate < today && sessionDate >= sevenDaysAgo;
+                }
+              );
+
+              if (previousWeekSessions.length === 0) return null;
+
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-3 px-2">
+                    <h3 className="text-sm font-medium text-foreground dark:text-white">
+                      Previous 7 Days
                     </h3>
+                    <span className="text-xs text-muted-foreground dark:text-white/60">
+                      {previousWeekSessions.length}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {previousWeekSessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className="group relative p-4 bg-background cursor-pointer transition-all border border-border/30 rounded-lg hover:border-primary/50 hover:bg-gradient-to-r hover:from-accent/40 hover:to-transparent backdrop-blur-sm"
+                        onClick={() => handleSelectSession(session.id)}
+                        onMouseEnter={() => setHoveredChat(session.id)}
+                        onMouseLeave={() => setHoveredChat(null)}
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          {editingChatId === session.id ? (
+                            <Input
+                              value={editingTitle}
+                              onChange={(e) =>
+                                setEditingTitle(e.target.value)
+                              }
+                              onBlur={() => handleInlineRename(session.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleInlineRename(session.id);
+                                } else if (e.key === "Escape") {
+                                  setEditingChatId(null);
+                                  setEditingTitle("");
+                                }
+                              }}
+                              className="h-6 text-sm flex-1 mr-2"
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <h4 className="font-medium text-foreground text-sm truncate flex-1">
+                              {chatTitles[session.id] || session.title}
+                            </h4>
+                          )}
+                          <div className="flex items-center space-x-1">
+                            {/* Pin button - visible on hover or when pinned (blue) */}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className={`h-5 w-5 p-0 transition-all ${pinnedChats.includes(session.id)
+                                ? "opacity-100 bg-primary/10"
+                                : hoveredChat === session.id
+                                  ? "hover:bg-primary/10 opacity-100"
+                                  : "opacity-0"
+                                }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                togglePin(session.id);
+                              }}
+                            >
+                              {pinnedChats.includes(session.id) &&
+                                hoveredChat === session.id ? (
+                                <PinOff size={12} className="text-primary" />
+                              ) : (
+                                <Pin
+                                  size={12}
+                                  className={
+                                    pinnedChats.includes(session.id)
+                                      ? "text-primary fill-primary"
+                                      : "text-muted-foreground"
+                                  }
+                                />
+                              )}
+                            </Button>
+                            {hoveredChat === session.id && (
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleChatAction({
+                                      type: "rename",
+                                      chatId: session.id,
+                                    });
+                                  }}
+                                >
+                                  <Edit3 size={10} />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleChatAction({
+                                      type: "share",
+                                      chatId: session.id,
+                                    });
+                                  }}
+                                >
+                                  <Share size={10} />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleChatAction({
+                                      type: "save",
+                                      chatId: session.id,
+                                    });
+                                  }}
+                                >
+                                  <Save size={10} />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 w-5 p-0 hover:scale-125 hover:text-destructive transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowDeleteModal(session.id);
+                                  }}
+                                >
+                                  <Trash2 size={10} />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                          {session.preview}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">
+                            {session.timestamp}
+                          </span>
+                          {session.projectName && (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-primary/10 text-primary"
+                            >
+                              {session.projectName}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-                  This action cannot be undone. This will permanently delete{" "}
-                  <span className="font-semibold text-foreground">
-                    "
-                    {chatTitles[showDeleteModal] ||
-                      chatSessions.find((s) => s.id === showDeleteModal)
-                        ?.title ||
-                      "this chat"}
-                    "
-                  </span>{" "}
-                  and all its messages.
-                </p>
-                <div className="flex justify-end space-x-2 mt-6">
-                  <Button
-                    variant="outline"
-                    className="border-2 border-primary text-primary hover:bg-primary/10 cursor-pointer"
-                    style={{ pointerEvents: 'auto' }}
-                    onClick={() => setShowDeleteModal(null)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    className="bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700 cursor-pointer"
-                    style={{ pointerEvents: 'auto' }}
-                    onClick={() => {
-                      if (showDeleteModal) {
-                        handleDeleteChat(showDeleteModal);
-                      }
-                    }}
-                  >
-                    Delete
-                  </Button>
+              );
+            })()}
+
+            {/* Older Sessions Section */}
+            {(() => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+
+              const sevenDaysAgo = new Date(today);
+              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+              const olderSessions = filteredSessions.filter((session) => {
+                const sessionDate = new Date(session.createdAt);
+                sessionDate.setHours(0, 0, 0, 0);
+                return sessionDate < sevenDaysAgo;
+              });
+
+              if (olderSessions.length === 0) return null;
+
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-3 px-2">
+                    <h3 className="text-sm font-medium text-foreground dark:text-white">
+                      Older
+                    </h3>
+                    <span className="text-xs text-muted-foreground dark:text-white/60">
+                      {olderSessions.length}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {olderSessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className="group relative p-4 bg-background cursor-pointer transition-all border border-border/30 rounded-lg hover:border-primary/50 hover:bg-gradient-to-r hover:from-accent/40 hover:to-transparent backdrop-blur-sm"
+                        onClick={() => handleSelectSession(session.id)}
+                        onMouseEnter={() => setHoveredChat(session.id)}
+                        onMouseLeave={() => setHoveredChat(null)}
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          {editingChatId === session.id ? (
+                            <Input
+                              value={editingTitle}
+                              onChange={(e) =>
+                                setEditingTitle(e.target.value)
+                              }
+                              onBlur={() => handleInlineRename(session.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleInlineRename(session.id);
+                                } else if (e.key === "Escape") {
+                                  setEditingChatId(null);
+                                  setEditingTitle("");
+                                }
+                              }}
+                              className="h-6 text-sm flex-1 mr-2"
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <h4 className="font-medium text-foreground text-sm truncate flex-1">
+                              {chatTitles[session.id] || session.title}
+                            </h4>
+                          )}
+                          <div className="flex items-center space-x-1">
+                            {/* Pin button - visible on hover or when pinned (blue) */}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className={`h-5 w-5 p-0 transition-all ${pinnedChats.includes(session.id)
+                                ? "opacity-100 bg-primary/10"
+                                : hoveredChat === session.id
+                                  ? "hover:bg-primary/10 opacity-100"
+                                  : "opacity-0"
+                                }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                togglePin(session.id);
+                              }}
+                            >
+                              {pinnedChats.includes(session.id) &&
+                                hoveredChat === session.id ? (
+                                <PinOff size={12} className="text-primary" />
+                              ) : (
+                                <Pin
+                                  size={12}
+                                  className={
+                                    pinnedChats.includes(session.id)
+                                      ? "text-primary fill-primary"
+                                      : "text-muted-foreground"
+                                  }
+                                />
+                              )}
+                            </Button>
+                            {hoveredChat === session.id && (
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleChatAction({
+                                      type: "rename",
+                                      chatId: session.id,
+                                    });
+                                  }}
+                                >
+                                  <Edit3 size={10} />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleChatAction({
+                                      type: "share",
+                                      chatId: session.id,
+                                    });
+                                  }}
+                                >
+                                  <Share size={10} />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleChatAction({
+                                      type: "save",
+                                      chatId: session.id,
+                                    });
+                                  }}
+                                >
+                                  <Save size={10} />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-5 w-5 p-0 hover:scale-125 hover:text-destructive transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowDeleteModal(session.id);
+                                  }}
+                                >
+                                  <Trash2 size={10} />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                          {session.preview}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">
+                            {session.timestamp}
+                          </span>
+                          {session.projectName && (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-primary/10 text-primary"
+                            >
+                              {session.projectName}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              );
+            })()}
+          </div>
+        </ScrollArea>
+
+        {/* Share Modal */}
+        {showShareModal && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]"
+            style={{ pointerEvents: 'auto', backdropFilter: 'blur(8px)' }}
+            onClick={() => {
+              setShowShareModal(null);
+              setShowCopiedNotification(false);
+            }}
+          >
+            <div
+              className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 relative z-[10000]"
+              style={{ pointerEvents: 'auto' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
+                Share Chat
+              </h3>
+
+              {/* Inline Copied Notification */}
+              {showCopiedNotification && (
+                <div className="mb-4 bg-primary/10 border border-primary/20 text-primary px-4 py-3 rounded-lg flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                  <span className="font-medium text-sm">
+                    Link copied to clipboard
+                  </span>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-transparent hover:bg-accent cursor-pointer"
+                  style={{ pointerEvents: 'auto' }}
+                  onClick={() =>
+                    handleShare(showShareModal, { type: "external" })
+                  }
+                >
+                  <Link size={16} className="mr-2" />
+                  Create shareable link
+                  <Badge variant="secondary" className="ml-auto text-xs">
+                    External
+                  </Badge>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-transparent hover:bg-accent cursor-pointer"
+                  style={{ pointerEvents: 'auto' }}
+                  onClick={() =>
+                    handleShare(showShareModal, { type: "collaborator" })
+                  }
+                >
+                  <Users size={16} className="mr-2" />
+                  Share with collaborator
+                  <Badge variant="secondary" className="ml-auto text-xs">
+                    Internal
+                  </Badge>
+                </Button>
+              </div>
+              <div className="flex justify-end space-x-2 mt-4">
+                <Button
+                  variant="outline"
+                  className="cursor-pointer"
+                  style={{ pointerEvents: 'auto' }}
+                  onClick={() => {
+                    setShowShareModal(null);
+                    setShowCopiedNotification(false);
+                  }}
+                >
+                  Cancel
+                </Button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Save Modal */}
+        {showSaveModal && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]"
+            style={{ pointerEvents: 'auto', backdropFilter: 'blur(8px)' }}
+            onClick={() => setShowSaveModal(null)}
+          >
+            <div
+              className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 relative z-[10000]"
+              style={{ pointerEvents: 'auto' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
+                Save to Project
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Project Name
+                  </label>
+                  <Input placeholder="Enter project name..." style={{ pointerEvents: 'auto' }} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Folder (Optional)
+                  </label>
+                  <Input placeholder="Enter folder name..." style={{ pointerEvents: 'auto' }} />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 mt-6">
+                <Button
+                  variant="outline"
+                  className="cursor-pointer"
+                  style={{ pointerEvents: 'auto' }}
+                  onClick={() => setShowSaveModal(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="cursor-pointer"
+                  style={{ pointerEvents: 'auto' }}
+                  onClick={() => {
+                    console.log("Saving chat:", showSaveModal);
+                    setShowSaveModal(null);
+                  }}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]"
+            style={{ pointerEvents: 'auto', backdropFilter: 'blur(8px)' }}
+            onClick={() => setShowDeleteModal(null)}
+          >
+            <div
+              className="bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 relative z-[10000]"
+              style={{ pointerEvents: 'auto' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-red-600 dark:text-red-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Delete Chat?
+                  </h3>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+                This action cannot be undone. This will permanently delete{" "}
+                <span className="font-semibold text-foreground">
+                  "
+                  {chatTitles[showDeleteModal] ||
+                    chatSessions.find((s) => s.id === showDeleteModal)
+                      ?.title ||
+                    "this chat"}
+                  "
+                </span>{" "}
+                and all its messages.
+              </p>
+              <div className="flex justify-end space-x-2 mt-6">
+                <Button
+                  variant="outline"
+                  className="border-2 border-primary text-primary hover:bg-primary/10 cursor-pointer"
+                  style={{ pointerEvents: 'auto' }}
+                  onClick={() => setShowDeleteModal(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700 cursor-pointer"
+                  style={{ pointerEvents: 'auto' }}
+                  onClick={() => {
+                    if (showDeleteModal) {
+                      handleDeleteChat(showDeleteModal);
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col bg-background relative z-10">
         {/* Chat Header */}
-          <div className="px-6 py-4 border-b border-border">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center space-x-3">
-                <ModernLogo size={40} showText={false} />
-                <div className="flex items-center space-x-2">
-                  <div>
-                    <h2 className="font-semibold text-foreground">
-                      JARVIS RACE Research Assistant
-                    </h2>
-                    <p className="text-xs text-muted-foreground">
-                      {selectedModelInfo
-                        ? `${selectedModelInfo.provider.name} • ${selectedModelInfo.model.name}`
-                        : "Powered by AI"}
-                    </p>
-                  </div>
+        <div className="px-6 py-4 border-b border-border">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-3">
+              <ModernLogo size={40} showText={false} />
+              <div className="flex items-center space-x-2">
+                <div>
+                  <h2 className="font-semibold text-foreground">
+                    JARVIS RACE Research Assistant
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedModelInfo
+                      ? `${selectedModelInfo.provider.name} • ${selectedModelInfo.model.name}`
+                      : "Powered by AI"}
+                  </p>
                 </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                <Select value={selectedModel} onValueChange={setSelectedModel}>
-                  <SelectTrigger className="w-full sm:w-[240px] md:w-[280px] h-auto min-h-[36px] text-xs">
-                    <div className="flex hover:cursor-pointer items-center gap-2.5 py-1">
-                      <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                      <div className="flex flex-col items-start flex-1">
-                        <span className="font-medium text-sm">
-                          {selectedModelInfo?.model.name || "GPT-4o"}
-                        </span>
-                        {selectedModel && (
-                          <span className="text-[10px] text-muted-foreground line-clamp-1">
-                            {selectedModel === "gpt-4o" &&
-                              "Best for complex reasoning and analysis"}
-                            {selectedModel === "gpt-4o-mini" &&
-                              "Fast, efficient for simple tasks"}
-                            {selectedModel === "o1-preview" &&
-                              "Advanced reasoning with chain-of-thought"}
-                            {selectedModel === "o1-mini" &&
-                              "Lightweight reasoning model"}
-                            {selectedModel === "claude-3-5-sonnet" &&
-                              "Best for creative and nuanced content"}
-                            {selectedModel === "claude-3-5-haiku" &&
-                              "Fast Claude model for quick tasks"}
-                            {selectedModel === "claude-3-opus" &&
-                              "Most capable Claude for complex work"}
-                            {selectedModel === "gemini-1.5-pro" &&
-                              "Google's best for multimodal tasks"}
-                            {selectedModel === "gemini-1.5-flash" &&
-                              "Fast Google model for quick responses"}
-                            {selectedModel === "gemini-2.0-flash-exp" &&
-                              "Experimental features and capabilities"}
-                            {selectedModel === "llama-3.1-sonar-large" &&
-                              "Open-source with web search"}
-                            {selectedModel === "llama-3.1-sonar-small" &&
-                              "Lightweight with web search"}
-                            {selectedModel === "llama-3.1-sonar-huge" &&
-                              "Most powerful open-source option"}
-                            {selectedModel === "grok-2-1212" &&
-                              "Latest Grok with real-time knowledge"}
-                            {selectedModel === "grok-2-vision-1212" &&
-                              "Grok with image understanding"}
-                            {selectedModel === "deepseek-r1" &&
-                              "Specialized for research tasks"}
-                            {selectedModel ===
-                              "deepseek-r1-distill-llama-70b" &&
-                              "Research-focused, large model"}
-                            {selectedModel === "mixtral-8x7b" &&
-                              "Efficient mixture of experts model"}
-                            {selectedModel === "mixtral-8x22b" &&
-                              "Large MoE for complex tasks"}
-                            {selectedModel === "mistral-large" &&
-                              "Mistral's flagship model"}
-                            {selectedModel === "mistral-nemo" &&
-                              "Balanced performance model"}
-                            {selectedModel === "nemotron-70b" &&
-                              "NVIDIA's large language model"}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent className="w-[320px]">
-                    {LLM_PROVIDERS.map((provider) => (
-                      <SelectGroup key={provider.id}>
-                        <SelectLabel className="text-xs font-semibold">
-                          {provider.name}
-                        </SelectLabel>
-                        {provider.models.map((model) => (
-                          <SelectItem
-                            key={model.id}
-                            value={model.id}
-                            className="text-xs hover:cursor-pointer py-3"
-                          >
-                            <div className="flex flex-col gap-1 hover:cursor-pointer">
-                              <div className="flex items-center gap-2 ">
-                                <span className="font-medium">
-                                  {model.name}
-                                </span>
-                                {model.isPro && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs h-4 px-1"
-                                  >
-                                    PRO
-                                  </Badge>
-                                )}
-                              </div>
-                              <span className="text-[10px] text-muted-foreground">
-                                {model.id === "gpt-4o" &&
-                                  "Best for complex reasoning and analysis"}
-                                {model.id === "gpt-4o-mini" &&
-                                  "Fast, efficient for simple tasks"}
-                                {model.id === "o1-preview" &&
-                                  "Advanced reasoning with chain-of-thought"}
-                                {model.id === "o1-mini" &&
-                                  "Lightweight reasoning model"}
-                                {model.id === "claude-3-5-sonnet" &&
-                                  "Best for creative and nuanced content"}
-                                {model.id === "claude-3-5-haiku" &&
-                                  "Fast Claude model for quick tasks"}
-                                {model.id === "claude-3-opus" &&
-                                  "Most capable Claude for complex work"}
-                                {model.id === "gemini-1.5-pro" &&
-                                  "Google's best for multimodal tasks"}
-                                {model.id === "gemini-1.5-flash" &&
-                                  "Fast Google model for quick responses"}
-                                {model.id === "gemini-2.0-flash-exp" &&
-                                  "Experimental features and capabilities"}
-                                {model.id === "llama-3.1-sonar-large" &&
-                                  "Open-source with web search"}
-                                {model.id === "llama-3.1-sonar-small" &&
-                                  "Lightweight with web search"}
-                                {model.id === "llama-3.1-sonar-huge" &&
-                                  "Most powerful open-source option"}
-                                {model.id === "grok-2-1212" &&
-                                  "Latest Grok with real-time knowledge"}
-                                {model.id === "grok-2-vision-1212" &&
-                                  "Grok with image understanding"}
-                                {model.id === "deepseek-r1" &&
-                                  "Specialized for research tasks"}
-                                {model.id === "deepseek-r1-distill-llama-70b" &&
-                                  "Research-focused, large model"}
-                                {model.id === "mixtral-8x7b" &&
-                                  "Efficient mixture of experts model"}
-                                {model.id === "mixtral-8x22b" &&
-                                  "Large MoE for complex tasks"}
-                                {model.id === "mistral-large" &&
-                                  "Mistral's flagship model"}
-                                {model.id === "mistral-nemo" &&
-                                  "Balanced performance model"}
-                                {model.id === "nemotron-70b" &&
-                                  "NVIDIA's large language model"}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                        <SelectSeparator />
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-muted-foreground hover:cursor-pointer"
-                >
-                  <Settings size={16} />
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-muted-foreground hover:cursor-pointer"
-                >
-                  <Trash2 size={16} />
-                </Button>
               </div>
             </div>
-          </div>
 
-          {/* Messages Area */}
-          <ScrollArea className="flex-1 bg-background">
-            <div className="max-w-5xl mx-auto space-y-6 px-3 sm:px-4 md:px-6 pt-6">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.sender === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`max-w-[95%] sm:max-w-[85%] md:max-w-[80%] p-4 ${
-                      message.sender === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted/50 text-card-foreground border-l-2 border-primary"
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                      {message.content}
-                    </p>
-
-                    {message.resources && message.resources.length > 0 && (
-                      <div className="mt-4 space-y-3">
-                        <div className="text-xs font-medium text-muted-foreground mb-3">
-                          Related Resources:
-                        </div>
-                        {message.resources.map((resource, index) => (
-                          <div
-                            key={index}
-                            className="bg-muted/30 p-4 rounded-xl border border-border"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1 pr-3">
-                                <h4 className="text-sm font-medium text-foreground mb-2">
-                                  {resource.title}
-                                </h4>
-                                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                                  {resource.snippet}
-                                </p>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() =>
-                                  window.open(resource.url, "_blank")
-                                }
-                                className="ml-2 p-2 h-8 w-8 hover:bg-primary/10"
-                              >
-                                <ExternalLink size={14} />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <p
-                      className={`text-xs mt-3 ${
-                        message.sender === "user"
-                          ? "text-primary-foreground/70"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {message.timestamp.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                </div>
-              ))}
-
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-muted/30 p-5 rounded-2xl border border-border shadow-sm">
-                    <div className="flex items-center space-x-3">
-                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                      <span className="text-sm text-muted-foreground">
-                        JARVIS is thinking...
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <SelectTrigger className="w-full sm:w-[240px] md:w-[280px] h-auto min-h-[36px] text-xs">
+                  <div className="flex hover:cursor-pointer items-center gap-2.5 py-1">
+                    <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                    <div className="flex flex-col items-start flex-1">
+                      <span className="font-medium text-sm">
+                        {selectedModelInfo?.model.name || "GPT-4o"}
                       </span>
+                      {selectedModel && (
+                        <span className="text-[10px] text-muted-foreground line-clamp-1">
+                          {selectedModel === "gpt-4o" &&
+                            "Best for complex reasoning and analysis"}
+                          {selectedModel === "gpt-4o-mini" &&
+                            "Fast, efficient for simple tasks"}
+                          {selectedModel === "o1-preview" &&
+                            "Advanced reasoning with chain-of-thought"}
+                          {selectedModel === "o1-mini" &&
+                            "Lightweight reasoning model"}
+                          {selectedModel === "claude-3-5-sonnet" &&
+                            "Best for creative and nuanced content"}
+                          {selectedModel === "claude-3-5-haiku" &&
+                            "Fast Claude model for quick tasks"}
+                          {selectedModel === "claude-3-opus" &&
+                            "Most capable Claude for complex work"}
+                          {selectedModel === "gemini-1.5-pro" &&
+                            "Google's best for multimodal tasks"}
+                          {selectedModel === "gemini-1.5-flash" &&
+                            "Fast Google model for quick responses"}
+                          {selectedModel === "gemini-2.0-flash-exp" &&
+                            "Experimental features and capabilities"}
+                          {selectedModel === "llama-3.1-sonar-large" &&
+                            "Open-source with web search"}
+                          {selectedModel === "llama-3.1-sonar-small" &&
+                            "Lightweight with web search"}
+                          {selectedModel === "llama-3.1-sonar-huge" &&
+                            "Most powerful open-source option"}
+                          {selectedModel === "grok-2-1212" &&
+                            "Latest Grok with real-time knowledge"}
+                          {selectedModel === "grok-2-vision-1212" &&
+                            "Grok with image understanding"}
+                          {selectedModel === "deepseek-r1" &&
+                            "Specialized for research tasks"}
+                          {selectedModel ===
+                            "deepseek-r1-distill-llama-70b" &&
+                            "Research-focused, large model"}
+                          {selectedModel === "mixtral-8x7b" &&
+                            "Efficient mixture of experts model"}
+                          {selectedModel === "mixtral-8x22b" &&
+                            "Large MoE for complex tasks"}
+                          {selectedModel === "mistral-large" &&
+                            "Mistral's flagship model"}
+                          {selectedModel === "mistral-nemo" &&
+                            "Balanced performance model"}
+                          {selectedModel === "nemotron-70b" &&
+                            "NVIDIA's large language model"}
+                        </span>
+                      )}
                     </div>
                   </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
-          {/* Input Area */}
-          <div className="w-full">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
-              {/* Sample Prompts - Show only when no messages */}
-              {messages.length === 1 && (
-                <div className="mb-6">
-                  <div className="flex flex-wrap md:flex-nowrap items-center gap-2 justify-center">
-                    {[
-                      { text: "Summarize research paper", icon: FileText },
-                      { text: "Explain topic simply", icon: MessageSquare },
-                      { text: "Get research roadmap", icon: Map },
-                      { text: "Literature survey", icon: BookOpen },
-                      { text: "Research process", icon: Sparkles },
-                    ].map((prompt, idx) => {
-                      const PromptIcon = prompt.icon;
-                      return (
-                        <button
-                          key={idx}
-                          onClick={() => setInputMessage(prompt.text)}
-                          className="px-2.5 py-1.5 bg-muted/30 hover:bg-primary border border-border rounded-lg text-left transition-all hover:border-primary hover:shadow-md group whitespace-nowrap"
+                </SelectTrigger>
+                <SelectContent className="w-[320px]">
+                  {LLM_PROVIDERS.map((provider) => (
+                    <SelectGroup key={provider.id}>
+                      <SelectLabel className="text-xs font-semibold">
+                        {provider.name}
+                      </SelectLabel>
+                      {provider.models.map((model) => (
+                        <SelectItem
+                          key={model.id}
+                          value={model.id}
+                          className="text-xs hover:cursor-pointer py-3"
                         >
-                          <div className="flex items-center gap-1.5">
-                            <PromptIcon
-                              size={12}
-                              className="text-muted-foreground group-hover:text-primary-foreground flex-shrink-0"
-                            />
-                            <span className="text-xs font-medium text-foreground group-hover:text-primary-foreground">
-                              {prompt.text}
+                          <div className="flex flex-col gap-1 hover:cursor-pointer">
+                            <div className="flex items-center gap-2 ">
+                              <span className="font-medium">
+                                {model.name}
+                              </span>
+                              {model.isPro && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-xs h-4 px-1"
+                                >
+                                  PRO
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">
+                              {model.id === "gpt-4o" &&
+                                "Best for complex reasoning and analysis"}
+                              {model.id === "gpt-4o-mini" &&
+                                "Fast, efficient for simple tasks"}
+                              {model.id === "o1-preview" &&
+                                "Advanced reasoning with chain-of-thought"}
+                              {model.id === "o1-mini" &&
+                                "Lightweight reasoning model"}
+                              {model.id === "claude-3-5-sonnet" &&
+                                "Best for creative and nuanced content"}
+                              {model.id === "claude-3-5-haiku" &&
+                                "Fast Claude model for quick tasks"}
+                              {model.id === "claude-3-opus" &&
+                                "Most capable Claude for complex work"}
+                              {model.id === "gemini-1.5-pro" &&
+                                "Google's best for multimodal tasks"}
+                              {model.id === "gemini-1.5-flash" &&
+                                "Fast Google model for quick responses"}
+                              {model.id === "gemini-2.0-flash-exp" &&
+                                "Experimental features and capabilities"}
+                              {model.id === "llama-3.1-sonar-large" &&
+                                "Open-source with web search"}
+                              {model.id === "llama-3.1-sonar-small" &&
+                                "Lightweight with web search"}
+                              {model.id === "llama-3.1-sonar-huge" &&
+                                "Most powerful open-source option"}
+                              {model.id === "grok-2-1212" &&
+                                "Latest Grok with real-time knowledge"}
+                              {model.id === "grok-2-vision-1212" &&
+                                "Grok with image understanding"}
+                              {model.id === "deepseek-r1" &&
+                                "Specialized for research tasks"}
+                              {model.id === "deepseek-r1-distill-llama-70b" &&
+                                "Research-focused, large model"}
+                              {model.id === "mixtral-8x7b" &&
+                                "Efficient mixture of experts model"}
+                              {model.id === "mixtral-8x22b" &&
+                                "Large MoE for complex tasks"}
+                              {model.id === "mistral-large" &&
+                                "Mistral's flagship model"}
+                              {model.id === "mistral-nemo" &&
+                                "Balanced performance model"}
+                              {model.id === "nemotron-70b" &&
+                                "NVIDIA's large language model"}
                             </span>
                           </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Uploaded Files Display */}
-              {uploadedFiles.length > 0 && (
-                <div className="mb-4 space-y-2">
-                  {uploadedFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="p-3 bg-muted/30 border border-border rounded-xl flex items-center justify-between hover:border-primary transition-fast"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <Paperclip
-                          size={16}
-                          className="text-muted-foreground"
-                        />
-                        <span className="text-sm text-foreground font-medium">
-                          {file.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          ({(file.size / 1024).toFixed(1)} KB)
-                        </span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeFile(index)}
-                        className="text-muted-foreground hover:text-destructive p-1 h-6 w-6"
-                      >
-                        <X size={16} />
-                      </Button>
-                    </div>
+                        </SelectItem>
+                      ))}
+                      <SelectSeparator />
+                    </SelectGroup>
                   ))}
-                </div>
-              )}
+                </SelectContent>
+              </Select>
 
-              {/* Input Container */}
-              <div
-                className={`w-full flex items-end gap-3 transition-all relative ${
-                  isDragging
-                    ? "ring-2 ring-primary ring-offset-2 rounded-[32px]"
-                    : ""
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground hover:cursor-pointer"
               >
-                {isDragging && (
-                  <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm rounded-[32px] flex items-center justify-center z-10 pointer-events-none">
-                    <div className="text-primary font-semibold text-lg flex items-center gap-2">
-                      <Paperclip size={20} />
-                      Drop files here
-                    </div>
-                  </div>
-                )}
+                <Settings size={16} />
+              </Button>
 
-                <div className="flex-1 relative min-w-0">
-                  <Input
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Ask me anything about your project..."
-                    className="w-full h-14 md:h-16 pl-5 pr-28 text-base md:text-lg rounded-2xl focus:border-primary transition-all"
-                    disabled={isLoading}
-                  />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      accept=".pdf,.doc,.docx,.txt,.md,image/*"
-                      multiple
-                    />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-muted-foreground hover:text-foreground h-10 w-10 rounded-lg hover:bg-accent"
-                      disabled={isLoading}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Paperclip size={20} />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className={`text-muted-foreground hover:text-foreground h-10 w-10 rounded-lg hover:bg-accent ${
-                        isRecording ? "text-destructive animate-pulse" : ""
-                      }`}
-                      disabled={isLoading}
-                      onClick={handleVoiceInput}
-                    >
-                      <Mic size={20} />
-                    </Button>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isLoading}
-                  className="h-14 md:h-16 w-14 md:w-16 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full flex-shrink-0 transition-all hover:scale-105"
-                >
-                  {isLoading ? (
-                    <Loader2 size={22} className="animate-spin" />
-                  ) : (
-                    <Send size={22} />
-                  )}
-                </Button>
-              </div>
-
-              {/* Tools Row */}
-              <div className="flex items-center justify-center gap-3 mt-4">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={`${
-                    isScreenSharing
-                      ? "text-primary bg-primary/10"
-                      : "text-muted-foreground"
-                  } hover:text-foreground hover:bg-accent px-3 py-2 h-9 rounded-lg flex items-center gap-2`}
-                  onClick={handleShareScreen}
-                >
-                  <Monitor size={16} />
-                  <span className="text-xs font-medium">
-                    {isScreenSharing ? "Sharing..." : "Share Screen"}
-                  </span>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-muted-foreground hover:text-foreground hover:bg-accent px-3 py-2 h-9 rounded-lg flex items-center gap-2"
-                  onClick={handleWhiteboard}
-                >
-                  <Presentation size={16} />
-                  <span className="text-xs font-medium">Whiteboard</span>
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground hover:cursor-pointer"
+              >
+                <Trash2 size={16} />
+              </Button>
             </div>
           </div>
         </div>
+
+        {/* Messages Area */}
+        <ScrollArea className="flex-1 bg-background">
+          <div className="max-w-5xl mx-auto space-y-6 px-3 sm:px-4 md:px-6 pt-6">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"
+                  }`}
+              >
+                <div
+                  className={`max-w-[95%] sm:max-w-[85%] md:max-w-[80%] p-4 ${message.sender === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-card-foreground border-l-2 border-primary"
+                    }`}
+                >
+                  <div className="message-bubble">
+                    {message.blocks?.map((block, i) => (
+                      <BlockRenderer key={i} block={block} />
+                    ))}
+                  </div>
+
+
+
+                  {message.resources && message.resources.length > 0 && (
+                    <div className="mt-4 space-y-3">
+                      <div className="text-xs font-medium text-muted-foreground mb-3">
+                        Related Resources:
+                      </div>
+                      {message.resources.map((resource, index) => (
+                        <div
+                          key={index}
+                          className="bg-muted/30 p-4 rounded-xl border border-border"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 pr-3">
+                              <h4 className="text-sm font-medium text-foreground mb-2">
+                                {resource.title}
+                              </h4>
+                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {resource.snippet}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                window.open(resource.url, "_blank")
+                              }
+                              className="ml-2 p-2 h-8 w-8 hover:bg-primary/10"
+                            >
+                              <ExternalLink size={14} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <p
+                    className={`text-xs mt-3 ${message.sender === "user"
+                      ? "text-primary-foreground/70"
+                      : "text-muted-foreground"
+                      }`}
+                  >
+                    {message.timestamp.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-muted/30 p-5 rounded-2xl border border-border shadow-sm">
+                  <div className="flex items-center space-x-3">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    <span className="text-sm text-muted-foreground">
+                      JARVIS is thinking...
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+        {/* Input Area */}
+        <div className="w-full">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+            {/* Sample Prompts - Show only when no messages */}
+            {messages.length === 1 && (
+              <div className="mb-6">
+                <div className="flex flex-wrap md:flex-nowrap items-center gap-2 justify-center">
+                  {[
+                    { text: "Summarize research paper", icon: FileText },
+                    { text: "Explain topic simply", icon: MessageSquare },
+                    { text: "Get research roadmap", icon: Map },
+                    { text: "Literature survey", icon: BookOpen },
+                    { text: "Research process", icon: Sparkles },
+                  ].map((prompt, idx) => {
+                    const PromptIcon = prompt.icon;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setInputMessage(prompt.text)}
+                        className="px-2.5 py-1.5 bg-muted/30 hover:bg-primary border border-border rounded-lg text-left transition-all hover:border-primary hover:shadow-md group whitespace-nowrap"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <PromptIcon
+                            size={12}
+                            className="text-muted-foreground group-hover:text-primary-foreground flex-shrink-0"
+                          />
+                          <span className="text-xs font-medium text-foreground group-hover:text-primary-foreground">
+                            {prompt.text}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Uploaded Files Display */}
+            {uploadedFiles.length > 0 && (
+              <div className="mb-4 space-y-2">
+                {uploadedFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="p-3 bg-muted/30 border border-border rounded-xl flex items-center justify-between hover:border-primary transition-fast"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Paperclip
+                        size={16}
+                        className="text-muted-foreground"
+                      />
+                      <span className="text-sm text-foreground font-medium">
+                        {file.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeFile(index)}
+                      className="text-muted-foreground hover:text-destructive p-1 h-6 w-6"
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Input Container */}
+            <div
+              className={`w-full flex items-end gap-3 transition-all relative ${isDragging
+                ? "ring-2 ring-primary ring-offset-2 rounded-[32px]"
+                : ""
+                }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {isDragging && (
+                <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm rounded-[32px] flex items-center justify-center z-10 pointer-events-none">
+                  <div className="text-primary font-semibold text-lg flex items-center gap-2">
+                    <Paperclip size={20} />
+                    Drop files here
+                  </div>
+                </div>
+              )}
+
+              <div className="flex-1 relative min-w-0">
+                <Input
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask me anything about your project..."
+                  className="w-full h-14 md:h-16 pl-5 pr-28 text-base md:text-lg rounded-2xl focus:border-primary transition-all"
+                  disabled={isLoading}
+                />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.txt,.md,image/*"
+                    multiple
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-muted-foreground hover:text-foreground h-10 w-10 rounded-lg hover:bg-accent"
+                    disabled={isLoading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip size={20} />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={`text-muted-foreground hover:text-foreground h-10 w-10 rounded-lg hover:bg-accent ${isRecording ? "text-destructive animate-pulse" : ""
+                      }`}
+                    disabled={isLoading}
+                    onClick={handleVoiceInput}
+                  >
+                    <Mic size={20} />
+                  </Button>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleSendMessage}
+                disabled={!inputMessage.trim() || isLoading}
+                className="h-14 md:h-16 w-14 md:w-16 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full flex-shrink-0 transition-all hover:scale-105"
+              >
+                {isLoading ? (
+                  <Loader2 size={22} className="animate-spin" />
+                ) : (
+                  <Send size={22} />
+                )}
+              </Button>
+            </div>
+
+            {/* Tools Row */}
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <Button
+                size="sm"
+                variant="ghost"
+                className={`${isScreenSharing
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground"
+                  } hover:text-foreground hover:bg-accent px-3 py-2 h-9 rounded-lg flex items-center gap-2`}
+                onClick={handleShareScreen}
+              >
+                <Monitor size={16} />
+                <span className="text-xs font-medium">
+                  {isScreenSharing ? "Sharing..." : "Share Screen"}
+                </span>
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground hover:text-foreground hover:bg-accent px-3 py-2 h-9 rounded-lg flex items-center gap-2"
+                onClick={handleWhiteboard}
+              >
+                <Presentation size={16} />
+                <span className="text-xs font-medium">Whiteboard</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,11 +1,15 @@
-"use client"
 
+"use client"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
+import dynamic from "next/dynamic";
+const PDFViewer = dynamic(() => import("@/components/pdfviewer"), { ssr: false });
+
+
 import {
   FolderPlus,
   FileText,
@@ -36,6 +40,7 @@ import {
 import NavigationSidebar from "@/components/navigation-sidebar"
 import GeometricBackground from "@/components/geometric-background"
 import { useProjects } from "@/app/context/ProjectContext";
+
 
 
 export interface ProjectCollaborator {
@@ -98,7 +103,7 @@ interface ChatMessage {
 }
 
 export default function ResearchCollaborationPage() {
- 
+
   const [viewMode, setViewMode] = useState<"overview" | "folder" | "file">("overview")
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["1", "2"]))
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -117,8 +122,8 @@ export default function ResearchCollaborationPage() {
   const [isChatLoading, setIsChatLoading] = useState(false)
   const { projects } = useProjects()
   const [selectedFile, setSelectedFile] = useState<ProjectNode | null>(null)
-const [selectedFolder, setSelectedFolder] = useState<ProjectNode | null>(null)
-const projectStructure: ProjectNode[] = projects
+  const [selectedFolder, setSelectedFolder] = useState<ProjectNode | null>(null)
+  const projectStructure: ProjectNode[] = projects
 
   const toggleFolder = (folderId: string) => {
     const newExpanded = new Set(expandedFolders)
@@ -270,49 +275,82 @@ const projectStructure: ProjectNode[] = projects
     }
   }
 
-  const renderProjectTree = (items: ProjectNode[], depth = 0) => {
-    return items.map((item) => (
-      <div key={item.id} style={{ marginLeft: `${depth * 16}px` }}>
-        <div
-          className={`flex items-center space-x-2 p-2 hover:bg-muted rounded-md cursor-pointer ${
-            selectedFile?.id === item.id ? "bg-primary/10 text-primary" : ""
-          }`}
-          onClick={() => {
-            if (item.type === "folder") {
-              // Double-click or special click to enter folder, single click to expand
-              toggleFolder(item.id)
-            } else {
-              handleFileSelect(item)
-            }
-          }}
-          onDoubleClick={() => {
-            if (item.type === "folder") {
-              handleFolderSelect(item)
-            }
-          }}
-        >
-          {item.type === "folder" ? (
-            <>
-              {expandedFolders.has(item.id) ? (
-                <ChevronDown size={16} className="text-muted-foreground" />
-              ) : (
-                <ChevronRight size={16} className="text-muted-foreground" />
+  const renderProjectTree = (items: ProjectNode[], depth = 0, parentLineInfo: boolean[] = []) => {
+    return items.map((item, index) => {
+      const isLastChild = index === items.length - 1
+      const currentLineInfo = [...parentLineInfo, isLastChild]
+
+      return (
+        <div key={item.id} className="relative">
+          <div className="left-0">
+            {/* Indentation and line connectors */}
+            <div className="absolute left-[1px] top-0 h-full w-full pointer-events-none">
+              {currentLineInfo.slice(0, -1).map((isAncestorLast, i) => (
+                <div
+                  key={`line-v-${item.id}-${i}`}
+                  className={`absolute top-0 bottom-0 border-l border-border/50 ${isAncestorLast ? "h-0" : ""
+                    }`}
+                  style={{ left: `${(depth - i - 1) * 16 + 8}px` }}
+                />
+              ))}
+              {depth > 0 && (
+                <>
+                  {/* Horizontal line */}
+                  {/* <div
+                  className="absolute top-1/2 -translate-y-1/2 border-t border-border/50 w-2"
+                  style={{ left: `${(depth - 1) * 16 + 8}px` }}
+                /> */}
+                  {/* Vertical line from parent to current item */}
+                  <div
+                    className={`absolute top-0 border-1 border-border/50 ${isLastChild ? "h-[calc(50%+1px)]" : "h-full"
+                      }`}
+                    style={{ left: `${(depth - 1) * 16 + 8}px` }}
+                  />
+                </>
               )}
-              <Folder size={16} className="text-blue-500" />
-            </>
-          ) : (
-            <>
-              <div className="w-4" />
-              <File size={16} className="text-gray-500" />
-            </>
-          )}
-          <span className="text-sm font-medium truncate">{item.name}</span>
+            </div>
+
+            <div
+              className={`flex items-center space-x-2 p-1 hover:bg-muted rounded-md cursor-pointer relative z-10`} // z-10 to ensure content is above lines
+              style={{ paddingLeft: `${depth * 16 + 2}px` }} // Adjust padding for lines
+              onClick={() => {
+                if (item.type === "folder") {
+                  toggleFolder(item.id)
+                } else {
+                  handleFileSelect(item)
+                }
+              }}
+              onDoubleClick={() => {
+                if (item.type === "folder") {
+                  handleFolderSelect(item)
+                }
+              }}
+              data-selected={selectedFile?.id === item.id}
+            >
+              {item.type === "folder" ? (
+                <>
+                  {expandedFolders.has(item.id) ? (
+                    <ChevronDown size={16} className="text-muted-foreground shrink-0" />
+                  ) : (
+                    <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+                  )}
+                  <Folder size={16} className="text-blue-500 shrink-0" />
+                </>
+              ) : (
+                <>
+                  <div className="w-4 shrink-0" /> {/* Placeholder for arrow icon */}
+                  <File size={16} className="text-gray-500 shrink-0" />
+                </>
+              )}
+              <span className="text-sm font-medium truncate">{item.name}</span>
+            </div>
+            {item.type === "folder" && expandedFolders.has(item.id) && item.children && (
+              <div>{renderProjectTree(item.children, depth + 1, currentLineInfo)}</div>
+            )}
+          </div>
         </div>
-        {item.type === "folder" && expandedFolders.has(item.id) && item.children && (
-          <div>{renderProjectTree(item.children, depth + 1)}</div>
-        )}
-      </div>
-    ))
+      )
+    })
   }
 
   return (
@@ -339,7 +377,7 @@ const projectStructure: ProjectNode[] = projects
           </div>
 
           {/* Project Tree */}
-          <ScrollArea className="flex-1 p-4">
+          <ScrollArea className="flex-1 p-2">
             <div className="space-y-1">{renderProjectTree(projectStructure)}</div>
           </ScrollArea>
         </div>
@@ -347,37 +385,37 @@ const projectStructure: ProjectNode[] = projects
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="p-6 border-b border-border/50">
+          <div className="p-3 border-b border-border/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 {viewMode !== "overview" && (
-                  <Button variant="ghost" size="sm" onClick={handleBackToOverview}>
-                    <ArrowLeft size={16} className="mr-2" />
+                  <Button variant="ghost" size="sm" className="shadow-lg cursor-pointer" onClick={handleBackToOverview}>
+                    <ArrowLeft size={16} className="" />
                     Back
                   </Button>
                 )}
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">
+                  <h1 className="text-lg font-bold text-foreground">
                     {viewMode === "folder" && selectedFolder ? selectedFolder.name :
-                     viewMode === "file" && selectedFile ? selectedFile.name :
-                     "Research and Collaboration"}
+                      viewMode === "file" && selectedFile ? selectedFile.name :
+                        "Research and Collaboration"}
                   </h1>
-                  <p className="text-muted-foreground">
+                  {/* <p className="text-muted-foreground">
                     {viewMode === "folder" && selectedFolder ? selectedFolder.description :
-                     viewMode === "file" ? "Document viewer and analysis" :
-                     "Manage your research projects and collaborate with AI"}
-                  </p>
+                      viewMode === "file" ? "Document viewer and analysis" :
+                        "Manage your research projects and collaborate with AI"}
+                  </p> */}
                 </div>
               </div>
               {(selectedFile || selectedFolder) && (
                 <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" className="atlassian-card border-border/50 hover:border-primary/50 transition-all duration-200">
-                    <Download size={16} className="mr-2" />
-                    {selectedFile ? "Download" : "Export"}
+                  <Button variant="outline" size="sm" className="atlassian-card hover:cursor-pointer border-border/50 hover:border-primary/50 transition-all duration-200">
+                    <Download size={16} className="" />
+                    {/* {selectedFile ? "Download" : "Export"} */}
                   </Button>
-                  <Button variant="outline" size="sm" className="atlassian-card border-border/50 hover:border-primary/50 transition-all duration-200">
-                    <Share size={16} className="mr-2" />
-                    Share
+                  <Button variant="outline" size="sm" className="atlassian-card hover:cursor-pointer border-border/50 hover:border-primary/50 transition-all duration-200">
+                    <Share size={16} className="" />
+
                   </Button>
                 </div>
               )}
@@ -385,7 +423,7 @@ const projectStructure: ProjectNode[] = projects
           </div>
 
           {/* Content based on view mode */}
-          <div className="flex-1 p-6">
+          <div className="flex-1">
             {viewMode === "folder" && selectedFolder ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
                 {/* Collaborators */}
@@ -407,11 +445,10 @@ const projectStructure: ProjectNode[] = projects
                             <UserCircle size={32} className="text-muted-foreground" />
                             <Circle
                               size={8}
-                              className={`absolute -bottom-1 -right-1 ${
-                                collaborator.status === "online" ? "text-green-500 fill-green-500" :
+                              className={`absolute -bottom-1 -right-1 ${collaborator.status === "online" ? "text-green-500 fill-green-500" :
                                 collaborator.status === "away" ? "text-yellow-500 fill-yellow-500" :
-                                "text-gray-400 fill-gray-400"
-                              }`}
+                                  "text-gray-400 fill-gray-400"
+                                }`}
                             />
                           </div>
                           <div>
@@ -519,31 +556,10 @@ const projectStructure: ProjectNode[] = projects
               <div className="group relative h-full">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl blur opacity-75 transition duration-300" />
                 <Card className="relative atlassian-card h-full border-border/50">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center space-x-2">
-                      <FileText size={20} />
-                      <span>{selectedFile.name}</span>
-                    </CardTitle>
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                      <span>{selectedFile.size}</span>
-                      <span>{selectedFile.lastModified}</span>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Badge variant="secondary">{selectedFile.fileType?.toUpperCase()}</Badge>
-                    <Badge variant="outline">Research Paper</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-muted/30 p-6 rounded-lg h-96 overflow-y-auto">
-                    <p className="text-foreground leading-relaxed">
-                      {selectedFile.content ||
-                        `This is the content of ${selectedFile.name}. The document contains detailed research findings, methodologies, and conclusions. You can use the AI assistant on the right to get summaries, explanations, or generate podcast versions of this content.`}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                  <CardContent className="p-0 h-[calc(100vh-4rem)] ">
+                    <PDFViewer fileUrl={selectedFile.fileUrl} />
+                  </CardContent>
+                </Card>
               </div>
             ) : (
               <div className="h-full flex items-center justify-center">
@@ -569,7 +585,7 @@ const projectStructure: ProjectNode[] = projects
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
-                  <Sparkles size={16} className="text-white" />
+                  <Sparkles size={16} className="text-primary" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground">Race Chat</h3>
@@ -618,11 +634,10 @@ const projectStructure: ProjectNode[] = projects
               {chatMessages.map((message) => (
                 <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-[80%] p-3 rounded-lg ${
-                      message.sender === "user"
-                        ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg"
-                        : "glass-card border border-border/50 text-foreground"
-                    }`}
+                    className={`max-w-[80%] p-3 rounded-lg ${message.sender === "user"
+                      ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg"
+                      : "glass-card border border-border/50 text-foreground"
+                      }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     <p

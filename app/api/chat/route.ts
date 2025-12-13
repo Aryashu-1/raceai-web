@@ -1,88 +1,178 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { NextRequest, NextResponse } from "next/server";
+import { openai } from "@ai-sdk/openai";
+import { generateText } from "ai";
 
+/* --------------------------------------------------------
+   SAFE JSON PARSER (AUTO-REPAIR)
+--------------------------------------------------------- */
+function safeParse(jsonString: string) {
+  try {
+    return JSON.parse(jsonString);
+  } catch (err) {
+    console.warn("Initial JSON parse failed. Attempting auto-repair...");
+
+    let repaired = jsonString
+      .replace(/,\s*}/g, "}")       // remove trailing commas
+      .replace(/,\s*]/g, "]")       // remove trailing commas
+      .replace(/“|”/g, '"')         // smart quotes → "
+      .replace(/‘|’/g, "'")         // smart single quotes → '
+      .replace(/(\w+):/g, '"$1":')  // non-quoted keys → quoted
+      .trim();
+
+    try {
+      return JSON.parse(repaired);
+    } catch (err2) {
+      console.error("Auto-repair failed:", err2);
+      return null;
+    }
+  }
+}
+
+/* --------------------------------------------------------
+   BLOCK VALIDATOR
+--------------------------------------------------------- */
+function validateBlocks(blocks: any): boolean {
+  if (!Array.isArray(blocks)) return false;
+
+  const allowed = ["paragraph", "heading", "list", "code", "image", "latex", "link"];
+
+  for (const b of blocks) {
+    if (!b || typeof b !== "object" || !b.type) return false;
+    if (!allowed.includes(b.type)) return false;
+
+    if (b.type === "heading" && typeof b.level !== "number") return false;
+    if (b.type === "paragraph" && typeof b.text !== "string") return false;
+    if (b.type === "list" && !Array.isArray(b.items)) return false;
+    if (b.type === "code" && typeof b.code !== "string") return false;
+  }
+
+  return true;
+}
+
+/* --------------------------------------------------------
+   TAVILY SEARCH
+--------------------------------------------------------- */
 async function fetchResources(query: string) {
   try {
-    const response = await fetch("https://api.tavily.com/search", {
+    const res = await fetch("https://api.tavily.com/search", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.TAVILY_API_KEY}`,
       },
       body: JSON.stringify({
-        query: query,
+        query,
         search_depth: "basic",
         include_answer: false,
         include_raw_content: false,
         max_results: 3,
-        include_domains: ["arxiv.org", "scholar.google.com", "pubmed.ncbi.nlm.nih.gov", "nature.com", "science.org"],
+        include_domains: [
+          "arxiv.org",
+          "scholar.google.com",
+          "pubmed.ncbi.nlm.nih.gov",
+          "nature.com",
+          "science.org",
+        ],
       }),
-    })
+    });
 
-    if (!response.ok) {
-      console.error("Tavily API error:", response.status)
-      return []
-    }
+    if (!res.ok) return [];
 
-    const data = await response.json()
-    return (
-      data.results?.slice(0, 3).map((result: any) => ({
-        title: result.title,
-        url: result.url,
-        snippet: result.content,
-      })) || []
-    )
-  } catch (error) {
-    console.error("Error fetching resources:", error)
-    return []
+    const data = await res.json();
+
+    return (data.results || []).slice(0, 3).map((r: any) => ({
+      title: r.title,
+      url: r.url,
+      snippet: r.content,
+    }));
+  } catch (err) {
+    console.error("Tavily Error:", err);
+    return [];
   }
 }
 
+/* --------------------------------------------------------
+   POST /api/chat
+--------------------------------------------------------- */
 export async function POST(request: NextRequest) {
   try {
-    const { messages, model = "gpt-4o", includeResources = false } = await request.json()
+    const body = await request.json();
+    const { messages, model = "gpt-4o", includeResources = true } = body;
 
-    if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json({ error: "Messages array is required" }, { status: 400 })
+    const last = messages[messages.length - 1];
+
+    /* -----------------------------
+       Convert UI messages → LLM messages
+    ----------------------------- */
+    const formattedMessages = messages.map((m: any) => ({
+      role: m.sender === "assistant" ? "assistant" : "user",
+      content: m.content ?? "",
+    }));
+
+    /* -----------------------------
+       Fetch resources (Tavily)
+    ----------------------------- */
+    let resources: any[] = [];
+    if (includeResources && last?.content) {
+      resources = await fetchResources(last.content);
     }
 
-    // Get the last user message
-    const lastMessage = messages[messages.length - 1]
-    if (!lastMessage || lastMessage.sender !== "user") {
-      return NextResponse.json({ error: "Last message must be from user" }, { status: 400 })
-    }
-
-    // Convert messages to the format expected by the AI SDK
-    const aiMessages = messages.map((msg: any) => ({
-      role: msg.sender === "user" ? ("user" as const) : ("assistant" as const),
-      content: msg.content,
-    }))
-
-    let resources = []
-    if (includeResources && process.env.TAVILY_API_KEY) {
-      resources = await fetchResources(lastMessage.content)
-    }
-
-    // Generate response using AI SDK
-    const { text } = await generateText({
+    /* -----------------------------
+       Request LLM with JSON-enforced format
+    ----------------------------- */
+    const response = await generateText({
       model: openai(model),
-      messages: aiMessages,
-      system:
-        "You are JARVIS, a highly intelligent research assistant for RACE AI. You help users with research questions, paper analysis, and academic inquiries. Be helpful, accurate, and professional. When relevant research resources are available, acknowledge them in your response.",
-    })
+      system: `
+You are JARVIS, an advanced research assistant.
 
+You MUST return ONLY a JSON array named "blocks", example:
+
+[
+  { "type": "paragraph", "text": "..." },
+  { "type": "heading", "level": 1, "text": "..." },
+  { "type": "code", "language": "python", "code": "print('Hello')" }
+]
+
+STRICT RULES:
+- No markdown
+- No backticks
+- No commentary
+- Do NOT wrap JSON in text
+- Output raw JSON ONLY
+      `,
+      messages: formattedMessages,
+    });
+
+    /* -----------------------------
+       Parse blocks safely
+    ----------------------------- */
+    let blocks = safeParse(response.text);
+
+    if (!validateBlocks(blocks)) {
+      console.warn("Invalid block output → Falling back to paragraph.");
+      blocks = [
+        { type: "paragraph", text: response.text }
+      ];
+    }
+
+    /* -----------------------------
+       Send message to UI
+    ----------------------------- */
     return NextResponse.json({
       message: {
         id: Date.now().toString(),
-        content: text,
         sender: "assistant",
+        blocks,
         timestamp: new Date().toISOString(),
-        resources: resources,
+        resources,
       },
-    })
-  } catch (error) {
-    console.error("Chat API error:", error)
-    return NextResponse.json({ error: "Failed to generate response" }, { status: 500 })
+    });
+
+  } catch (err) {
+    console.error("Chat API Error:", err);
+    return NextResponse.json(
+      { error: "Server Error" },
+      { status: 500 }
+    );
   }
 }

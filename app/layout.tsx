@@ -11,6 +11,7 @@ import "./globals.css"
 import { AuthProvider } from "./context/AuthContext";
 import { UserProvider } from "./context/UserContext";
 import { ProjectProvider } from "./context/ProjectContext"
+import { ChatProvider } from "./context/ChatContext"
 // NEW FEATURES - Add these imports
 import { NotificationProvider } from "@/lib/contexts/notification-context"
 import { ToastProvider } from "@/lib/contexts/toast-context"
@@ -58,20 +59,22 @@ export default function RootLayout({
         <AuthProvider>
           <UserProvider>
             <ProjectProvider>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={true}>
-          {/* NEW: Wrap with feature providers */}
-          <ToastProvider>
-            <NotificationProvider>
-              {children}
+              <ChatProvider>
+                <ThemeProvider attribute="class" defaultTheme="light" enableSystem={true}>
+                  {/* NEW: Wrap with feature providers */}
+                  <ToastProvider>
+                    <NotificationProvider>
+                      {children}
 
-              {/* NEW: Add global features */}
-              <CommandPalette />  {/* Press ⌘K or Ctrl+K to open */}
-              <QuickCapture />    {/* Floating + button in bottom-right */}
-            </NotificationProvider>
-          </ToastProvider>
-        </ThemeProvider>
-        </ProjectProvider>
-        </UserProvider>
+                      {/* NEW: Add global features */}
+                      <CommandPalette />  {/* Press ⌘K or Ctrl+K to open */}
+                      <QuickCapture />    {/* Floating + button in bottom-right */}
+                    </NotificationProvider>
+                  </ToastProvider>
+                </ThemeProvider>
+              </ChatProvider>
+            </ProjectProvider>
+          </UserProvider>
         </AuthProvider>
       </body>
     </html>

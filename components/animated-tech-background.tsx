@@ -208,31 +208,10 @@ export default function AnimatedTechBackground({ variant = "falling" }: Animated
         cancelAnimationFrame(animationId)
       }
     } else if (variant === "grid") {
-      // Enhanced grid animation with dots and light lines from both ends
+      // Enhanced grid animation with dots (light lines removed)
       const gridSize = 60
       let offset = 0
       let time = 0
-
-      // Light lines coming from sides
-      const lightLines: Array<{x: number, y: number, speed: number, side: 'left' | 'right', opacity: number}> = []
-
-      // Create initial light lines
-      for (let i = 0; i < 5; i++) {
-        lightLines.push({
-          x: 0,
-          y: Math.random() * canvas.height,
-          speed: 1 + Math.random() * 2,
-          side: 'left',
-          opacity: 0.3 + Math.random() * 0.4
-        })
-        lightLines.push({
-          x: canvas.width,
-          y: Math.random() * canvas.height,
-          speed: 1 + Math.random() * 2,
-          side: 'right',
-          opacity: 0.3 + Math.random() * 0.4
-        })
-      }
 
       const animate = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -257,52 +236,6 @@ export default function AnimatedTechBackground({ variant = "falling" }: Animated
           ctx.stroke()
         }
 
-        // Draw and update light lines from both ends
-        lightLines.forEach((line) => {
-          if (line.side === 'left') {
-            line.x += line.speed
-            if (line.x > canvas.width) {
-              line.x = 0
-              line.y = Math.random() * canvas.height
-              line.opacity = 0.3 + Math.random() * 0.4
-            }
-          } else {
-            line.x -= line.speed
-            if (line.x < 0) {
-              line.x = canvas.width
-              line.y = Math.random() * canvas.height
-              line.opacity = 0.3 + Math.random() * 0.4
-            }
-          }
-
-          // Draw glowing line
-          const gradient = ctx.createLinearGradient(
-            line.side === 'left' ? line.x - 50 : line.x + 50,
-            line.y,
-            line.side === 'left' ? line.x + 50 : line.x - 50,
-            line.y
-          )
-          gradient.addColorStop(0, `rgba(${primaryColor}, 0)`)
-          gradient.addColorStop(0.5, `rgba(${primaryColor}, ${line.opacity})`)
-          gradient.addColorStop(1, `rgba(${secondaryColor}, 0)`)
-
-          ctx.strokeStyle = gradient
-          ctx.lineWidth = 2
-          ctx.beginPath()
-          ctx.moveTo(line.side === 'left' ? line.x - 50 : line.x + 50, line.y)
-          ctx.lineTo(line.side === 'left' ? line.x + 50 : line.x - 50, line.y)
-          ctx.stroke()
-
-          // Draw glow point
-          const glowGradient = ctx.createRadialGradient(line.x, line.y, 0, line.x, line.y, 8)
-          glowGradient.addColorStop(0, `rgba(${secondaryColor}, ${line.opacity})`)
-          glowGradient.addColorStop(1, `rgba(${primaryColor}, 0)`)
-          ctx.fillStyle = glowGradient
-          ctx.beginPath()
-          ctx.arc(line.x, line.y, 8, 0, Math.PI * 2)
-          ctx.fill()
-        })
-
         // Draw animated dots at intersections
         for (let x = (offset % gridSize) - gridSize; x < canvas.width; x += gridSize) {
           for (let y = (offset % gridSize) - gridSize; y < canvas.height; y += gridSize) {
@@ -321,6 +254,7 @@ export default function AnimatedTechBackground({ variant = "falling" }: Animated
 
         animationId = requestAnimationFrame(animate)
       }
+
       let animationId = requestAnimationFrame(animate)
 
       return () => {

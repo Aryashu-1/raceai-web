@@ -38,7 +38,7 @@ export default function Sidebar() {
   return (
     <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b border-sidebar-border">
+      <div className="p-4">
         <div className="flex items-center space-x-2 mb-4">
           <Logo2D size="sm" />
           <span className="font-bold text-lg text-sidebar-foreground">RACE AI</span>
@@ -55,11 +55,10 @@ export default function Sidebar() {
               <button
                 key={item.id}
                 onClick={() => handleNavigation(item.href)}
-                className={`w-full flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                }`}
+                className={`w-full flex items-center space-x-3 p-3 rounded-lg text-left transition-colors ${isActive
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  }`}
               >
                 <Icon size={16} />
                 <span className="text-sm font-medium">{item.label}</span>
@@ -87,7 +86,7 @@ export default function Sidebar() {
       </div>
 
       {/* Bottom Actions */}
-      <div className="p-4 border-t border-sidebar-border space-y-2">
+      <div className="p-4 space-y-2">
         <Button
           variant="ghost"
           size="sm"

@@ -28,12 +28,15 @@ interface ChatContextState {
     chatSessions: ChatSession[];
     setChatSessions: React.Dispatch<React.SetStateAction<ChatSession[]>>;
     refreshChats: () => Promise<void>;
+    isGenerating: boolean;
+    setIsGenerating: (isGenerating: boolean) => void;
 }
 
 const ChatContext = createContext<ChatContextState | undefined>(undefined);
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
     const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     const refreshChats = async () => {
         try {
@@ -58,7 +61,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     return (
-        <ChatContext.Provider value={{ chatSessions, setChatSessions, refreshChats }}>
+        <ChatContext.Provider value={{ chatSessions, setChatSessions, refreshChats, isGenerating, setIsGenerating }}>
             {children}
         </ChatContext.Provider>
     );

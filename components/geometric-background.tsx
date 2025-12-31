@@ -4,10 +4,10 @@ import { useEffect, useRef } from "react"
 import { useTheme } from "next-themes"
 
 interface GeometricBackgroundProps {
-  variant?: "tesseract" | "mobius" | "torus"
+  variant?: "tesseract" | "mobius" | "torus" | "orb"
 }
 
-export default function GeometricBackground({ variant = "tesseract" }: GeometricBackgroundProps) {
+export default function GeometricBackground({ variant = "orb" }: GeometricBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { theme } = useTheme()
 
@@ -342,6 +342,55 @@ export default function GeometricBackground({ variant = "tesseract" }: Geometric
         window.removeEventListener("resize", resizeCanvas)
         cancelAnimationFrame(animationId)
       }
+    } else if (variant === "orb") {
+      // Slow, breathing orbs (Cinematic/High-End)
+      let time = 0;
+
+      const animate = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        time += 0.002; // Very slow time step
+
+        // Orb 1: Blue (Primary)
+        const x1 = canvas.width * 0.3 + Math.sin(time * 0.5) * 50;
+        const y1 = canvas.height * 0.4 + Math.cos(time * 0.3) * 50;
+        const size1 = Math.min(canvas.width, canvas.height) * 0.6;
+
+        const g1 = ctx.createRadialGradient(x1, y1, 0, x1, y1, size1);
+        g1.addColorStop(0, `rgba(${primaryColor}, 0.15)`); // Very subtle center
+        g1.addColorStop(0.5, `rgba(${primaryColor}, 0.05)`);
+        g1.addColorStop(1, "rgba(0,0,0,0)");
+
+        ctx.fillStyle = g1;
+        ctx.beginPath();
+        ctx.arc(x1, y1, size1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Orb 2: Purple (Secondary/Accent)
+        const x2 = canvas.width * 0.7 + Math.cos(time * 0.4) * 60;
+        const y2 = canvas.height * 0.6 + Math.sin(time * 0.6) * 60;
+        const size2 = Math.min(canvas.width, canvas.height) * 0.5;
+
+        const g2 = ctx.createRadialGradient(x2, y2, 0, x2, y2, size2);
+        // Use a purple override if needed, otherwise secondaryColor
+        // Hardcoding a nice purple for the "Cool Animation" request if secondary is blue
+        g2.addColorStop(0, `rgba(147, 51, 234, 0.12)`); // Purple-600 equivalent
+        g2.addColorStop(0.5, `rgba(147, 51, 234, 0.04)`);
+        g2.addColorStop(1, "rgba(0,0,0,0)");
+
+        ctx.fillStyle = g2;
+        ctx.beginPath();
+        ctx.arc(x2, y2, size2, 0, Math.PI * 2);
+        ctx.fill();
+
+        animationId = requestAnimationFrame(animate);
+      };
+
+      let animationId = requestAnimationFrame(animate);
+
+      return () => {
+        window.removeEventListener("resize", resizeCanvas);
+        cancelAnimationFrame(animationId);
+      };
     }
   }, [variant, theme])
 

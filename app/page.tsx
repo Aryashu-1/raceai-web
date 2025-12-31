@@ -559,43 +559,46 @@ export default function HomePage() {
       </div>
 
       {/* Hero Section - Split Screen Layout */}
-      <section className="min-h-screen flex items-center py-16 px-12 lg:px-16 relative z-10">
+      <section className="min-h-screen flex items-center py-20 lg:py-32 px-6 lg:px-12 relative z-10">
         <div className="container-lg">
-          <div className="grid lg:grid-cols-5 gap-16 items-center min-h-[80vh]">
+          <div className="grid lg:grid-cols-5 gap-12 lg:gap-20 items-center min-h-[80vh]">
             {/* Left Side - Hero Content (60%) */}
-            <div className="lg:col-span-3 text-center lg:text-left px-12 lg:px-16">
-              <div className="flex justify-center lg:justify-start mb-8">
-                <ModernLogo size={56} />
+            <div className="lg:col-span-3 text-center lg:text-left">
+              <div className="flex justify-center lg:justify-start mb-10">
+                <ModernLogo size={64} />
               </div>
 
-              <h1 className="text-5xl lg:text-6xl font-bold text-foreground mb-8 tracking-tight leading-tight">
+              <h1 className="font-space-grotesk text-6xl lg:text-7xl font-bold text-foreground mb-8 tracking-tight leading-1.1">
                 Research
                 <br />
                 Accessible
                 <br />
-                <span className="text-[#0052CC]">by Everyone</span>
+                <span className="text-primary">by Everyone</span>
               </h1>
 
-              <p className="text-xl text-muted-foreground mb-8 max-w-2xl leading-relaxed">
-                Transform your research workflow with JARVIS, your AI assistant.
+              <p className="text-xl lg:text-2xl text-muted-foreground mb-10 max-w-2xl leading-relaxed mx-auto lg:mx-0">
+                Transform your research workflow with JARVIS.
                 Analyze papers, discover insights, and collaborate seamlessly.
               </p>
 
-              <div className="flex flex-wrap gap-3 mb-8">
-                <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-border bg-card text-sm font-medium text-card-foreground hover:bg-muted transition-colors duration-200">
-                  AI-Powered Research
+              <div className="flex flex-wrap justify-center lg:justify-start gap-3 mb-12">
+                <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-border bg-card/50 backdrop-blur-sm text-sm font-medium text-foreground hover:bg-muted transition-colors duration-200">
+                  <Brain className="w-4 h-4 text-primary" />
+                  AI-Powered
                 </span>
-                <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-border bg-card text-sm font-medium text-card-foreground hover:bg-muted transition-colors duration-200">
+                <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-border bg-card/50 backdrop-blur-sm text-sm font-medium text-foreground hover:bg-muted transition-colors duration-200">
+                  <Zap className="w-4 h-4 text-primary" />
                   Instant Insights
                 </span>
-                <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-border bg-card text-sm font-medium text-card-foreground hover:bg-muted transition-colors duration-200">
-                  Collaborative Platform
+                <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-border bg-card/50 backdrop-blur-sm text-sm font-medium text-foreground hover:bg-muted transition-colors duration-200">
+                  <User className="w-4 h-4 text-primary" />
+                  Collaborative
                 </span>
               </div>
             </div>
 
             {/* Right Side - Auth Form (40%) */}
-            <div className="lg:col-span-2 flex justify-center lg:justify-end px-12 lg:px-16">
+            <div className="lg:col-span-2 flex justify-center lg:justify-end w-full">
               <AuthFormCard onAuthSuccess={handleAuthSuccess} />
             </div>
           </div>
@@ -603,13 +606,13 @@ export default function HomePage() {
       </section>
 
       {/* Research Journey Section */}
-      <section className="py-16 responsive-padding">
-        <div className="container-lg">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-semibold text-foreground mb-4">
+      <section className="py-24 lg:py-32 relative">
+        <div className="container-lg px-6">
+          <div className="text-center mb-20">
+            <h2 className="font-space-grotesk text-4xl lg:text-5xl font-bold text-foreground mb-6">
               Built for Researchers, By Researchers
             </h2>
-            <p className="text-lg text-muted-foreground container-sm leading-relaxed">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Enter any research field and contribute meaningfully - fast. All your research tools in one place.
             </p>
           </div>

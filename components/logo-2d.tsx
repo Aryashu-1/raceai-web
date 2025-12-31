@@ -37,7 +37,7 @@ export default function Logo2D({ size = "md", onClick, className = "" }: Logo2DP
           y="10"
           width="80"
           height="80"
-          stroke="#035ed8"
+          stroke="#0052CC"
           strokeWidth="2"
           fill="none"
           className="animate-pulse"
@@ -49,7 +49,7 @@ export default function Logo2D({ size = "md", onClick, className = "" }: Logo2DP
           y="25"
           width="50"
           height="50"
-          stroke="#0b5ed7"
+          stroke="#035ed8"
           strokeWidth="2"
           fill="none"
           transform="rotate(45 50 50)"
@@ -62,7 +62,7 @@ export default function Logo2D({ size = "md", onClick, className = "" }: Logo2DP
           cx="50"
           cy="50"
           r="15"
-          stroke="#3b82f6"
+          stroke="#26C6DA"
           strokeWidth="2"
           fill="none"
           className="animate-pulse"
@@ -70,10 +70,10 @@ export default function Logo2D({ size = "md", onClick, className = "" }: Logo2DP
         />
 
         {/* Corner dots */}
-        <circle cx="20" cy="20" r="2" fill="#035ed8" className="animate-ping" />
-        <circle cx="80" cy="20" r="2" fill="#0b5ed7" className="animate-ping" style={{ animationDelay: "0.2s" }} />
-        <circle cx="20" cy="80" r="2" fill="#3b82f6" className="animate-ping" style={{ animationDelay: "0.4s" }} />
-        <circle cx="80" cy="80" r="2" fill="#035ed8" className="animate-ping" style={{ animationDelay: "0.6s" }} />
+        <circle cx="20" cy="20" r="2" fill="#0052CC" className="animate-ping" />
+        <circle cx="80" cy="20" r="2" fill="#035ed8" className="animate-ping" style={{ animationDelay: "0.2s" }} />
+        <circle cx="20" cy="80" r="2" fill="#26C6DA" className="animate-ping" style={{ animationDelay: "0.4s" }} />
+        <circle cx="80" cy="80" r="2" fill="#0052CC" className="animate-ping" style={{ animationDelay: "0.6s" }} />
       </svg>
     </div>
   )

@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import { Space_Grotesk } from "next/font/google"
+import { Inter, Space_Grotesk, Outfit } from "next/font/google"
 // import { ClerkProvider } from "@clerk/nextjs"
 import { ThemeProvider } from "@/components/theme-provider"
 
@@ -30,6 +29,12 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
 })
 
+const outfit = Outfit({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-outfit",
+})
+
 export const metadata: Metadata = {
   title: "RACE AI - Research Accessible to Everyone",
   description: "Your Gateway to Effortless Research Management",
@@ -45,7 +50,7 @@ export default function RootLayout({
   // const isValidClerkKey = publishableKey && publishableKey.startsWith("pk_") && publishableKey.length > 20
 
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${outfit.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

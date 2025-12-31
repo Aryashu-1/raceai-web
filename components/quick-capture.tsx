@@ -1,5 +1,7 @@
 "use client";
 
+import { usePathname } from 'next/navigation';
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, X, Lightbulb, FileText, Link as LinkIcon, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,12 +20,18 @@ export function QuickCapture() {
   const [isSaving, setIsSaving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { success } = useToast();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (isOpen && textareaRef.current) {
       textareaRef.current.focus();
     }
   }, [isOpen]);
+
+  // Don't show on home page or onboarding
+  if (pathname === '/' || pathname === '/onboarding') {
+    return null;
+  }
 
   const captureTypes = [
     { type: 'idea', label: 'Idea', icon: Lightbulb, color: 'text-yellow-500' },

@@ -5,4 +5,7 @@ export type Block =
   | { type: "code"; language?: string; code: string }
   | { type: "latex"; latex: string; display?: boolean }
   | { type: "image"; alt: string; url: string }
+  | { type: "video"; url: string; format?: string }
+  | { type: "audio"; url: string; format?: string }
+  | { type: "file"; url: string; name: string; size?: string }
   | { type: "link"; text: string; url: string };

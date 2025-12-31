@@ -9,6 +9,9 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.1",
+    "@ai-sdk/google": "^3.0.1",
+    "@ai-sdk/mistral": "^3.0.1",
     "@ai-sdk/openai": "2.0.30",
     "@hookform/resolvers": "^3.10.0",
     "@pdftron/webviewer": "^11.8.0",
@@ -76,6 +79,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "three": "0.159.0",
+    "tldraw": "^4.2.1",
     "vaul": "^0.9.9",
     "zod": "3.25.76"
   },

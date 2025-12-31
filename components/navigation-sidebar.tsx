@@ -6,7 +6,17 @@ import { MessageSquare, Search, Users, Lightbulb, User, Settings, LayoutDashboar
 import ModernLogo from "@/components/modern-logo"
 import { ThemeToggle } from "./theme-toggle"
 import Image from "next/image"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
+import { useChatContext } from "@/app/context/ChatContext"
+
+// Safe wrapper to avoid errors in pages not wrapped (e.g. auth)
+const tryUseChatContext = () => {
+  try {
+    return useChatContext()
+  } catch (e) {
+    return null
+  }
+}
 
 const navigationItems = [
   {
@@ -50,10 +60,15 @@ const secondaryNavItems = [
   },
 ]
 
+
+
 export default function NavigationSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [profilePicture, setProfilePicture] = useState<string | null>(null)
+  // Safely get context (might be null if outside provider, though layout wraps usage)
+  const chatContext = tryUseChatContext()
+  const isGenerating = chatContext?.isGenerating || false
 
   useEffect(() => {
     // Get user profile picture from localStorage
@@ -64,13 +79,11 @@ export default function NavigationSidebar() {
   }, [])
 
   const handleLogoClick = () => {
-    // Check if user is signed in - you can replace this with actual auth check
-    const isSignedIn = true // Replace with: const isSignedIn = !!session or your auth state
-
+    const isSignedIn = true
     if (isSignedIn) {
       router.push("/jarvis")
     } else {
-      router.push("/") // Sign up page
+      router.push("/")
     }
   }
 
@@ -93,19 +106,15 @@ export default function NavigationSidebar() {
               variant="ghost"
               size="sm"
               onClick={() => router.push(item.path)}
-              className={`w-12 h-12 p-0 rounded-full transition-all duration-200 group hover:cursor-pointer relative hover:scale-105 ${
-                isActive
-                  ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/15 dark:hover:bg-primary/25"
-                  : "bg-transparent hover:bg-muted dark:hover:bg-muted/50"
-              }`}
+              className={`w-10 h-10 p-0 rounded-xl transition-all duration-200 group relative ${isActive
+                ? "active-glow text-blue-700 dark:text-blue-400"
+                : "bg-transparent text-muted-foreground hover:bg-gray-100 dark:hover:bg-white/5 hover:text-foreground"
+                }`}
               title={item.label}
             >
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-sm" />
-              )}
               <Icon
                 size={20}
-                className={isActive ? "text-primary dark:text-primary" : "text-primary dark:text-muted-foreground group-hover:text-primary dark:group-hover:text-foreground"}
+                className={isActive ? "text-blue-700 dark:text-blue-400" : "currentColor"}
                 strokeWidth={isActive ? 2.5 : 2}
               />
             </Button>
@@ -114,10 +123,10 @@ export default function NavigationSidebar() {
       </div>
 
       {/* Divider */}
-      <div className="w-8 h-px bg-gray-300 dark:bg-border my-4"></div>
+      <div className="w-8 h-px bg-border/40 my-4"></div>
 
       {/* Secondary Navigation Items */}
-      <div className="flex flex-col space-y-1">
+      <div className="flex flex-col space-y-2">
         {secondaryNavItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.path
@@ -128,19 +137,15 @@ export default function NavigationSidebar() {
               variant="ghost"
               size="sm"
               onClick={() => router.push(item.path)}
-              className={`w-12 h-12 p-0 rounded-full transition-all duration-200 group hover:cursor-pointer relative hover:scale-105 ${
-                isActive
-                  ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/15 dark:hover:bg-primary/25"
-                  : "bg-transparent hover:bg-muted dark:hover:bg-muted/50"
-              }`}
+              className={`w-10 h-10 p-0 rounded-xl transition-all duration-200 group relative ${isActive
+                ? "active-glow text-blue-700 dark:text-blue-400"
+                : "bg-transparent text-muted-foreground hover:bg-gray-100 dark:hover:bg-white/5 hover:text-foreground"
+                }`}
               title={item.label}
             >
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-sm" />
-              )}
               <Icon
                 size={20}
-                className={isActive ? "text-primary dark:text-primary" : "text-primary dark:text-muted-foreground group-hover:text-primary dark:group-hover:text-foreground"}
+                className={isActive ? "text-blue-700 dark:text-blue-400" : "currentColor"}
                 strokeWidth={isActive ? 2.5 : 2}
               />
             </Button>
@@ -148,28 +153,24 @@ export default function NavigationSidebar() {
         })}
       </div>
 
-         <div className="mt-auto mb-4">
-                <ThemeToggle />
-            </div>
+      <div className="mt-auto mb-4 flex flex-col items-center gap-2">
+        <ThemeToggle />
+      </div>
       {/* Profile Section */}
       <div className="flex flex-col items-center space-y-4">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => router.push("/settings")}
-          className={`w-12 h-12 p-0 rounded-full transition-all duration-200 group relative hover:scale-105 ${
-            pathname === "/settings"
-              ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/15 dark:hover:bg-primary/25"
-              : "bg-transparent hover:bg-muted dark:hover:bg-muted/50"
-          }`}
+          className={`w-10 h-10 p-0 rounded-xl transition-all duration-300 ease-in-out group relative hover:scale-105 ${pathname === "/settings"
+            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+            : "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
           title="Settings"
         >
-          {pathname === "/settings" && (
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-sm" />
-          )}
           <Settings
             size={20}
-            className={pathname === "/settings" ? "text-primary dark:text-primary" : "text-primary dark:text-muted-foreground group-hover:text-primary dark:group-hover:text-foreground"}
+            className={pathname === "/settings" ? "text-white" : "currentColor"}
             strokeWidth={pathname === "/settings" ? 2.5 : 2}
           />
         </Button>
@@ -178,18 +179,14 @@ export default function NavigationSidebar() {
           variant="ghost"
           size="sm"
           onClick={() => router.push("/profile")}
-          className={`w-12 h-12 p-0 rounded-full transition-all duration-200 group relative overflow-hidden hover:scale-105 ${
-            pathname === "/profile"
-              ? "bg-primary/10 dark:bg-primary/20 hover:bg-primary/15 dark:hover:bg-primary/25"
-              : "bg-transparent hover:bg-muted dark:hover:bg-muted/50"
-          }`}
+          className={`w-10 h-10 p-0 rounded-xl transition-all duration-300 ease-in-out group relative overflow-hidden hover:scale-105 ${pathname === "/profile"
+            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+            : "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
           title="Profile"
         >
-          {pathname === "/profile" && (
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-sm" />
-          )}
           {profilePicture ? (
-            <div className={pathname === "/profile" ? "ring-2 ring-primary rounded-full" : ""}>
+            <div className={pathname === "/profile" ? "ring-2 ring-white rounded-full" : ""}>
               <Image
                 src={profilePicture}
                 alt="Profile"
@@ -201,7 +198,7 @@ export default function NavigationSidebar() {
           ) : (
             <User
               size={20}
-              className={pathname === "/profile" ? "text-primary dark:text-primary" : "text-primary dark:text-muted-foreground group-hover:text-primary dark:group-hover:text-foreground"}
+              className={pathname === "/profile" ? "text-white" : "currentColor"}
               strokeWidth={pathname === "/profile" ? 2.5 : 2}
             />
           )}

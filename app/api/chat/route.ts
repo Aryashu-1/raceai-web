@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
+import { mistral } from "@ai-sdk/mistral";
 import { generateText } from "ai";
 
 /* --------------------------------------------------------
@@ -92,6 +95,23 @@ async function fetchResources(query: string) {
 }
 
 /* --------------------------------------------------------
+   PROVIDER SELECTOR
+--------------------------------------------------------- */
+function getModel(modelId: string) {
+  if (modelId.startsWith("claude")) {
+    return anthropic(modelId);
+  }
+  if (modelId.startsWith("gemini")) {
+    return google(modelId);
+  }
+  if (modelId.startsWith("mistral") || modelId.startsWith("mixtral")) {
+    return mistral(modelId);
+  }
+  // Default to OpenAI for "gpt-*" and "o1-*" or fallbacks
+  return openai(modelId);
+}
+
+/* --------------------------------------------------------
    POST /api/chat
 --------------------------------------------------------- */
 export async function POST(request: NextRequest) {
@@ -113,15 +133,30 @@ export async function POST(request: NextRequest) {
        Fetch resources (Tavily)
     ----------------------------- */
     let resources: any[] = [];
-    if (includeResources && last?.content) {
-      resources = await fetchResources(last.content);
+    const lastContent = last?.content;
+    let searchQuery = "";
+
+    if (typeof lastContent === "string") {
+      searchQuery = lastContent;
+    } else if (Array.isArray(lastContent)) {
+      // Extract text parts
+      searchQuery = lastContent
+        .filter((c: any) => c.type === "text")
+        .map((c: any) => c.text)
+        .join(" ");
+    }
+
+    if (includeResources && searchQuery) {
+      resources = await fetchResources(searchQuery);
     }
 
     /* -----------------------------
        Request LLM with JSON-enforced format
     ----------------------------- */
+    const modelInstance = getModel(model);
+
     const response = await generateText({
-      model: openai(model),
+      model: modelInstance as any,
       system: `
 You are JARVIS, an advanced research assistant.
 

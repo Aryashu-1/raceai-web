@@ -49,6 +49,7 @@ import {
   Sparkles,
   FileText,
   MessageSquare,
+  ArrowUpRight,
 } from "lucide-react";
 import Logo2D from "@/components/logo-2d";
 import ModernLogo from "@/components/modern-logo";
@@ -57,12 +58,16 @@ import { LLM_PROVIDERS, getModelById } from "@/lib/llm-providers";
 import { useRouter } from "next/navigation";
 import { SimpleThemeToggle } from "@/components/theme-toggle";
 import Markdown from "@/components/Markdown";
+import { useProjects } from "@/app/context/ProjectContext";
 import BlockRenderer from "@/components/BlockRenderer";
+import Whiteboard from "@/components/Whiteboard";
+import ScreenShareOverlay from "@/components/ScreenShareOverlay";
 import { ChatProvider } from "../context/ChatContext";
 import { useChatContext, ChatSession as ContextChatSession } from "../context/ChatContext";
+import { useToast } from "@/components/ui/use-toast";
 
 const CleanBackground = ({ children }: { children: React.ReactNode }) => (
-  <div className="min-h-screen bg-background">{children}</div>
+  <div className="min-h-screen bg-aurora">{children}</div>
 );
 
 
@@ -86,10 +91,12 @@ interface LocalChatSession {
   preview: string;
   timestamp: string;
   createdAt: Date;
+  updatedAt?: Date | string;
   isPinned?: boolean;
   category: "recent" | "pinned" | "project";
   projectName?: string;
   topic?: string;
+  messages?: any[];
 }
 
 interface FilterState {
@@ -116,15 +123,8 @@ interface ProjectSave {
 }
 
 export default function JarvisPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      content:
-        "Welcome to JARVIS Chat! How can I assist with your research today?",
-      sender: "assistant",
-      timestamp: new Date(),
-    },
-  ]);
+  const [isMounted, setIsMounted] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]); // Init empty for hydration match
   const [inputMessage, setInputMessage] = useState("");
   const [selectedModel, setSelectedModel] = useState("gpt-4o");
   const [activeTab, setActiveTab] = useState<
@@ -138,6 +138,23 @@ export default function JarvisPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [showCopiedNotification, setShowCopiedNotification] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const [showCollaboratorInput, setShowCollaboratorInput] = useState(false);
+  const [collaboratorEmail, setCollaboratorEmail] = useState("");
+  const { setIsGenerating } = useChatContext();
+
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+
+  // Sync loading state to global context for logo animation
+  useEffect(() => {
+    setIsGenerating(isLoading);
+  }, [isLoading, setIsGenerating]);
+
+  useEffect(() => {
+    setIsMounted(true);
+    // Initial welcome message removed for "New Chat" empty state experience
+  }, []);
 
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
@@ -163,32 +180,53 @@ export default function JarvisPage() {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string>("1");
   const { chatSessions, setChatSessions } = useChatContext();
+  const { projects } = useProjects();
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
 
   const mapContextMessageToLocal = (msg: any): Message => ({
     id: msg.id,
     content: msg.content,
-    sender: msg.role === "USER" ? "user" : "assistant",
+    sender: (msg.role === "USER" || msg.role === "user") ? "user" : "assistant",
     timestamp: new Date(msg.createdAt),
     blocks: [{ type: "paragraph", text: msg.content }],
   });
 
-  const mapContextSessionToLocal = (session: ContextChatSession): LocalChatSession => ({
-    id: session.id,
-    title: session.title || "New Chat",
-    preview: session.messages.length > 0 ? session.messages[session.messages.length - 1].content : "No messages",
-    timestamp: new Date(session.updatedAt || session.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    createdAt: new Date(session.createdAt),
-    isPinned: session.isPinned,
-    category: session.isPinned ? "pinned" : "recent", // Simple logic for now
-    projectName: session.projectId, // Optional
-  });
+  const mapContextSessionToLocal = (session: ContextChatSession): LocalChatSession => {
+    let preview = "No messages";
+    if (session.messages?.length > 0) {
+      const rawContent = session.messages[session.messages.length - 1].content || "";
+      // Clean Markdown
+      const cleanContent = rawContent.replace(/[#*`]/g, "").trim();
+      // Replace newlines with hyphen
+      const oneLine = cleanContent.replace(/\n+/g, " - ");
+      // Capitalize
+      preview = oneLine.charAt(0).toUpperCase() + oneLine.slice(1);
+      // Truncate
+      if (preview.length > 100) preview = preview.slice(0, 100) + "...";
+    }
+
+    return {
+      id: session.id,
+      title: session.title || "New Chat",
+      preview: preview,
+      timestamp: new Date(session.updatedAt || session.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      createdAt: new Date(session.createdAt),
+      updatedAt: new Date(session.updatedAt || session.createdAt),
+      isPinned: session.isPinned,
+      category: session.isPinned ? "pinned" : "recent", // Simple logic for now
+      projectName: session.projectId, // Optional
+    };
+  };
 
   const handleSelectSession = (sessionId: string) => {
     setCurrentSessionId(sessionId);
     const session = chatSessions.find((s) => s.id === sessionId);
     if (session) {
-      const mappedMessages = session.messages.map(mapContextMessageToLocal);
+      const mappedMessages = session.messages?.map(mapContextMessageToLocal) || [];
       setMessages(mappedMessages);
+      // Reset input content and attachments
+      setInputMessage("");
+      setUploadedFiles([]);
     }
   };
 
@@ -248,6 +286,15 @@ export default function JarvisPage() {
   const handleNewChat = () => {
     // Create a new chat session
     const newSessionId = Date.now().toString();
+    const welcomeMessage = {
+      id: "1",
+      content: "Welcome to JARVIS Chat! How can I assist with your research today?",
+      sender: "assistant",
+      timestamp: new Date(),
+      role: "ASSISTANT", // For context compatibility
+      createdAt: new Date().toISOString(),
+    };
+
     const newSession: LocalChatSession = {
       id: newSessionId,
       title: "New Chat",
@@ -258,6 +305,7 @@ export default function JarvisPage() {
       }),
       createdAt: new Date(),
       category: "recent",
+      messages: [welcomeMessage], // Initialize with welcome message
     };
 
     // Add new session to the beginning of the list
@@ -267,15 +315,7 @@ export default function JarvisPage() {
     setCurrentSessionId(newSessionId);
 
     // Reset messages
-    setMessages([
-      {
-        id: "1",
-        content:
-          "Welcome to JARVIS Chat! How can I assist with your research today?",
-        sender: "assistant",
-        timestamp: new Date(),
-      },
-    ]);
+    setMessages([welcomeMessage as unknown as Message]);
     setInputMessage("");
   };
 
@@ -288,58 +328,118 @@ export default function JarvisPage() {
   }, [messages]);
 
   const generateChatTitle = (userMessage: string): string => {
-    // Generate a concise title based on the first user message
-    const words = userMessage.split(" ").slice(0, 5).join(" ");
-    return words.length > 40 ? words.substring(0, 40) + "..." : words;
+    // Heuristic: Remove conversational filler and extract topic
+    const stopWords = new Set([
+      "hey", "hi", "hello", "jarvis", "please", "can", "could", "would", "you",
+      "write", "explain", "tell", "me", "about", "what", "how", "why", "is", "a", "an", "the",
+      "help", "with", "create", "make", "generate", "code"
+    ]);
+
+    const cleanMessage = userMessage.trim().replace(/[^\w\s]/gi, ''); // Remove punctuation
+    const words = cleanMessage.split(/\s+/);
+
+    // Filter out stop words (case insensitive)
+    const topicWords = words.filter(w => !stopWords.has(w.toLowerCase()));
+
+    // Sort of overly aggressive? If nothing is left (e.g. "Hi how are you"), use original words.
+    // If we have some topic words, use the first 3-4 of them.
+    const finalWords = topicWords.length > 0 ? topicWords.slice(0, 4) : words.slice(0, 4);
+
+    // Title Case
+    const title = finalWords
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+
+    return title.length > 30 ? title.substring(0, 30) + "..." : title;
   };
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+    if ((!inputMessage.trim() && uploadedFiles.length === 0) || isLoading) return;
 
-    // Local UI Message (blocks)
+    // Process files
+    const processedFiles = await Promise.all(uploadedFiles.map(async (file) => {
+      return new Promise<{ type: 'image' | 'text', content: string, mime: string }>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          if (file.type.startsWith('image/')) {
+            resolve({ type: 'image', content: result, mime: file.type });
+          } else if (file.type.startsWith('audio/') || file.type.startsWith('video/') || file.type === 'application/pdf') {
+            // Read as Data URL for playback/preview
+            resolve({ type: 'text', content: result, mime: file.type }); // We use 'text' as a carrier for the dataURL string in this simplified promise return, but handle it by mime later
+          } else {
+            // Check if text-readable
+            if (file.type.startsWith('text/') || file.name.match(/\.(md|json|js|ts|tsx|csv|txt)$/)) {
+              resolve({ type: 'text', content: result, mime: file.type });
+            } else {
+              resolve({ type: 'text', content: `[Attached File: ${file.name}]`, mime: file.type });
+            }
+          }
+        };
+
+        if (file.type.startsWith('image/') || file.type.startsWith('audio/') || file.type.startsWith('video/') || file.type === 'application/pdf') {
+          reader.readAsDataURL(file);
+        } else if (file.type.startsWith('text/') || file.name.match(/\.(md|json|js|ts|tsx|csv|txt)$/)) {
+          reader.readAsText(file);
+        } else {
+          resolve({ type: 'text', content: `[Attached File: ${file.name}]`, mime: file.type });
+        }
+      });
+    }));
+
+    // Local UI Message
     const userMessage: Message = {
       id: Date.now().toString(),
       blocks: [
-        {
-          type: "paragraph",
-          text: inputMessage
-        }
+        { type: "paragraph", text: inputMessage },
+        // Blocks will be populated by processedFiles loop below
       ],
       sender: "user",
       timestamp: new Date(),
     };
 
-    const isFirstUserMessage = messages.length === 1;
+    // Check for user messages specifically to ignore welcome messages
+    const isFirstUserMessage = messages.filter(m => m.sender === "user").length === 0;
     const userMessageContent = inputMessage;
 
-    // Render immediately
+    // Add Multimedia Blocks locally
+    processedFiles.forEach(f => {
+      if (f.type === 'image') {
+        userMessage.blocks!.push({ type: "image", url: f.content, alt: "User Upload" });
+      } else if (f.mime.startsWith('audio/')) {
+        userMessage.blocks!.push({ type: "audio", url: f.content });
+      } else if (f.mime.startsWith('video/')) {
+        userMessage.blocks!.push({ type: "video", url: f.content });
+      } else if (f.mime.startsWith('application/pdf') || f.type === 'text') {
+        // If we have content (text), we might display it differently, but for now treating PDF as file download
+        // For text files we read, we don't necessarily need a 'file' block if we injected logic, 
+        // but user might want to see the file icon.
+        const filename = uploadedFiles.find(uf => uf.type === f.mime || (f.mime === 'text/plain' && uf.name.endsWith('.txt')))?.name || "Attached File";
+        userMessage.blocks!.push({ type: "file", url: f.content, name: filename, size: "File" });
+      }
+    });
+
     setMessages((prev) => [...prev, userMessage]);
     setInputMessage("");
     setUploadedFiles([]);
     setIsLoading(true);
 
-    // // Save USER message to backend
-    // await fetch("http://localhost:5000/chat/message", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({
-    //     sessionId: currentSessionId,
-    //     senderId: "USER",
-    //     role: "USER",
-    //     content: userMessageContent,
-    //   }),
-    // });
-
-    // //get cointext of previous 5 messages in the chat
-    // const context = messages.slice(-5).map((msg) => ({
-    //   sender: msg.sender,
-    //   content: msg.blocks?.[0]?.text || msg.content || "",
-    // }));
-
-
-
-
     try {
+      // Construct API Content - Multimodal
+      const apiContent: any[] = [];
+
+      // 1. Add Text
+      if (inputMessage) apiContent.push({ type: "text", text: inputMessage });
+
+      // 2. Add processed files
+      processedFiles.forEach(f => {
+        if (f.type === 'image') {
+          apiContent.push({ type: "image", image: f.content });
+        } else if (f.type === 'text') {
+          apiContent.push({ type: "text", text: `\n\n--- File: ${f.content.startsWith('[Attached') ? '' : 'Attached content'} ---\n${f.content}\n--- End File ---\n` });
+        }
+      });
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -351,12 +451,12 @@ export default function JarvisPage() {
               sender: msg.sender,
               content:
                 msg.sender === "user"
-                  ? msg.blocks?.[0]?.text || msg.content || ""
+                  ? (msg.blocks?.[0] as any)?.text || msg.content || ""
                   : msg.content || ""
             })),
             {
               sender: "user",
-              content: inputMessage
+              content: apiContent // Send array!
             }
           ],
           model: selectedModel,
@@ -378,17 +478,112 @@ export default function JarvisPage() {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Auto-generate title for new chat
-      if (isFirstUserMessage) {
-        const newTitle = generateChatTitle(userMessageContent);
-        setChatSessions((prev) =>
-          prev.map((session) =>
-            session.id === currentSessionId
-              ? { ...session, title: newTitle, preview: userMessageContent }
-              : session
-          )
-        );
-      }
+      // Update ChatSessions with new messages and title (if applicable)
+      setChatSessions((prev) => {
+        const sessionExists = prev.some(s => s.id === currentSessionId);
+
+        // Define updated messages list shared by both paths
+        const updatedMessagesList = [
+          ...messages,
+          userMessage,
+          assistantMessage
+        ].map(msg => {
+          let content = msg.content || "";
+          if (!content && msg.blocks && msg.blocks.length > 0) {
+            content = msg.blocks
+              .map(block => {
+                if ("text" in block) return block.text;
+                if ("code" in block) return `\`\`\`${block.language || ''}\n${block.code}\n\`\`\``;
+                if ("items" in block) return block.items.map(item => `- ${item}`).join('\n');
+                return "";
+              })
+              .filter(Boolean)
+              .join('\n\n');
+          }
+          return {
+            id: msg.id,
+            sessionId: currentSessionId,
+            senderId: msg.sender === 'user' ? 'USER' : 'ASSISTANT',
+            content: content,
+            createdAt: msg.timestamp.toISOString(),
+            isEdited: false,
+            editedAt: "",
+            role: (msg.sender === 'user' ? 'USER' : 'ASSISTANT') as "USER" | "ASSISTANT"
+          };
+        });
+
+        const previewText = userMessageContent.slice(0, 100) + (userMessageContent.length > 100 ? "..." : "");
+        const formattedPreview = previewText.charAt(0).toUpperCase() + previewText.slice(1);
+
+        if (sessionExists) {
+          return prev.map((session) => {
+            if (session.id === currentSessionId) {
+              // Extract Title from Assistant Response (Priority 1)
+              let extractedTitle = "";
+              const fullAssistText = assistantMessage.content || assistantMessage.blocks?.map(b => (b as any).text || (b as any).content || "").join("\n") || "";
+
+              // Regex to find Markdown Headings (# Header) or Strong Headers (**Header**)
+              const headerMatch = fullAssistText.match(/^\s*#{1,6}\s+(.+?)\s*$/m);
+              const boldMatch = fullAssistText.match(/^\s*(\*\*|__)(.+?)(\*\*|__)\s*$/m);
+
+              if (headerMatch) extractedTitle = headerMatch[1];
+              else if (boldMatch) extractedTitle = boldMatch[2];
+
+              // Clean up extracted title if found
+              if (extractedTitle) {
+                extractedTitle = extractedTitle.trim().replace(/[:.]/g, ''); // Remove trailing colons/periods
+                if (extractedTitle.length > 40) extractedTitle = ""; // Ignore if too long (likely a paragraph)
+              }
+
+              // Force title update if it's the first message OR if title is still generic
+              const isGenericTitle = session.title === "New Chat" || session.title === "New Session" || session.title === "Hello API";
+
+              const newTitle = (isFirstUserMessage || isGenericTitle)
+                ? (extractedTitle || generateChatTitle(userMessageContent))
+                : session.title;
+
+              return {
+                ...session,
+                messages: updatedMessagesList,
+                title: newTitle,
+                preview: formattedPreview,
+                updatedAt: new Date()
+              };
+            }
+            return session;
+          });
+        } else {
+          // Create New Session (Check-Or-Create Pattern)
+          let extractedTitle = "";
+          const fullAssistText = assistantMessage.content || assistantMessage.blocks?.map(b => (b as any).text || (b as any).content || "").join("\n") || "";
+
+          const headerMatch = fullAssistText.match(/^\s*#{1,6}\s+(.+?)\s*$/m);
+          const boldMatch = fullAssistText.match(/^\s*(\*\*|__)(.+?)(\*\*|__)\s*$/m);
+
+          if (headerMatch) extractedTitle = headerMatch[1];
+          else if (boldMatch) extractedTitle = boldMatch[2];
+
+          if (extractedTitle) {
+            extractedTitle = extractedTitle.trim().replace(/[:.]/g, '');
+            if (extractedTitle.length > 40) extractedTitle = "";
+          }
+
+          const newTitle = extractedTitle || generateChatTitle(userMessageContent);
+
+          const newSession: ChatSession = {
+            id: currentSessionId,
+            title: newTitle,
+            preview: formattedPreview,
+            date: "Today",
+            messages: updatedMessagesList,
+            model: selectedModel,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+            projectId: null
+          };
+          return [newSession, ...prev];
+        }
+      });
 
       // //post that assistant response to backend
       // await fetch("http://localhost:5000/chat/message", {
@@ -552,12 +747,20 @@ export default function JarvisPage() {
 
   const handleInlineRename = (chatId: string) => {
     if (editingTitle.trim()) {
+      // Update local state
       setChatTitles((prev) => ({
         ...prev,
         [chatId]: editingTitle,
       }));
+
+      // Update global context so filtering works
+      setChatSessions((prev) => prev.map(s =>
+        s.id === chatId ? { ...s, title: editingTitle } : s
+      ));
+
       setEditingChatId(null);
       setEditingTitle("");
+      toast({ title: "Renamed", description: "Chat title updated." });
     }
   };
 
@@ -574,31 +777,30 @@ export default function JarvisPage() {
     setShowDeleteModal(null);
   };
 
-  const handleShareScreen = async () => {
+  const handleScreenShare = async () => {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
+        audio: false
       });
+      setScreenStream(stream);
       setIsScreenSharing(true);
-
-      // When user stops sharing
-      stream.getVideoTracks()[0].addEventListener("ended", () => {
-        setIsScreenSharing(false);
-      });
-
-      console.log("Screen sharing started", stream);
-      // You can now use this stream to display or send to backend
     } catch (err) {
       console.error("Error sharing screen:", err);
-      alert(
-        "Failed to share screen. Please ensure you have granted screen sharing permissions."
-      );
+      // User cancelled or ignored
     }
   };
 
+  const handleAttachmentFromTool = (file: File) => {
+    setUploadedFiles(prev => [...prev, file]);
+    toast({
+      title: "captured content added",
+      description: `${file.name} attached.`
+    });
+  };
+
   const handleWhiteboard = () => {
-    // Open Excalidraw (open-source whiteboard alternative) in new window
-    window.open("https://excalidraw.com/", "_blank", "width=1200,height=800");
+    setShowWhiteboard(true);
   };
 
   const handleShare = (chatId: string, options: ShareOptions) => {
@@ -607,33 +809,59 @@ export default function JarvisPage() {
       navigator.clipboard.writeText(shareLink);
       console.log("Created external share link:", shareLink);
 
-      // Show notification inside modal
+      // Show toast notification
+      toast({
+        title: "Link Copied",
+        description: "Shareable link copied to clipboard.",
+      });
       setShowCopiedNotification(true);
       setTimeout(() => setShowCopiedNotification(false), 3000);
 
-      // Don't close modal immediately - let user see the notification
     } else if (options.type === "collaborator") {
-      const email = prompt("Enter collaborator email:");
-      if (email) {
-        console.log("Sharing with collaborator:", email);
-        // Move to shared folder with collaborator indicator
-      }
+      // Toggle input view in modal
+      setShowCollaboratorInput(true);
+    }
+  };
+
+  const handleInviteCollaborator = () => {
+    if (collaboratorEmail.trim()) {
+      console.log("Sharing with collaborator:", collaboratorEmail);
+      toast({
+        title: "Invitation Sent",
+        description: `Shared chat with ${collaboratorEmail}`,
+      });
       setShowShareModal(null);
+      setShowCollaboratorInput(false);
+      setCollaboratorEmail("");
     }
   };
 
   return (
-    <div className="h-screen flex bg-background dark:bg-gradient-to-br dark:from-slate-950 dark:via-blue-950/40 dark:to-slate-900 relative overflow-hidden">
+    <div
+      className="h-screen flex bg-background dark:bg-gradient-to-br dark:from-slate-950 dark:via-blue-950/40 dark:to-slate-900 relative overflow-hidden"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div className="dark:block hidden">
-        <GeometricBackground variant="mobius" />
+        <GeometricBackground variant="orb" />
       </div>
+
+      {isDragging && (
+        <div className="absolute inset-0 z-[100] bg-primary/20 backdrop-blur-sm flex items-center justify-center border-4 border-dashed border-primary m-4 rounded-xl pointer-events-none">
+          <div className="text-3xl font-bold text-primary flex items-center gap-4 bg-background/80 p-8 rounded-2xl shadow-2xl">
+            <Paperclip size={48} />
+            Drop files to attach
+          </div>
+        </div>
+      )}
 
       <NavigationSidebar />
 
       {/* Chat Sidebar */}
-      <div className="hidden md:flex md:w-80 lg:w-96 border-r border-border bg-background flex-col relative z-10">
+      <div className="hidden md:flex md:w-80 lg:w-96 bg-background/50 backdrop-blur-sm flex-col relative z-10">
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-border">
+        <div className="p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <span className="font-semibold text-foreground">Chats</span>
@@ -678,7 +906,7 @@ export default function JarvisPage() {
                     focus-visible:ring-0
                     outline-none 
                     border-none
-                    text-black
+                    text-foreground
                     placeholder:text-muted-foreground
                   "
                 style={{
@@ -839,9 +1067,9 @@ export default function JarvisPage() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
-                className={`flex-1 py-2 px-2 rounded-md text-xs font-medium hover:cursor-pointer transition-all ${activeTab === tab.key
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                className={`flex-1 py-2 px-2 rounded-lg text-xs font-semibold hover:cursor-pointer transition-all duration-200 ${activeTab === tab.key
+                  ? "active-nav-minimal"
+                  : "text-muted-foreground hover:bg-gray-100 dark:hover:bg-white/5 hover:text-foreground"
                   }`}
               >
                 {tab.label}
@@ -853,34 +1081,43 @@ export default function JarvisPage() {
         {/* Chat Sessions */}
         <ScrollArea className="flex-1 p-3">
           <div className="space-y-5">
-            {/* Today Section */}
-            {(() => {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
+            {!isMounted ? (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                {/* Time-Based Grouping Section */}
+                {isMounted && (activeTab === 'recent' || activeTab === 'pinned') && (
+                  (() => {
+                    const now = new Date();
+                    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    const yesterdayStart = new Date(todayStart);
+                    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
 
-              const todaySessions = filteredSessions.filter((session) => {
-                const sessionDate = new Date(session.createdAt);
-                sessionDate.setHours(0, 0, 0, 0);
-                return sessionDate.getTime() === today.getTime();
-              });
+                    const todaySessions: LocalChatSession[] = [];
+                    const yesterdaySessions: LocalChatSession[] = [];
+                    const olderSessions: LocalChatSession[] = [];
 
-              if (todaySessions.length === 0) return null;
+                    filteredSessions.forEach(session => {
+                      // Use UpdatedAt for sorting/grouping, falling back to CreatedAt
+                      const date = session.updatedAt ? new Date(session.updatedAt) : new Date(session.createdAt);
+                      if (date >= todayStart) {
+                        todaySessions.push(session);
+                      } else if (date >= yesterdayStart) {
+                        yesterdaySessions.push(session);
+                      } else {
+                        olderSessions.push(session);
+                      }
+                    });
 
-              return (
-                <div>
-                  <div className="flex items-center justify-between mb-3 px-2">
-                    <h3 className="text-sm font-medium text-foreground">
-                      Today
-                    </h3>
-                    <span className="text-xs text-muted-foreground">
-                      {todaySessions.length} Total
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {todaySessions.map((session) => (
+                    const renderSessionCard = (session: LocalChatSession) => (
                       <div
                         key={session.id}
-                        className="group p-4 bg-background cursor-pointer transition-all border border-border/30 rounded-lg hover:border-primary/50 hover:bg-gradient-to-r hover:from-accent/40 hover:to-transparent backdrop-blur-sm"
+                        className={`group relative p-4 cursor-pointer transition-all border rounded-xl mb-2 backdrop-blur-sm ${currentSessionId === session.id
+                          ? 'active-chat-border bg-accent/20 shadow-lg'
+                          : 'bg-background border-border/30 hover:border-primary/50 hover:bg-gradient-to-r hover:from-accent/40 hover:to-transparent'
+                          }`}
                         onClick={() => handleSelectSession(session.id)}
                         onMouseEnter={() => setHoveredChat(session.id)}
                         onMouseLeave={() => setHoveredChat(null)}
@@ -889,9 +1126,7 @@ export default function JarvisPage() {
                           {editingChatId === session.id ? (
                             <Input
                               value={editingTitle}
-                              onChange={(e) =>
-                                setEditingTitle(e.target.value)
-                              }
+                              onChange={(e) => setEditingTitle(e.target.value)}
                               onBlur={() => handleInlineRename(session.id)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
@@ -911,31 +1146,29 @@ export default function JarvisPage() {
                             </h4>
                           )}
                           <div className="flex items-center space-x-1">
-                            {/* Pin button - visible on hover or when pinned (blue) */}
                             <Button
                               size="sm"
                               variant="ghost"
-                              className={`h-5 w-5 p-0 transition-all ${pinnedChats.includes(session.id)
-                                ? "opacity-100 bg-primary/10"
+                              className={`h-5 w-5 p-0 transition-all hover:scale-125 ${pinnedChats.includes(session.id)
+                                ? "opacity-100 bg-blue-50 text-blue-700 dark:bg-white/10 dark:text-blue-400"
                                 : hoveredChat === session.id
-                                  ? "hover:bg-primary/10 opacity-100"
+                                  ? "hover:bg-blue-50 hover:text-blue-700 opacity-100 dark:hover:bg-white/10 dark:hover:text-blue-400"
                                   : "opacity-0"
-                                }`}
+                                } cursor-pointer`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 togglePin(session.id);
                               }}
                             >
-                              {pinnedChats.includes(session.id) &&
-                                hoveredChat === session.id ? (
-                                <PinOff size={12} className="text-primary" />
+                              {pinnedChats.includes(session.id) && hoveredChat === session.id ? (
+                                <PinOff size={12} className="text-blue-700 dark:text-blue-400" />
                               ) : (
                                 <Pin
                                   size={12}
                                   className={
                                     pinnedChats.includes(session.id)
-                                      ? "text-primary fill-primary"
-                                      : "text-muted-foreground"
+                                      ? "text-blue-700 fill-blue-700 dark:text-blue-400 dark:fill-blue-400"
+                                      : "text-muted-foreground hover:text-blue-700 dark:text-muted-foreground dark:hover:text-blue-400"
                                   }
                                 />
                               )}
@@ -945,13 +1178,10 @@ export default function JarvisPage() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-white/10 dark:hover:text-blue-400 cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleChatAction({
-                                      type: "rename",
-                                      chatId: session.id,
-                                    });
+                                    handleChatAction({ type: "rename", chatId: session.id });
                                   }}
                                 >
                                   <Edit3 size={10} />
@@ -959,13 +1189,10 @@ export default function JarvisPage() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-white/10 dark:hover:text-blue-400 cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleChatAction({
-                                      type: "share",
-                                      chatId: session.id,
-                                    });
+                                    handleChatAction({ type: "share", chatId: session.id });
                                   }}
                                 >
                                   <Share size={10} />
@@ -973,13 +1200,10 @@ export default function JarvisPage() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-white/10 dark:hover:text-blue-400 cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleChatAction({
-                                      type: "save",
-                                      chatId: session.id,
-                                    });
+                                    handleChatAction({ type: "save", chatId: session.id });
                                   }}
                                 >
                                   <Save size={10} />
@@ -987,7 +1211,7 @@ export default function JarvisPage() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 hover:text-destructive transition-transform"
+                                  className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-red-50 hover:text-destructive dark:hover:bg-red-900/10 dark:hover:text-red-400 cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setShowDeleteModal(session.id);
@@ -1007,366 +1231,165 @@ export default function JarvisPage() {
                             {session.timestamp}
                           </span>
                           {session.projectName && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-primary/10 text-primary"
-                            >
+                            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
                               {session.projectName}
                             </Badge>
                           )}
                         </div>
                       </div>
-                    ))}
+                    );
+
+                    return (
+                      <div className="space-y-6">
+                        {/* Today Items */}
+                        {todaySessions.length > 0 && (
+                          <div>
+                            <div className="flex items-center justify-between mb-3 px-2">
+                              <h3 className="text-sm font-medium text-foreground">Today</h3>
+                              <span className="text-xs text-muted-foreground">{todaySessions.length}</span>
+                            </div>
+                            <div className="space-y-2">
+                              {todaySessions.map(renderSessionCard)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Yesterday Items */}
+                        {yesterdaySessions.length > 0 && (
+                          <div>
+                            <div className="flex items-center justify-between mb-3 px-2">
+                              <h3 className="text-sm font-medium text-foreground">Yesterday</h3>
+                              <span className="text-xs text-muted-foreground">{yesterdaySessions.length}</span>
+                            </div>
+                            <div className="space-y-2">
+                              {yesterdaySessions.map(renderSessionCard)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Older Items */}
+                        {olderSessions.length > 0 && (
+                          <div>
+                            <div className="flex items-center justify-between mb-3 px-2">
+                              <h3 className="text-sm font-medium text-foreground">Older</h3>
+                              <span className="text-xs text-muted-foreground">{olderSessions.length}</span>
+                            </div>
+                            <div className="space-y-2">
+                              {olderSessions.map(renderSessionCard)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
+                )}
+
+                {/* Projects View */}
+                {isMounted && activeTab === 'project' && (
+                  <div className="space-y-6">
+                    {/* Mock Projects for now - ideally comes from ProjectContext */}
+                    {['Research Alpha', 'Project Beta', 'Thesis 2024'].map(project => {
+                      const projectSessions = filteredSessions.filter(s => s.projectName === project);
+                      if (projectSessions.length === 0) return null;
+
+                      return (
+                        <div key={project}>
+                          <div className="flex items-center gap-2 mb-2 px-2">
+                            <div className="p-1 bg-primary/10 rounded">
+                              <BookOpen size={12} className="text-primary" />
+                            </div>
+                            <h3 className="text-sm font-medium text-foreground">{project}</h3>
+                            <span className="text-xs text-muted-foreground ml-auto">{projectSessions.length}</span>
+                          </div>
+                          <div className="space-y-2 pl-2 border-l border-border/50 ml-3">
+                            {projectSessions.map(session => (
+                              <div
+                                key={session.id}
+                                className={`group p-3 rounded-xl cursor-pointer transition-all duration-300 mb-2 border ${currentSessionId === session.id
+                                  ? 'active-chat-border bg-accent/20 dark:bg-accent/10 shadow-lg'
+                                  : 'border-transparent hover:bg-accent/50 hover:border-border/50'
+                                  }`}
+                                onClick={() => handleSelectSession(session.id)}
+                              >
+                                <h4 className="font-medium text-sm truncate mb-0.5">{session.title}</h4>
+                                <p className="text-xs text-muted-foreground truncate">{session.preview}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {/* Uncategorized / Others */}
+                    {(() => {
+                      const uncategorized = filteredSessions.filter(s => !s.projectName || !['Research Alpha', 'Project Beta', 'Thesis 2024'].includes(s.projectName));
+                      if (uncategorized.length === 0) return null;
+                      return (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2 px-2">
+                            <h3 className="text-sm font-medium text-muted-foreground">Uncategorized</h3>
+                            <span className="text-xs text-muted-foreground ml-auto">{uncategorized.length}</span>
+                          </div>
+                          <div className="space-y-2 pl-2 border-l border-border/50 ml-3">
+                            {uncategorized.map(session => (
+                              <div
+                                key={session.id}
+                                className={`group p-3 rounded-lg cursor-pointer transition-all border border-transparent hover:bg-accent/50 ${currentSessionId === session.id ? 'bg-accent border-border shadow-sm' : ''}`}
+                                onClick={() => handleSelectSession(session.id)}
+                              >
+                                <h4 className="font-medium text-sm truncate mb-0.5">{session.title}</h4>
+                                <p className="text-xs text-muted-foreground truncate">{session.preview}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
-                </div>
-              );
-            })()}
+                )}
 
-            {/* Previous 7 Days Section */}
-            {(() => {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
+                {/* Shared View */}
+                {isMounted && activeTab === 'shared' && (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 mb-4">
+                      <div className="flex items-center gap-2 text-blue-500 mb-1">
+                        <Users size={16} />
+                        <h3 className="font-semibold text-sm">Shared with Teammates</h3>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Chats you've shared with collaborators or the team.
+                      </p>
+                    </div>
 
-              const sevenDaysAgo = new Date(today);
-              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-              const previousWeekSessions = filteredSessions.filter(
-                (session) => {
-                  const sessionDate = new Date(session.createdAt);
-                  sessionDate.setHours(0, 0, 0, 0);
-                  return sessionDate < today && sessionDate >= sevenDaysAgo;
-                }
-              );
-
-              if (previousWeekSessions.length === 0) return null;
-
-              return (
-                <div>
-                  <div className="flex items-center justify-between mb-3 px-2">
-                    <h3 className="text-sm font-medium text-foreground dark:text-white">
-                      Previous 7 Days
-                    </h3>
-                    <span className="text-xs text-muted-foreground dark:text-white/60">
-                      {previousWeekSessions.length}
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    {previousWeekSessions.map((session) => (
+                    {/* Mock Shared List - defaulting to showing all for demo purposes or strictly shared if property exists */}
+                    {filteredSessions.map(session => (
                       <div
                         key={session.id}
-                        className="group relative p-4 bg-background cursor-pointer transition-all border border-border/30 rounded-lg hover:border-primary/50 hover:bg-gradient-to-r hover:from-accent/40 hover:to-transparent backdrop-blur-sm"
+                        className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/50 cursor-pointer border border-transparent hover:border-border transition-all"
                         onClick={() => handleSelectSession(session.id)}
-                        onMouseEnter={() => setHoveredChat(session.id)}
-                        onMouseLeave={() => setHoveredChat(null)}
                       >
-                        <div className="flex items-start justify-between mb-1">
-                          {editingChatId === session.id ? (
-                            <Input
-                              value={editingTitle}
-                              onChange={(e) =>
-                                setEditingTitle(e.target.value)
-                              }
-                              onBlur={() => handleInlineRename(session.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleInlineRename(session.id);
-                                } else if (e.key === "Escape") {
-                                  setEditingChatId(null);
-                                  setEditingTitle("");
-                                }
-                              }}
-                              className="h-6 text-sm flex-1 mr-2"
-                              autoFocus
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          ) : (
-                            <h4 className="font-medium text-foreground text-sm truncate flex-1">
-                              {chatTitles[session.id] || session.title}
-                            </h4>
-                          )}
-                          <div className="flex items-center space-x-1">
-                            {/* Pin button - visible on hover or when pinned (blue) */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className={`h-5 w-5 p-0 transition-all ${pinnedChats.includes(session.id)
-                                ? "opacity-100 bg-primary/10"
-                                : hoveredChat === session.id
-                                  ? "hover:bg-primary/10 opacity-100"
-                                  : "opacity-0"
-                                }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                togglePin(session.id);
-                              }}
-                            >
-                              {pinnedChats.includes(session.id) &&
-                                hoveredChat === session.id ? (
-                                <PinOff size={12} className="text-primary" />
-                              ) : (
-                                <Pin
-                                  size={12}
-                                  className={
-                                    pinnedChats.includes(session.id)
-                                      ? "text-primary fill-primary"
-                                      : "text-muted-foreground"
-                                  }
-                                />
-                              )}
-                            </Button>
-                            {hoveredChat === session.id && (
-                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleChatAction({
-                                      type: "rename",
-                                      chatId: session.id,
-                                    });
-                                  }}
-                                >
-                                  <Edit3 size={10} />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleChatAction({
-                                      type: "share",
-                                      chatId: session.id,
-                                    });
-                                  }}
-                                >
-                                  <Share size={10} />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleChatAction({
-                                      type: "save",
-                                      chatId: session.id,
-                                    });
-                                  }}
-                                >
-                                  <Save size={10} />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 hover:text-destructive transition-transform"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowDeleteModal(session.id);
-                                  }}
-                                >
-                                  <Trash2 size={10} />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                          TM
                         </div>
-                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                          {session.preview}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
-                            {session.timestamp}
-                          </span>
-                          {session.projectName && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-primary/10 text-primary"
-                            >
-                              {session.projectName}
+                        <div className="flex-1 overflow-hidden">
+                          <div className="flex items-center justify-between mb-0.5">
+                            <h4 className="font-medium text-sm truncate">{session.title}</h4>
+                            <span className="text-[10px] text-muted-foreground">{session.timestamp}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate mb-1.5">{session.preview}</p>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[10px] h-4 px-1">
+                              Shared
                             </Badge>
-                          )}
+                            <span className="text-[10px] text-muted-foreground">by You</span>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              );
-            })()}
+                )}
 
-            {/* Older Sessions Section */}
-            {(() => {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-
-              const sevenDaysAgo = new Date(today);
-              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-              const olderSessions = filteredSessions.filter((session) => {
-                const sessionDate = new Date(session.createdAt);
-                sessionDate.setHours(0, 0, 0, 0);
-                return sessionDate < sevenDaysAgo;
-              });
-
-              if (olderSessions.length === 0) return null;
-
-              return (
-                <div>
-                  <div className="flex items-center justify-between mb-3 px-2">
-                    <h3 className="text-sm font-medium text-foreground dark:text-white">
-                      Older
-                    </h3>
-                    <span className="text-xs text-muted-foreground dark:text-white/60">
-                      {olderSessions.length}
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    {olderSessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className="group relative p-4 bg-background cursor-pointer transition-all border border-border/30 rounded-lg hover:border-primary/50 hover:bg-gradient-to-r hover:from-accent/40 hover:to-transparent backdrop-blur-sm"
-                        onClick={() => handleSelectSession(session.id)}
-                        onMouseEnter={() => setHoveredChat(session.id)}
-                        onMouseLeave={() => setHoveredChat(null)}
-                      >
-                        <div className="flex items-start justify-between mb-1">
-                          {editingChatId === session.id ? (
-                            <Input
-                              value={editingTitle}
-                              onChange={(e) =>
-                                setEditingTitle(e.target.value)
-                              }
-                              onBlur={() => handleInlineRename(session.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleInlineRename(session.id);
-                                } else if (e.key === "Escape") {
-                                  setEditingChatId(null);
-                                  setEditingTitle("");
-                                }
-                              }}
-                              className="h-6 text-sm flex-1 mr-2"
-                              autoFocus
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          ) : (
-                            <h4 className="font-medium text-foreground text-sm truncate flex-1">
-                              {chatTitles[session.id] || session.title}
-                            </h4>
-                          )}
-                          <div className="flex items-center space-x-1">
-                            {/* Pin button - visible on hover or when pinned (blue) */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className={`h-5 w-5 p-0 transition-all ${pinnedChats.includes(session.id)
-                                ? "opacity-100 bg-primary/10"
-                                : hoveredChat === session.id
-                                  ? "hover:bg-primary/10 opacity-100"
-                                  : "opacity-0"
-                                }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                togglePin(session.id);
-                              }}
-                            >
-                              {pinnedChats.includes(session.id) &&
-                                hoveredChat === session.id ? (
-                                <PinOff size={12} className="text-primary" />
-                              ) : (
-                                <Pin
-                                  size={12}
-                                  className={
-                                    pinnedChats.includes(session.id)
-                                      ? "text-primary fill-primary"
-                                      : "text-muted-foreground"
-                                  }
-                                />
-                              )}
-                            </Button>
-                            {hoveredChat === session.id && (
-                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleChatAction({
-                                      type: "rename",
-                                      chatId: session.id,
-                                    });
-                                  }}
-                                >
-                                  <Edit3 size={10} />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleChatAction({
-                                      type: "share",
-                                      chatId: session.id,
-                                    });
-                                  }}
-                                >
-                                  <Share size={10} />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-transform"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleChatAction({
-                                      type: "save",
-                                      chatId: session.id,
-                                    });
-                                  }}
-                                >
-                                  <Save size={10} />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 hover:text-destructive transition-transform"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowDeleteModal(session.id);
-                                  }}
-                                >
-                                  <Trash2 size={10} />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                          {session.preview}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
-                            {session.timestamp}
-                          </span>
-                          {session.projectName && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-primary/10 text-primary"
-                            >
-                              {session.projectName}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
+              </>
+            )}
           </div>
         </ScrollArea>
 
@@ -1378,6 +1401,8 @@ export default function JarvisPage() {
             onClick={() => {
               setShowShareModal(null);
               setShowCopiedNotification(false);
+              setShowCollaboratorInput(false);
+              setCollaboratorEmail("");
             }}
           >
             <div
@@ -1399,49 +1424,94 @@ export default function JarvisPage() {
                 </div>
               )}
 
-              <div className="space-y-3">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start bg-transparent hover:bg-accent cursor-pointer"
-                  style={{ pointerEvents: 'auto' }}
-                  onClick={() =>
-                    handleShare(showShareModal, { type: "external" })
-                  }
-                >
-                  <Link size={16} className="mr-2" />
-                  Create shareable link
-                  <Badge variant="secondary" className="ml-auto text-xs">
-                    External
-                  </Badge>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start bg-transparent hover:bg-accent cursor-pointer"
-                  style={{ pointerEvents: 'auto' }}
-                  onClick={() =>
-                    handleShare(showShareModal, { type: "collaborator" })
-                  }
-                >
-                  <Users size={16} className="mr-2" />
-                  Share with collaborator
-                  <Badge variant="secondary" className="ml-auto text-xs">
-                    Internal
-                  </Badge>
-                </Button>
-              </div>
-              <div className="flex justify-end space-x-2 mt-4">
-                <Button
-                  variant="outline"
-                  className="cursor-pointer"
-                  style={{ pointerEvents: 'auto' }}
-                  onClick={() => {
-                    setShowShareModal(null);
-                    setShowCopiedNotification(false);
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
+              {!showCollaboratorInput ? (
+                <div className="space-y-3">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start bg-transparent hover:bg-accent cursor-pointer h-12"
+                    style={{ pointerEvents: 'auto' }}
+                    onClick={() =>
+                      handleShare(showShareModal, { type: "external" })
+                    }
+                  >
+                    <Link size={18} className="mr-3" />
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium">Copy Link</span>
+                      <span className="text-xs text-muted-foreground">Anyone with link can view</span>
+                    </div>
+                    <Badge variant="secondary" className="ml-auto text-xs">
+                      External
+                    </Badge>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start bg-transparent hover:bg-accent cursor-pointer h-12"
+                    style={{ pointerEvents: 'auto' }}
+                    onClick={() =>
+                      handleShare(showShareModal, { type: "collaborator" })
+                    }
+                  >
+                    <Users size={18} className="mr-3" />
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium">Invite Collaborators</span>
+                      <span className="text-xs text-muted-foreground">Share securely with team</span>
+                    </div>
+                    <Badge variant="secondary" className="ml-auto text-xs">
+                      Internal
+                    </Badge>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block text-foreground">
+                      Collaborator Email
+                    </label>
+                    <Input
+                      placeholder="colleague@example.com"
+                      className="bg-background"
+                      value={collaboratorEmail}
+                      onChange={(e) => setCollaboratorEmail(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleInviteCollaborator()}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1.5">
+                      They will receive a notification to join this chat.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      className="w-full"
+                      onClick={handleInviteCollaborator}
+                      disabled={!collaboratorEmail.trim()}
+                    >
+                      Send Invite
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => setShowCollaboratorInput(false)}
+                    >
+                      Back
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {!showCollaboratorInput && (
+                <div className="flex justify-end space-x-2 mt-6">
+                  <Button
+                    variant="outline"
+                    className="cursor-pointer"
+                    style={{ pointerEvents: 'auto' }}
+                    onClick={() => {
+                      setShowShareModal(null);
+                      setShowCopiedNotification(false);
+                    }}
+                  >
+                    Done
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1464,15 +1534,23 @@ export default function JarvisPage() {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">
-                    Project Name
+                    Project / Organization Name
                   </label>
-                  <Input placeholder="Enter project name..." style={{ pointerEvents: 'auto' }} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Folder (Optional)
-                  </label>
-                  <Input placeholder="Enter folder name..." style={{ pointerEvents: 'auto' }} />
+                  <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                    <SelectTrigger className="w-full" style={{ pointerEvents: 'auto' }}>
+                      <SelectValue placeholder="Select a project..." />
+                    </SelectTrigger>
+                    <SelectContent className="z-[10001]"> {/* High z-index for modal */}
+                      {projects.map((p) => (
+                        <SelectItem key={p.id} value={p.id} className="cursor-pointer">
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Chat will be saved to the <strong>Chats</strong> folder of this project.
+                  </p>
                 </div>
               </div>
               <div className="flex justify-end space-x-2 mt-6">
@@ -1486,10 +1564,19 @@ export default function JarvisPage() {
                 </Button>
                 <Button
                   className="cursor-pointer"
+                  disabled={!selectedProjectId}
                   style={{ pointerEvents: 'auto' }}
                   onClick={() => {
-                    console.log("Saving chat:", showSaveModal);
+                    const project = projects.find(p => p.id === selectedProjectId);
+                    console.log(`Saving chat ${showSaveModal} to Project: ${project?.name}`);
+                    toast({
+                      title: "Chat Saved",
+                      description: `Saved to 'Chats' folder in Project: ${project?.name}`
+                    });
+                    // Logic to actually move the chat would go here (e.g. update projectId in chatSession)
+                    // setChatSessions(prev => prev.map(c => c.id === showSaveModal ? { ...c, projectId: selectedProjectId } : c))
                     setShowSaveModal(null);
+                    setSelectedProjectId("");
                   }}
                 >
                   Save
@@ -1578,7 +1665,6 @@ export default function JarvisPage() {
         <div className="px-6 py-4 border-b border-border">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center space-x-3">
-              <ModernLogo size={40} showText={false} />
               <div className="flex items-center space-x-2">
                 <div>
                   <h2 className="font-semibold text-foreground">
@@ -1654,7 +1740,7 @@ export default function JarvisPage() {
                     </div>
                   </div>
                 </SelectTrigger>
-                <SelectContent className="w-[320px]">
+                <SelectContent className="w-[320px] bg-popover/95 backdrop-blur-xl border border-border shadow-2xl">
                   {LLM_PROVIDERS.map((provider) => (
                     <SelectGroup key={provider.id}>
                       <SelectLabel className="text-xs font-semibold">
@@ -1756,88 +1842,150 @@ export default function JarvisPage() {
 
         {/* Messages Area */}
         <ScrollArea className="flex-1 bg-background">
-          <div className="max-w-5xl mx-auto space-y-6 px-3 sm:px-4 md:px-6 pt-6">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"
-                  }`}
-              >
-                <div
-                  className={`max-w-[95%] sm:max-w-[85%] md:max-w-[80%] p-4 ${message.sender === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted/50 text-card-foreground border-l-2 border-primary"
-                    }`}
-                >
-                  <div className="message-bubble">
-                    {message.blocks?.map((block, i) => (
-                      <BlockRenderer key={i} block={block} />
-                    ))}
-                  </div>
+          <div className="max-w-5xl mx-auto space-y-6 px-3 sm:px-4 md:px-6 pt-6 min-h-full flex flex-col">
+            {messages.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+                <div className="mb-8 p-4 bg-primary/5 rounded-full">
+                  <ModernLogo size={64} showText={false} />
+                </div>
+                <h2 className="text-3xl font-bold font-space-grotesk mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 dark:from-white dark:to-gray-300">
+                  How can I help with your research?
+                </h2>
+                <p className="text-muted-foreground mb-8 max-w-md">
+                  Ask questions, analyze papers, or get help with your writing.
+                </p>
 
+                <div className="flex flex-wrap items-center justify-center gap-3 max-w-2xl">
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-lg gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 hover:shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)] hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+                    onClick={() => setInputMessage("Summarize research paper")}
+                  >
+                    <FileText size={16} className="text-primary" />
+                    <span>Summarize research paper</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-lg gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 hover:shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)] hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+                    onClick={() => setInputMessage("Explain topic simply")}
+                  >
+                    <MessageSquare size={16} className="text-primary" />
+                    <span>Explain topic simply</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-lg gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 hover:shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)] hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+                    onClick={() => setInputMessage("Get research roadmap")}
+                  >
+                    <Map size={16} className="text-primary" />
+                    <span>Get research roadmap</span>
+                  </Button>
+                </div>
 
-
-                  {message.resources && message.resources.length > 0 && (
-                    <div className="mt-4 space-y-3">
-                      <div className="text-xs font-medium text-muted-foreground mb-3">
-                        Related Resources:
-                      </div>
-                      {message.resources.map((resource, index) => (
-                        <div
-                          key={index}
-                          className="bg-muted/30 p-4 rounded-xl border border-border"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 pr-3">
-                              <h4 className="text-sm font-medium text-foreground mb-2">
-                                {resource.title}
-                              </h4>
-                              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                                {resource.snippet}
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                window.open(resource.url, "_blank")
-                              }
-                              className="ml-2 p-2 h-8 w-8 hover:bg-primary/10"
-                            >
-                              <ExternalLink size={14} />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <p
-                    className={`text-xs mt-3 ${message.sender === "user"
-                      ? "text-primary-foreground/70"
-                      : "text-muted-foreground"
+                <div className="flex flex-wrap items-center justify-center gap-3 mt-3 max-w-2xl">
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-lg gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 hover:shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)] hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+                    onClick={() => setInputMessage("Literature survey")}
+                  >
+                    <BookOpen size={16} className="text-primary" />
+                    <span>Literature survey</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-lg gap-2 border-primary/20 hover:border-primary hover:bg-primary/5 hover:shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)] hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+                    onClick={() => setInputMessage("Research process")}
+                  >
+                    <Sparkles size={16} className="text-primary" />
+                    <span>Research process</span>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"
                       }`}
                   >
-                    {message.timestamp.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-              </div>
-            ))}
+                    <div
+                      className={`max-w-[95%] sm:max-w-[85%] md:max-w-[80%] p-4 ${message.sender === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted/50 text-card-foreground border-l-2 border-primary"
+                        }`}
+                    >
+                      <div className="message-bubble">
+                        {message.blocks?.map((block, i) => (
+                          <BlockRenderer key={i} block={block} />
+                        ))}
+                      </div>
 
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-muted/30 p-5 rounded-2xl border border-border shadow-sm">
-                  <div className="flex items-center space-x-3">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    <span className="text-sm text-muted-foreground">
-                      JARVIS is thinking...
-                    </span>
+
+
+                      {message.resources && message.resources.length > 0 && (
+                        <div className="mt-4 space-y-3">
+                          <div className="text-xs font-medium text-muted-foreground mb-3">
+                            <ul className="space-y-1">
+                              {message.resources.map((resource, index) => (
+                                <li
+                                  key={index}
+                                  onClick={() => window.open(resource.url, "_blank")}
+                                  className="group flex items-center justify-between p-2 rounded-lg border border-border/40 hover:bg-muted/50 cursor-pointer transition-colors"
+                                >
+                                  <div className="flex-1 min-w-0 pr-2">
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="text-xs font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                                        {resource.title}
+                                      </h4>
+                                      <span className="text-[10px] text-muted-foreground opacity-50">•</span>
+                                      <span className="text-[10px] text-muted-foreground truncate opacity-70">
+                                        {new URL(resource.url).hostname.replace('www.', '')}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <ArrowUpRight className="w-3 h-3 text-muted-foreground group-hover:text-primary opacity-50 group-hover:opacity-100 transition-all" />
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+
+                      <p
+                        className={`text-xs mt-3 ${message.sender === "user"
+                          ? "text-primary-foreground/70"
+                          : "text-muted-foreground"
+                          }`}
+                      >
+                        {message.timestamp.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </div>
+                ))}
+
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-background/80 backdrop-blur-sm p-4 rounded-2xl">
+                      <div className="flex items-center space-x-4">
+                        <div className="relative flex items-center justify-center animate-pulse-scale">
+                          <div className="absolute inset-0 bg-blue-500/40 blur-xl rounded-full" />
+                          <div className="relative drop-shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                            <ModernLogo size={32} animated={true} showText={false} />
+                          </div>
+                        </div>
+                        <span className="text-sm font-medium animate-text-wave bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 bg-clip-text text-transparent">
+                          JARVIS is thinking...
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              </>
             )}
             <div ref={messagesEndRef} />
           </div>
@@ -1861,7 +2009,7 @@ export default function JarvisPage() {
                       <button
                         key={idx}
                         onClick={() => setInputMessage(prompt.text)}
-                        className="px-2.5 py-1.5 bg-muted/30 hover:bg-primary border border-border rounded-lg text-left transition-all hover:border-primary hover:shadow-md group whitespace-nowrap"
+                        className="px-2.5 py-1.5 bg-muted/30 border border-primary/20 rounded-lg text-left transition-all hover:bg-primary/5 hover:border-primary hover:shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)] hover:scale-[1.02] duration-300 cursor-pointer group whitespace-nowrap"
                       >
                         <div className="flex items-center gap-1.5">
                           <PromptIcon
@@ -1885,19 +2033,30 @@ export default function JarvisPage() {
                 {uploadedFiles.map((file, index) => (
                   <div
                     key={index}
-                    className="p-3 bg-muted/30 border border-border rounded-xl flex items-center justify-between hover:border-primary transition-fast"
+                    className="p-2 bg-muted/40 border border-border rounded-xl flex items-center justify-between hover:border-primary/50 transition-all group"
                   >
-                    <div className="flex items-center space-x-3">
-                      <Paperclip
-                        size={16}
-                        className="text-muted-foreground"
-                      />
-                      <span className="text-sm text-foreground font-medium">
-                        {file.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        ({(file.size / 1024).toFixed(1)} KB)
-                      </span>
+                    <div className="flex items-center space-x-3 overflow-hidden">
+                      {file.type.startsWith('image/') ? (
+                        <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-border flex-shrink-0">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={file.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
+                          <Paperclip size={14} />
+                        </div>
+                      )}
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs text-foreground font-medium truncate max-w-[150px]">
+                          {file.name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {(file.size / 1024).toFixed(1)} KB
+                        </span>
+                      </div>
                     </div>
                     <Button
                       size="sm"
@@ -1918,9 +2077,6 @@ export default function JarvisPage() {
                 ? "ring-2 ring-primary ring-offset-2 rounded-[32px]"
                 : ""
                 }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
             >
               {isDragging && (
                 <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm rounded-[32px] flex items-center justify-center z-10 pointer-events-none">
@@ -1946,7 +2102,7 @@ export default function JarvisPage() {
                     ref={fileInputRef}
                     onChange={handleFileUpload}
                     className="hidden"
-                    accept=".pdf,.doc,.docx,.txt,.md,image/*"
+                    accept=".pdf,.doc,.docx,.txt,.md,.json,.js,.ts,.tsx,image/*,audio/*,video/*"
                     multiple
                   />
                   <Button
@@ -1993,7 +2149,7 @@ export default function JarvisPage() {
                   ? "text-primary bg-primary/10"
                   : "text-muted-foreground"
                   } hover:text-foreground hover:bg-accent px-3 py-2 h-9 rounded-lg flex items-center gap-2`}
-                onClick={handleShareScreen}
+                onClick={handleScreenShare}
               >
                 <Monitor size={16} />
                 <span className="text-xs font-medium">
@@ -2012,7 +2168,212 @@ export default function JarvisPage() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </div >
+      {/* Share Modal - Global Placement */}
+      {
+        showShareModal && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999]"
+            style={{ pointerEvents: 'auto' }}
+            onClick={() => {
+              setShowShareModal(null);
+              setShowCopiedNotification(false);
+              setShowCollaboratorInput(false);
+              setCollaboratorEmail("");
+            }}
+          >
+            <div
+              className="bg-background/95 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-2xl max-w-md w-full mx-4 relative z-[10000] overflow-hidden"
+              style={{ pointerEvents: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Gradient Border Effect */}
+              <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-foreground font-space-grotesk tracking-tight">
+                  Share Chat
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full hover:bg-white/10"
+                  onClick={() => setShowShareModal(null)}
+                >
+                  <X size={16} />
+                </Button>
+              </div>
+
+              {/* Inline Copied Notification */}
+              {showCopiedNotification && (
+                <div className="mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 px-4 py-3 rounded-lg flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <span className="font-medium text-sm">
+                    Link copied to clipboard
+                  </span>
+                </div>
+              )}
+
+              {!showCollaboratorInput ? (
+                <div className="space-y-3">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start bg-card/50 hover:bg-primary/5 hover:border-primary/30 cursor-pointer h-16 border-white/5 transition-all group"
+                    style={{ pointerEvents: 'auto' }}
+                    onClick={() =>
+                      handleShare(showShareModal, { type: "external" })
+                    }
+                  >
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mr-4 group-hover:bg-primary/20 transition-colors">
+                      <Link size={18} className="text-primary" />
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-semibold text-foreground">Copy Link</span>
+                      <span className="text-xs text-muted-foreground">Anyone with link can view</span>
+                    </div>
+                    <Badge variant="secondary" className="ml-auto text-[10px] bg-white/5">
+                      External
+                    </Badge>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start bg-card/50 hover:bg-primary/5 hover:border-primary/30 cursor-pointer h-16 border-white/5 transition-all group"
+                    style={{ pointerEvents: 'auto' }}
+                    onClick={() =>
+                      handleShare(showShareModal, { type: "collaborator" })
+                    }
+                  >
+                    <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center mr-4 group-hover:bg-purple-500/20 transition-colors">
+                      <Users size={18} className="text-purple-500" />
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-semibold text-foreground">Invite Collaborators</span>
+                      <span className="text-xs text-muted-foreground">Share securely with team</span>
+                    </div>
+                    <Badge variant="secondary" className="ml-auto text-[10px] bg-white/5">
+                      Internal
+                    </Badge>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block text-foreground">
+                      Collaborator Email
+                    </label>
+                    <Input
+                      placeholder="colleague@example.com"
+                      className="bg-black/20 border-white/10 h-10"
+                      value={collaboratorEmail}
+                      onChange={(e) => setCollaboratorEmail(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleInviteCollaborator()}
+                      autoFocus
+                    />
+                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+                      <Users size={12} />
+                      They will receive a notification to join this chat.
+                    </p>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                      onClick={handleInviteCollaborator}
+                      disabled={!collaboratorEmail.trim()}
+                    >
+                      Send Invite
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => setShowCollaboratorInput(false)}
+                    >
+                      Back
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      }
+
+      {/* Save Modal - Global Placement */}
+      {
+        showSaveModal && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999]"
+            style={{ pointerEvents: 'auto' }}
+            onClick={() => setShowSaveModal(null)}
+          >
+            <div
+              className="bg-background/95 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-2xl max-w-md w-full mx-4 relative z-[10000] overflow-hidden"
+              style={{ pointerEvents: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-foreground font-space-grotesk tracking-tight">
+                  Save to Project
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full hover:bg-white/10"
+                  onClick={() => setShowSaveModal(null)}
+                >
+                  <X size={16} />
+                </Button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Project Name
+                  </label>
+                  <Input placeholder="Enter project name..." className="bg-black/20 border-white/10" style={{ pointerEvents: 'auto' }} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Folder (Optional)
+                  </label>
+                  <Input placeholder="Enter folder name..." className="bg-black/20 border-white/10" style={{ pointerEvents: 'auto' }} />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 mt-6">
+                <Button
+                  variant="ghost"
+                  className="cursor-pointer"
+                  style={{ pointerEvents: 'auto' }}
+                  onClick={() => setShowSaveModal(null)}
+                >
+                  Cancel
+                </Button>
+                <Button className="cursor-pointer bg-primary hover:bg-primary/90" style={{ pointerEvents: 'auto' }}>
+                  Save
+                </Button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Integrated Creativity Tools */}
+      {showWhiteboard && (
+        <Whiteboard
+          onClose={() => setShowWhiteboard(false)}
+          onAttach={handleAttachmentFromTool}
+        />
+      )}
+
+      {screenStream && (
+        <ScreenShareOverlay
+          stream={screenStream}
+          onStop={() => {
+            setScreenStream(null);
+            setIsScreenSharing(false);
+          }}
+          onAttach={handleAttachmentFromTool}
+        />
+      )}
+    </div >
   );
 }

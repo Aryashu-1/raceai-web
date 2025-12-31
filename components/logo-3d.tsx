@@ -21,17 +21,17 @@ function TesseractWireframe() {
     <mesh ref={meshRef}>
       {/* Outer cube */}
       <boxGeometry args={[2, 2, 2]} />
-      <meshBasicMaterial color="#035ed8" wireframe />
+      <meshBasicMaterial color="#0052CC" wireframe />
 
       {/* Inner cube */}
       <mesh scale={0.6}>
         <boxGeometry args={[2, 2, 2]} />
-        <meshBasicMaterial color="#0b5ed7" wireframe />
+        <meshBasicMaterial color="#035ed8" wireframe />
 
         {/* Core cube */}
         <mesh scale={0.6}>
           <boxGeometry args={[2, 2, 2]} />
-          <meshBasicMaterial color="#3b82f6" wireframe />
+          <meshBasicMaterial color="#26C6DA" wireframe />
         </mesh>
       </mesh>
     </mesh>
@@ -52,12 +52,12 @@ function MobiusRing() {
   return (
     <mesh ref={meshRef}>
       <torusGeometry args={[3, 0.3, 8, 16]} />
-      <meshBasicMaterial color="#0b5ed7" wireframe />
+      <meshBasicMaterial color="#035ed8" wireframe />
 
       {/* Inner ring */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[2.5, 0.2, 6, 12]} />
-        <meshBasicMaterial color="#035ed8" wireframe />
+        <meshBasicMaterial color="#0052CC" wireframe />
       </mesh>
     </mesh>
   )
@@ -83,7 +83,7 @@ function FloatingParticles() {
     return (
       <mesh key={i} position={[x, y, z]}>
         <sphereGeometry args={[0.05, 8, 8]} />
-        <meshBasicMaterial color="#3b82f6" />
+        <meshBasicMaterial color="#26C6DA" />
       </mesh>
     )
   })
@@ -112,9 +112,8 @@ export default function Logo3D({ size = 120, onClick, className = "" }: Logo3DPr
 
   return (
     <div
-      className={`cursor-pointer transition-transform duration-300 ${
-        isHovered ? "scale-110" : "scale-100"
-      } ${className}`}
+      className={`cursor-pointer transition-transform duration-300 ${isHovered ? "scale-110" : "scale-100"
+        } ${className}`}
       style={{ width: size, height: size }}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}

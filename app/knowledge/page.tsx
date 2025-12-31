@@ -389,7 +389,7 @@ export default function KnowledgeDiscoveryPage() {
             </div>
           </div> */}
           <div className="max-w-2xl w-full h-12 px-4 flex items-center gap-3 rounded-lg border border-border bg-input">
-  
+
             {/* Left Search Icon */}
             <Search className="h-5 w-5 text-muted-foreground" />
 
@@ -409,11 +409,11 @@ export default function KnowledgeDiscoveryPage() {
                 placeholder:text-muted-foreground
               "
               style={{
-                  boxShadow: "none",
-                  WebkitBoxShadow: "none",
-                  outline: "none",
-                  border: "none",
-                }}
+                boxShadow: "none",
+                WebkitBoxShadow: "none",
+                outline: "none",
+                border: "none",
+              }}
 
             />
 
@@ -440,9 +440,8 @@ export default function KnowledgeDiscoveryPage() {
                   <button
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
-                    className={`flex items-center gap-3 px-4 py-3 transition-fast focus-ring ${
-                      isSelected ? "btn-primary" : "btn-secondary"
-                    }`}
+                    className={`flex items-center gap-3 px-4 py-3 transition-fast focus-ring ${isSelected ? "btn-primary" : "btn-secondary"
+                      }`}
                   >
                     <Icon
                       size={18}
@@ -551,11 +550,10 @@ export default function KnowledgeDiscoveryPage() {
                   <button
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full flex items-center gap-3 p-4 rounded-lg text-left transition-all duration-200 group ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground shadow-sm"
+                    className={`w-full flex items-center gap-3 p-4 rounded-lg text-left transition-all duration-200 group ${isSelected
+                        ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
                         : "bg-card/50 hover:bg-card hover:border-primary/20 text-foreground border border-transparent"
-                    }`}
+                      }`}
                   >
                     <div
                       className={`w-2.5 h-2.5 rounded-full ${isSelected ? 'bg-primary-foreground' : category.dotColor} flex-shrink-0`}

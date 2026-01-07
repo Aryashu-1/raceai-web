@@ -145,7 +145,7 @@ export function TodaysFocus({ className }: { className?: string }) {
   const totalTasks = focusData.tasks.length;
 
   return (
-    <Card className={className}>
+    <Card className={cn("border-none shadow-none rounded-none", className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>

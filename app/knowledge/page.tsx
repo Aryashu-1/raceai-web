@@ -345,7 +345,7 @@ export default function KnowledgeDiscoveryPage() {
   const selectedCategoryData = researchData[selectedCategory] || [];
 
   return (
-    <div className="min-h-screen flex relative">
+    <div className="h-screen overflow-y-hidden flex relative">
       <div className="dark:block hidden">
         <GeometricBackground variant="torus" />
       </div>
@@ -354,8 +354,8 @@ export default function KnowledgeDiscoveryPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col relative z-10">
         {/* Header */}
-        <div className="p-8 bg-background border-b border-border">
-          <div className="flex items-center justify-between mb-6">
+        <div className="p-6 bg-background border-b border-border">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-3 tracking-tight">
                 Knowledge Discovery
@@ -551,8 +551,8 @@ export default function KnowledgeDiscoveryPage() {
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
                     className={`w-full flex items-center gap-3 p-4 rounded-lg text-left transition-all duration-200 group ${isSelected
-                        ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
-                        : "bg-card/50 hover:bg-card hover:border-primary/20 text-foreground border border-transparent"
+                      ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+                      : "bg-card/50 hover:bg-card hover:border-primary/20 text-foreground border border-transparent"
                       }`}
                   >
                     <div

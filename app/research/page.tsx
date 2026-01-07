@@ -12,6 +12,18 @@ import dynamic from "next/dynamic";
 const PDFViewer = dynamic(() => import("@/components/pdfviewer"), { ssr: false });
 
 
+
+
+
+
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import {
   FolderPlus,
   FileText,
@@ -44,6 +56,7 @@ import {
   Star,
   Target,
   Calendar,
+  FilePlus,
 } from "lucide-react"
 import NavigationSidebar from "@/components/navigation-sidebar"
 import GeometricBackground from "@/components/geometric-background"
@@ -75,8 +88,18 @@ interface ChatMessage {
 // But the error said `associatedChats` and `notes` are missing. I will add them to the interface if they are missing or handle them.
 
 
+// Helper to find logic - Moved outside component for stability
+const findNodeInTree = (node: ProjectNode, targetId: string): boolean => {
+  if (node.id === targetId) return true;
+  if (node.children) {
+    return node.children.some(child => findNodeInTree(child, targetId));
+  }
+  return false;
+};
+
 export default function ResearchCollaborationPage() {
 
+  const { toast } = useToast()
   const [viewMode, setViewMode] = useState<"overview" | "folder" | "file">("overview")
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["1", "2"]))
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -93,18 +116,26 @@ export default function ResearchCollaborationPage() {
   const [podcastUrl, setPodcastUrl] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isChatLoading, setIsChatLoading] = useState(false)
-  const { projects } = useProjects()
+
+  const { projects, addNode, updateNode, deleteNode, deleteProject, toggleProjectStar, addProject } = useProjects();
+
+  const [isDragging, setIsDragging] = useState(false)
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteContent, setNoteContent] = useState("");
 
   const [selectedFile, setSelectedFile] = useState<ProjectNode | null>(null)
   const [selectedFolder, setSelectedFolder] = useState<ProjectNode | null>(null)
 
-  // Flatten projects to rootNodes for the tree view, or allow selecting a project first.
-  // The current UI expects a list of nodes. Let's map projects to their root folders or just show projects as folders.
   // Flatten projects to rootNodes for the tree view
   const projectStructure: ProjectNode[] = projects.map(p => {
+    // Clone the rootNode to avoid mutating the context state directly
+    const rootNodeClone = JSON.parse(JSON.stringify(p.rootNode));
+
     // Inject "Chats" folder if it doesn't exist
-    const hasChats = p.rootNode.children?.some(c => c.name === "Chats");
-    if (!hasChats && p.rootNode.children) {
+    const hasChats = rootNodeClone.children?.some((c: ProjectNode) => c.name === "Chats");
+    if (!hasChats && rootNodeClone.children) {
       // Mock chats for the tree view
       const mockChats: ProjectNode[] = p.rootNode.associatedChats?.map(chat => ({
         id: `chat-node-${chat.id}`,
@@ -114,9 +145,9 @@ export default function ResearchCollaborationPage() {
       })) || [
         { id: `chat-mock-1-${p.id}`, name: "Literature Review Chat", type: "file", fileType: "other", lastModified: "Today", size: "2KB" },
         { id: `chat-mock-2-${p.id}`, name: "Methodology Brainstorm", type: "file", fileType: "other", lastModified: "Yesterday", size: "5KB" }
-      ] as any[]; // Cast to avoid strict type issues with missing props if any
+      ] as any[];
 
-      p.rootNode.children.unshift({
+      rootNodeClone.children.unshift({
         id: `chats-${p.id}`,
         name: "Chats",
         type: "folder",
@@ -125,7 +156,7 @@ export default function ResearchCollaborationPage() {
     }
 
     return {
-      ...p.rootNode,
+      ...rootNodeClone,
       id: p.rootNode.id || p.id,
       name: p.name,
       type: "folder"
@@ -163,14 +194,192 @@ export default function ResearchCollaborationPage() {
     // Ideally: createProject({ name: newProjectName, folders: ["Chats", "Literature Review", "Experiments"] })
   };
 
-  const { toast } = useToast()
 
-  const [isDragging, setIsDragging] = useState(false)
-  const { addNode, toggleProjectStar } = useProjects();
-  const [showWhiteboard, setShowWhiteboard] = useState(false);
-  const [showNotesModal, setShowNotesModal] = useState(false);
-  const [noteTitle, setNoteTitle] = useState("");
-  const [noteContent, setNoteContent] = useState("");
+
+  // Inline Creation/Renaming State
+  const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+
+  // Helper to find parent node
+  const findParentNode = (root: ProjectNode, targetId: string): ProjectNode | null => {
+    if (root.children) {
+      for (const child of root.children) {
+        if (child.id === targetId) return root;
+        const found = findParentNode(child, targetId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const handleCreateFolder = () => {
+    // 1. Determine Parent
+    let targetProject = projects.find(p => selectedFolder ? findNodeInTree(p.rootNode, selectedFolder.id) : p);
+    let parentId = selectedFolder?.id || targetProject?.rootNode.id;
+
+    // Handle case where a file is selected -> create in its parent folder
+    if (!selectedFolder && selectedFile) {
+      targetProject = projects.find(p => findNodeInTree(p.rootNode, selectedFile.id));
+      if (targetProject) {
+        const parent = findParentNode(targetProject.rootNode, selectedFile.id);
+        parentId = parent ? parent.id : targetProject.rootNode.id;
+      }
+    }
+
+    if (!targetProject || !parentId) {
+      toast({ title: "Error", description: "No location selected.", variant: "destructive" });
+      return;
+    }
+
+    // 2. Create Default Node
+    const newId = Date.now().toString();
+    const newFolder: ProjectNode = {
+      id: newId,
+      name: "New Folder",
+      type: "folder",
+      children: [],
+      lastModified: new Date().toLocaleDateString(),
+    };
+
+    addNode(targetProject.id, parentId, newFolder);
+
+    // 3. Expand Parent (if not root) and Start Renaming
+    if (selectedFolder) {
+      const newExpanded = new Set(expandedFolders);
+      newExpanded.add(selectedFolder.id);
+      setExpandedFolders(newExpanded);
+    }
+
+    setRenamingNodeId(newId);
+    setRenameValue("New Folder");
+  };
+
+  const handleCreateFile = () => {
+    let targetProject = projects.find(p => selectedFolder ? findNodeInTree(p.rootNode, selectedFolder.id) : p);
+    let parentId = selectedFolder?.id || targetProject?.rootNode.id;
+
+    // Handle case where a file is selected -> create in its parent folder
+    if (!selectedFolder && selectedFile) {
+      targetProject = projects.find(p => findNodeInTree(p.rootNode, selectedFile.id));
+      if (targetProject) {
+        const parent = findParentNode(targetProject.rootNode, selectedFile.id);
+        parentId = parent ? parent.id : targetProject.rootNode.id;
+      }
+    }
+
+    if (!targetProject || !parentId) {
+      toast({ title: "Error", description: "No location selected.", variant: "destructive" });
+      return;
+    }
+
+    const newId = Date.now().toString();
+    const newFile: ProjectNode = {
+      id: newId,
+      name: "New File.md",
+      type: "file",
+      fileType: "md",
+      size: "0 KB",
+      lastModified: new Date().toLocaleDateString(),
+    };
+
+    addNode(targetProject.id, parentId, newFile);
+
+    if (selectedFolder) {
+      const newExpanded = new Set(expandedFolders);
+      newExpanded.add(selectedFolder.id);
+      setExpandedFolders(newExpanded);
+    }
+
+    setRenamingNodeId(newId);
+    setRenameValue("New File.md");
+  };
+
+
+
+  const handleRenameSubmit = () => {
+    if (!renamingNodeId) return;
+
+    const finalName = renameValue.trim();
+    if (!finalName) {
+      setRenamingNodeId(null);
+      return;
+    }
+
+    const targetProject = projects.find(p =>
+      findNodeInTree(p.rootNode, renamingNodeId)
+    );
+
+    if (targetProject) {
+      updateNode(targetProject.id, renamingNodeId, { name: finalName });
+      toast({
+        title: "Renamed",
+        description: `Item renamed to "${finalName}"`,
+      });
+    } else {
+      console.error("Target project not found for id:", renamingNodeId);
+      toast({ title: "Debug Error", description: "Node not found in project tree.", variant: "destructive" });
+    }
+
+    setRenamingNodeId(null);
+  };
+
+
+  const handleRenameKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    e.stopPropagation();
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleRenameSubmit();
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setRenamingNodeId(null);
+    }
+  };
+
+  const handleRenameRequest = (item: ProjectNode) => {
+    setSelectedFile(null);
+    setSelectedFolder(null);
+    setRenamingNodeId(item.id);
+    setRenameValue(item.name);
+  };
+
+
+
+  const handleDeleteRequest = (item: ProjectNode) => {
+    const targetProject = projects.find(p =>
+      findNodeInTree(p.rootNode, item.id)
+    );
+
+    if (!targetProject) return;
+
+    // Clear UI state FIRST
+    if (selectedFile?.id === item.id) setSelectedFile(null);
+    if (selectedFolder?.id === item.id) setSelectedFolder(null);
+    if (renamingNodeId === item.id) setRenamingNodeId(null);
+
+    if (
+      targetProject.rootNode.id === item.id ||
+      targetProject.id === item.id
+    ) {
+      deleteProject(targetProject.id);
+      toast({
+        title: "Project Deleted",
+        description: `Deleted project "${targetProject.name}"`,
+      });
+    } else {
+      deleteNode(targetProject.id, item.id);
+      toast({
+        title: "Deleted",
+        description: `Deleted "${item.name}"`,
+      });
+    }
+  };
+
+
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -444,57 +653,128 @@ export default function ResearchCollaborationPage() {
               )}
             </div>
 
-            <div
-              className={`flex items-center space-x-2 p-1 hover:bg-muted rounded-md cursor-pointer relative z-10`} // z-10 to ensure content is above lines
-              style={{ paddingLeft: `${depth * 16 + 2}px` }} // Adjust padding for lines
-              data-selected={selectedFolder?.id === item.id || selectedFile?.id === item.id}
-            >
-              {item.type === "folder" ? (
-                <>
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFolder(item.id);
-                    }}
-                    className="p-1 hover:bg-muted-foreground/10 rounded cursor-pointer"
-                  >
-                    {expandedFolders.has(item.id) ? (
-                      <ChevronDown size={16} className="text-muted-foreground shrink-0" />
-                    ) : (
-                      <ChevronRight size={16} className="text-muted-foreground shrink-0" />
-                    )}
-                  </div>
-                  <div
-                    className="flex items-center gap-2 flex-1"
-                    onClick={() => handleFolderSelect(item)}
-                  >
-                    <Folder size={16} className="text-blue-500 shrink-0" />
-                    <span className="text-sm font-medium truncate">{item.name}</span>
-                  </div>
-                </>
-              ) : (
+            <ContextMenu>
+              <ContextMenuTrigger>
                 <div
-                  className="flex items-center gap-2 flex-1"
-                  onClick={() => handleFileSelect(item)}
+                  className={`flex items-center space-x-2 p-1 rounded-md cursor-pointer relative z-10 transition-all duration-200 ${(selectedFolder?.id === item.id || selectedFile?.id === item.id)
+                    ? "bg-blue-100 dark:bg-blue-800/40 text-blue-700 dark:text-blue-300 font-medium"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                    }`} // z-10 to ensure content is above lines
+                  style={{ paddingLeft: `${depth * 16 + 2}px` }} // Adjust padding for lines
+                  data-selected={selectedFolder?.id === item.id || selectedFile?.id === item.id}
                 >
-                  <div className="w-4 shrink-0" /> {/* Placeholder for arrow alignment */}
-                  <File size={16} className="text-gray-500 shrink-0" />
-                  <span className="text-sm font-medium truncate">{item.name}</span>
+                  {item.type === "folder" ? (
+                    <>
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFolder(item.id);
+                        }}
+                        className="p-1 hover:bg-muted-foreground/10 rounded cursor-pointer"
+                      >
+                        {expandedFolders.has(item.id) ? (
+                          <ChevronDown size={16} className="text-muted-foreground shrink-0" />
+                        ) : (
+                          <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+                        )}
+                      </div>
+                      <div
+                        className="flex items-center gap-2 flex-1"
+                        onClick={() => handleFolderSelect(item)}
+                      >
+                        <Folder size={16} className="text-blue-500 shrink-0" />
+                        {renamingNodeId === item.id ? (
+                          <Input
+                            autoFocus
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={handleRenameKeyDown}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onContextMenu={(e) => e.stopPropagation()}
+                            onBlur={handleRenameSubmit}
+                            className="h-6 text-sm py-0 px-1"
+                          />
+
+                        ) : (
+                          <span className="text-sm font-medium truncate">{item.name}</span>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div
+                      className="flex items-center gap-2 flex-1"
+                      onClick={() => handleFileSelect(item)}
+                    >
+                      <div className="w-4 shrink-0" /> {/* Placeholder for arrow alignment */}
+                      <File size={16} className="text-gray-500 shrink-0" />
+                      {renamingNodeId === item.id ? (
+                        <Input
+                          autoFocus
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={handleRenameKeyDown}
+                          onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onContextMenu={(e) => e.stopPropagation()}
+                          onBlur={handleRenameSubmit}
+                          className="h-6 text-sm py-0 px-1"
+                        />
+
+                      ) : (
+                        <span className="text-sm font-medium truncate">{item.name}</span>
+                      )}
+                    </div>
+
+                  )}
                 </div>
-              )}
-            </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent
+                className="z-15 w-64"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ContextMenuItem
+                  onSelect={(e) => {
+                    // Do not prevent default - let the menu close
+                    if (item.id.startsWith("chats-") || item.id.startsWith("chat-node-")) {
+                      toast({ title: "System Folder", description: "Cannot rename system items.", variant: "destructive" });
+                      return;
+                    }
+                    handleRenameRequest(item);
+                  }}
+                >
+                  Rename
+                </ContextMenuItem>
+
+                <ContextMenuItem
+                  className="text-red-600 focus:text-red-600"
+                  onSelect={(e) => {
+                    // Do not prevent default - let the menu close
+                    if (item.id.startsWith("chats-") || item.id.startsWith("chat-node-")) {
+                      toast({ title: "System Folder", description: "Cannot delete system items.", variant: "destructive" });
+                      return;
+                    }
+                    handleDeleteRequest(item);
+                  }}
+                >
+                  Delete
+                </ContextMenuItem>
+              </ContextMenuContent>
+
+            </ContextMenu>
             {item.type === "folder" && expandedFolders.has(item.id) && item.children && (
               <div>{renderProjectTree(item.children, depth + 1, currentLineInfo)}</div>
             )}
           </div>
-        </div>
+        </div >
       )
     })
   }
 
   return (
     <div
-      className="h-screen flex bg-gradient-to-br from-blue-100 via-blue-50 to-violet-50/20 dark:from-slate-950 dark:via-blue-950/40 dark:to-slate-900 relative"
+      className="h-screen overflow-y-hidden flex bg-gradient-to-br from-blue-100 via-blue-50 to-violet-50/20 dark:from-slate-950 dark:via-blue-950/40 dark:to-slate-900 relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -517,17 +797,38 @@ export default function ResearchCollaborationPage() {
           <div className="p-4 border-b border-border/50">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-foreground">Projects</h2>
-              <div className="flex space-x-1">
-                <Button size="sm" variant="ghost" onClick={() => setShowNotesModal(true)} title="Add Note">
+              <div className="flex ">
+                {/* <Button size="sm" variant="ghost" onClick={() => setShowNotesModal(true)} title="Add Note">
                   <StickyNote size={16} />
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setShowWhiteboard(true)} title="Open Whiteboard">
                   <PenTool size={16} />
-                </Button>
-                <Button size="sm" variant="ghost" onClick={handleAddProject} title="New Project">
+                </Button> */}
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCreateFolder();
+                  }}
+                >
                   <FolderPlus size={16} />
                 </Button>
-                <div className="relative">
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCreateFile();
+                  }}
+                >
+                  <FilePlus size={16} />
+                </Button>
+
+
+                <div className="relative hover:cursor-pointer">
                   <Button
                     size="sm"
                     variant="ghost"
@@ -579,7 +880,7 @@ export default function ResearchCollaborationPage() {
                 </div>
               </div>
               {(selectedFile || selectedFolder) && (
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 ">
                   <Button variant="outline" size="sm" className="atlassian-card hover:cursor-pointer border-border/50 hover:border-primary/50 transition-all duration-200">
                     <Download size={16} className="" />
                     {/* {selectedFile ? "Download" : "Export"} */}
@@ -596,17 +897,17 @@ export default function ResearchCollaborationPage() {
           {/* Content based on view mode */}
           <div className="flex-1">
             {viewMode === "folder" && selectedFolder && (
-              <div className="h-full flex flex-col gap-6 overflow-y-auto p-1">
+              <div className="h-screen flex flex-col  overflow-auto no-scrollbar p-1">
                 {/* Top Row: Focus & Papers */}
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-6">
                   <TodaysFocus className="h-full" />
                   <RecentPapers projectId={selectedFolder.id} />
                 </div>
 
                 {/* Bottom Row: Collaborators & Files */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 mt-9 md:grid-cols-2 gap-6">
                   {/* Collaborators */}
-                  <div className="atlassian-card h-fit">
+                  <div className="atlassian-card h-[calc(100vh-200px)]">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-semibold text-foreground flex items-center">
                         <Users size={18} className="mr-2" />
@@ -1014,7 +1315,7 @@ export default function ResearchCollaborationPage() {
                   <Input
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Let's research together...What's on your mind?"
+                    placeholder="Let's research together..."
                     className="pr-10 bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all duration-200"
                     disabled={isChatLoading}
                     onKeyPress={(e) => {
@@ -1058,3 +1359,5 @@ export default function ResearchCollaborationPage() {
     </div>
   )
 }
+
+

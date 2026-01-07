@@ -1933,3 +1933,18 @@ button:active:not(:disabled),
   animation: path-split-2 2s ease-in-out infinite;
   transform-origin: center;
 }
+
+/* ========================================
+   SCROLLBAR UTILITIES
+   ======================================== */
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}

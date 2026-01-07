@@ -27,10 +27,10 @@ const PaperCard = ({ title, authors, journal, date, status, progress }: PaperCar
             </div>
             <div
                 className={`px-3 py-1 text-xs font-medium rounded-lg ${status === "completed"
-                        ? "bg-success/10 text-success"
-                        : status === "in-progress"
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground"
+                    ? "bg-success/10 text-success"
+                    : status === "in-progress"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-muted text-muted-foreground"
                     }`}
             >
                 {status}
@@ -68,7 +68,7 @@ export function RecentPapers({ projectId }: { projectId?: string }) {
     // In a real app, use projectId to fetch specific papers
 
     return (
-        <div className="bg-background p-6 rounded-lg border border-border">
+        <div className="">
             <div className="flex items-center justify-between mb-5">
                 <h3 className="text-xl font-semibold text-foreground">Recent Papers</h3>
                 <div className="flex items-center gap-3">

@@ -16,6 +16,8 @@ interface ProjectContextState {
 
   // File System Actions
   addNode: (projectId: string, parentId: string, node: ProjectNode) => void;
+  updateNode: (projectId: string, nodeId: string, updates: Partial<ProjectNode>) => void;
+  deleteNode: (projectId: string, nodeId: string) => void;
 }
 
 const ProjectContext = createContext<ProjectContextState | undefined>(undefined);
@@ -96,6 +98,62 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const updateNode = (projectId: string, nodeId: string, updates: Partial<ProjectNode>) => {
+    const updateNodeRecursive = (current: ProjectNode, targetId: string, nodeUpdates: Partial<ProjectNode>): boolean => {
+      if (current.id === targetId) {
+        Object.assign(current, nodeUpdates);
+        return true;
+      }
+      if (current.children) {
+        for (const child of current.children) {
+          if (updateNodeRecursive(child, targetId, nodeUpdates)) return true;
+        }
+      }
+      return false;
+    };
+
+    setProjects((prev) =>
+      prev.map((project) => {
+        if (project.id === projectId) {
+          const newRoot = JSON.parse(JSON.stringify(project.rootNode));
+          if (updateNodeRecursive(newRoot, nodeId, updates)) {
+            return { ...project, rootNode: newRoot };
+          }
+        }
+        return project;
+      })
+    );
+  };
+
+  const deleteNode = (projectId: string, nodeId: string) => {
+    const deleteNodeRecursive = (current: ProjectNode, targetId: string): boolean => {
+      if (current.children) {
+        const index = current.children.findIndex(c => c.id === targetId);
+        if (index !== -1) {
+          current.children.splice(index, 1);
+          return true;
+        }
+        return current.children.some(child => deleteNodeRecursive(child, targetId));
+      }
+      return false;
+    };
+
+    setProjects((prev) =>
+      prev.map((project) => {
+        if (project.id === projectId) {
+          if (project.rootNode.id === nodeId) {
+            return project;
+          }
+          const newRoot = JSON.parse(JSON.stringify(project.rootNode));
+          if (deleteNodeRecursive(newRoot, nodeId)) {
+            return { ...project, rootNode: newRoot };
+          }
+        }
+        return project;
+      })
+    );
+  };
+
   return (
     <ProjectContext.Provider value={{
       projects,
@@ -105,7 +163,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       updateProject,
       deleteProject,
       toggleProjectStar,
-      addNode
+      addNode,
+      updateNode,
+      deleteNode
     }}>
       {children}
     </ProjectContext.Provider>

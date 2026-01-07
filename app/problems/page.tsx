@@ -209,7 +209,7 @@ export default function SOTAProblemsPage() {
   };
 
   return (
-    <div className="h-[100vh] flex relative">
+    <div className="h-screen overflow-y-hidden flex relative">
       <div className="dark:block hidden">
         <GeometricBackground variant="tesseract" />
       </div>
@@ -251,11 +251,11 @@ export default function SOTAProblemsPage() {
                     placeholder:text-muted-foreground
                   "
                   style={{
-                  boxShadow: "none",
-                  WebkitBoxShadow: "none",
-                  outline: "none",
-                  border: "none",
-                }}
+                    boxShadow: "none",
+                    WebkitBoxShadow: "none",
+                    outline: "none",
+                    border: "none",
+                  }}
                 />
 
               </div>
@@ -274,11 +274,10 @@ export default function SOTAProblemsPage() {
                     selectedCategory === category.id ? "default" : "outline"
                   }
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`flex items-center space-x-2 transition-all duration-200 ${
-                    selectedCategory === category.id
-                      ? "btn-primary shadow-lg"
-                      : "glass-card border-border/50 hover:border-primary/50"
-                  }`}
+                  className={`flex items-center space-x-2 transition-all duration-200 ${selectedCategory === category.id
+                    ? "btn-primary shadow-lg"
+                    : "glass-card border-border/50 hover:border-primary/50"
+                    }`}
                 >
                   <Icon size={16} />
                   <span>{category.label}</span>
@@ -303,11 +302,10 @@ export default function SOTAProblemsPage() {
                   <div key={problem.id} className="group relative">
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-300" />
                     <Card
-                      className={`relative cursor-pointer glass-card transition-all duration-300 hover:border-primary/50 ${
-                        selectedProblem?.id === problem.id
-                          ? "ring-2 ring-primary border-primary/50"
-                          : ""
-                      }`}
+                      className={`relative cursor-pointer glass-card transition-all duration-300 hover:border-primary/50 ${selectedProblem?.id === problem.id
+                        ? "ring-2 ring-primary border-primary/50"
+                        : ""
+                        }`}
                       onClick={() => handleProblemSelect(problem)}
                     >
                       <CardHeader className="pb-3">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   Search,
@@ -154,6 +154,12 @@ export default function Dashboard() {
     researchFocus: "Machine Learning",
     completedOnboarding: true,
   })
+  const [savedPapers, setSavedPapers] = useState<any[]>([])
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("saved_papers") || "[]")
+    setSavedPapers(saved)
+  }, [])
 
   return (
     <div className="min-h-screen flex relative">
@@ -240,6 +246,26 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
+
+              {/* SAVED PAPERS SECTION */}
+              {savedPapers.length > 0 && (
+                <div className="mb-8">
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Saved Library</h4>
+                  <div className="space-y-3">
+                    {savedPapers.map((paper, idx) => (
+                      <PaperCard
+                        key={paper.id || idx}
+                        title={paper.title}
+                        authors={paper.author || "Unknown Author"}
+                        journal={paper.category || "Research"}
+                        date={paper.date || "2024"}
+                        status="saved"
+                        progress={0}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <PaperCard

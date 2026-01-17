@@ -8,6 +8,7 @@ export interface ResearchProject {
 
 export interface User {
   // Authentication
+  id?: string;
   email: string;
   password?: string;
   authenticated?: boolean;

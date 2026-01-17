@@ -28,6 +28,7 @@ interface ChatContextState {
     chatSessions: ChatSession[];
     setChatSessions: React.Dispatch<React.SetStateAction<ChatSession[]>>;
     refreshChats: () => Promise<void>;
+    updateSession: (id: string, updates: Partial<ChatSession>) => void;
     isGenerating: boolean;
     setIsGenerating: (isGenerating: boolean) => void;
 }
@@ -60,8 +61,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         refreshChats();
     }, []);
 
+    const updateSession = (id: string, updates: Partial<ChatSession>) => {
+        setChatSessions(prev => prev.map(session => 
+            session.id === id ? { ...session, ...updates } : session
+        ));
+    };
+
     return (
-        <ChatContext.Provider value={{ chatSessions, setChatSessions, refreshChats, isGenerating, setIsGenerating }}>
+        <ChatContext.Provider value={{ chatSessions, setChatSessions, refreshChats, updateSession, isGenerating, setIsGenerating }}>
             {children}
         </ChatContext.Provider>
     );

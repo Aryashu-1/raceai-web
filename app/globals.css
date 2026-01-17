@@ -697,17 +697,44 @@ select:focus {
     border-color: var(--border);
   }
 
+
+
+  /* Force hide cursor on ALL interactive elements to prevent "hand" collision */
+  a, button, [role="button"], input, select, textarea, .cursor-pointer {
+    cursor: none !important; 
+  }
+
+  /* Define the subtle pulse animation */
+  @keyframes gradientPulse {
+      0% {
+          background-size: 100% 100%;
+          background-position: center;
+      }
+      100% {
+          background-size: 120% 120%;
+      }
+  }
+
+  /* FORCE HIDE CURSOR UNIVERSALLY - HIGH SPECIFICITY */
+  html, body, *, a, button, input, select, textarea, [role="button"] {
+      cursor: none !important;
+  }
+  
   body {
-    background: #FFFFFF;
-    color: var(--foreground);
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-outfit), 'Inter', sans-serif;
+    /* Primary Font: Outfit (User Requested) */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-attachment: fixed;
   }
 
   .dark body {
-    background: linear-gradient(135deg, #0a0e27 0%, #1a1b3e 20%, #1e3a8a 40%, #1d4ed8 60%, #2563eb 80%, #1e40af 100%);
-    background-size: 400% 400%;
-    animation: gradientFlow 15s ease infinite;
-    background-attachment: fixed;
+      /* Restore original global dark mode (Clean Dark) */
+      background: #020817; /* Default Shadcn/Slate-950 */
+      /* No global gradient here - Home page will handle its own */
+      color: #ffffff;
+      
+      cursor: none !important; /* Global hide */
   }
 }
 
@@ -1836,17 +1863,25 @@ button:active:not(:disabled),
 /* --- Active State System --- */
 
 /* 1. Active Card Glow (Strong Feedback for Chat Card) */
+/* 1. Active Card Glow (Strong Feedback for Chat Card) */
 .active-card-glow,
 .active-chat-border {
   position: relative;
   transition: all 0.3s ease;
 }
 
-.dark .active-card-glow,
-.dark .active-chat-border {
-  border: 1px solid rgba(59, 130, 246, 0.4) !important;
-  background: rgba(59, 130, 246, 0.15);
-  box-shadow: 0 0 15px -2px rgba(59, 130, 246, 0.3);
+.active-glow {
+  position: relative;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
+}
+
+.dark .active-glow {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
 }
 
 .light .active-card-glow,

@@ -9,6 +9,7 @@ interface ProjectContextState {
   setActiveProject: (project: Project | null) => void;
 
   // Actions
+  setProjects: (projects: Project[]) => void;
   addProject: (project: Project) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
@@ -18,6 +19,7 @@ interface ProjectContextState {
   addNode: (projectId: string, parentId: string, node: ProjectNode) => void;
   updateNode: (projectId: string, nodeId: string, updates: Partial<ProjectNode>) => void;
   deleteNode: (projectId: string, nodeId: string) => void;
+  addChatToProject: (projectId: string, chat: { id: string, title: string }) => void;
 }
 
 const ProjectContext = createContext<ProjectContextState | undefined>(undefined);
@@ -159,13 +161,37 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       projects,
       activeProject,
       setActiveProject,
+      setActiveProject,
+      setProjects,
       addProject,
       updateProject,
       deleteProject,
       toggleProjectStar,
       addNode,
       updateNode,
-      deleteNode
+      deleteNode,
+      addChatToProject: (projectId: string, chat: { id: string, title: string }) => {
+          setProjects(prev => prev.map(p => {
+              if (p.id === projectId) {
+                  // Check if already exists to prevent dupes
+                  const exists = p.rootNode.associatedChats?.some(c => c.id === chat.id);
+                  if (exists) return p;
+
+                  const newRoot = JSON.parse(JSON.stringify(p.rootNode));
+                  if (!newRoot.associatedChats) newRoot.associatedChats = [];
+                  
+                  newRoot.associatedChats.push({
+                      id: chat.id,
+                      title: chat.title,
+                      lastMessage: "Linked from Jarvis", // Mock
+                      timestamp: new Date(),
+                      messageCount: 0
+                  });
+                  return { ...p, rootNode: newRoot };
+              }
+              return p;
+          }));
+      }
     }}>
       {children}
     </ProjectContext.Provider>

@@ -25,15 +25,22 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Separator } from "@/components/ui/separator"
+import {
   FolderPlus,
   FileText,
   Upload,
   Download,
-  Share,
+  Share as Share2,
   ChevronRight,
   ChevronDown,
   Folder,
-  File,
+  File as FileIcon,
   Send,
   Mic,
   Play,
@@ -57,6 +64,14 @@ import {
   Target,
   Calendar,
   FilePlus,
+  Search,
+  Paperclip,
+  Edit3,
+  FolderOpen,
+  Filter,
+  MoreHorizontal,
+  TrendingUp,
+  Trash2
 } from "lucide-react"
 import NavigationSidebar from "@/components/navigation-sidebar"
 import GeometricBackground from "@/components/geometric-background"
@@ -127,10 +142,12 @@ export default function ResearchCollaborationPage() {
 
   const [selectedFile, setSelectedFile] = useState<ProjectNode | null>(null)
   const [selectedFolder, setSelectedFolder] = useState<ProjectNode | null>(null)
+  const [selectedNode, setSelectedNode] = useState<ProjectNode | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
 
-  // Flatten projects to rootNodes for the tree view
+  // Filter logic
   const projectStructure: ProjectNode[] = projects.map(p => {
-    // Clone the rootNode to avoid mutating the context state directly
+         // Clone the rootNode to avoid mutating the context state directly
     const rootNodeClone = JSON.parse(JSON.stringify(p.rootNode));
 
     // Inject "Chats" folder if it doesn't exist
@@ -151,17 +168,29 @@ export default function ResearchCollaborationPage() {
         id: `chats-${p.id}`,
         name: "Chats",
         type: "folder",
-        children: mockChats,
+        children: mockChats
       });
     }
-
-    return {
-      ...rootNodeClone,
-      id: p.rootNode.id || p.id,
-      name: p.name,
-      type: "folder"
-    }
+    return rootNodeClone;
   });
+
+  const filteredStructure = projectStructure.map(node => {
+        if (!searchQuery) return node;
+        // Simple 1-level filter for now, or recursive if needed. 
+        // Assuming projects are root nodes.
+        const matchesName = node.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const filteredChildren = node.children?.filter(child => child.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        
+        if (matchesName) return node;
+        if (filteredChildren && filteredChildren.length > 0) {
+            return {
+                ...node,
+                children: filteredChildren
+            }
+        }
+        return null;
+  }).filter(Boolean) as ProjectNode[];
+
 
   const handleAddProject = () => {
     const newProjectId = Date.now().toString();
@@ -656,7 +685,7 @@ export default function ResearchCollaborationPage() {
             <ContextMenu>
               <ContextMenuTrigger>
                 <div
-                  className={`flex items-center space-x-2 p-1 rounded-md cursor-pointer relative z-10 transition-all duration-200 ${(selectedFolder?.id === item.id || selectedFile?.id === item.id)
+                  className={`flex items-center space-x-2 p-1 rounded-md cursor-pointer relative z-10 transition-all duration-200 group ${(selectedFolder?.id === item.id || selectedFile?.id === item.id)
                     ? "bg-blue-100 dark:bg-blue-800/40 text-blue-700 dark:text-blue-300 font-medium"
                     : "hover:bg-muted text-muted-foreground hover:text-foreground"
                     }`} // z-10 to ensure content is above lines
@@ -707,7 +736,7 @@ export default function ResearchCollaborationPage() {
                       onClick={() => handleFileSelect(item)}
                     >
                       <div className="w-4 shrink-0" /> {/* Placeholder for arrow alignment */}
-                      <File size={16} className="text-gray-500 shrink-0" />
+                      <FileIcon size={16} className="text-gray-500 shrink-0" />
                       {renamingNodeId === item.id ? (
                         <Input
                           autoFocus
@@ -727,6 +756,46 @@ export default function ResearchCollaborationPage() {
                     </div>
 
                   )}
+                  {/* Dropdown Menu Trigger */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 ml-auto opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background/20"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40 z-50">
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          if (item.id.startsWith("chats-") || item.id.startsWith("chat-node-")) {
+                            toast({ title: "System Folder", description: "Cannot rename system items.", variant: "destructive" });
+                            return;
+                          }
+                          handleRenameRequest(item);
+                        }}
+                      >
+                        <Edit3 className="mr-2 h-4 w-4" />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-600 focus:text-red-600"
+                        onSelect={(e) => {
+                          if (item.id.startsWith("chats-") || item.id.startsWith("chat-node-")) {
+                            toast({ title: "System Folder", description: "Cannot delete system items.", variant: "destructive" });
+                            return;
+                          }
+                          handleDeleteRequest(item);
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </ContextMenuTrigger>
               <ContextMenuContent
@@ -787,577 +856,208 @@ export default function ResearchCollaborationPage() {
           </div>
         </div>
       )}
-      <GeometricBackground variant="mobius" />
+      {/* GeometricBackground removed as per user request */}
       <NavigationSidebar />
 
-      <div className="flex-1 flex">
-        {/* Project Structure Sidebar */}
-        <div className="w-80 border-r border-border/50 glass-card flex flex-col">
-          {/* Header */}
-          <div className="p-4 border-b border-border/50">
+      <main className="flex-1 flex overflow-hidden">
+        {/* Project Sidebar */}
+        <div className="w-80 border-r bg-card/30 backdrop-blur-xl flex flex-col z-20">
+          <div className="p-4 border-b bg-card/50">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-foreground">Projects</h2>
-              <div className="flex ">
-                {/* <Button size="sm" variant="ghost" onClick={() => setShowNotesModal(true)} title="Add Note">
-                  <StickyNote size={16} />
+              <h2 className="font-bold text-lg flex items-center gap-2">
+                <FolderOpen className="w-5 h-5 text-primary" />
+                Projects
+              </h2>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                  <Plus className="w-4 h-4" />
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setShowWhiteboard(true)} title="Open Whiteboard">
-                  <PenTool size={16} />
-                </Button> */}
-
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCreateFolder();
-                  }}
-                >
-                  <FolderPlus size={16} />
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                  <Filter className="w-4 h-4" />
                 </Button>
-
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCreateFile();
-                  }}
-                >
-                  <FilePlus size={16} />
-                </Button>
-
-
-                <div className="relative hover:cursor-pointer">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => document.getElementById('sidebar-file-upload')?.click()}
-                    title="Upload File"
-                  >
-                    <Upload size={16} />
-                  </Button>
-                  <input
-                    type="file"
-                    id="sidebar-file-upload"
-                    className="hidden"
-                    multiple
-                    onChange={(e) => {
-                      if (e.target.files) Array.from(e.target.files).forEach(handleProcessFile);
-                      // Reset to allow same file selection again
-                      e.target.value = '';
-                    }}
-                  />
-                </div>
               </div>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search files..." 
+                className="pl-9 h-9 bg-background/50 border-input/50 focus:bg-background transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
 
-          {/* Project Tree */}
-          <ScrollArea className="flex-1 p-2">
-            <div className="space-y-1">{renderProjectTree(projectStructure)}</div>
+          <ScrollArea className="flex-1 px-2 py-3">
+             {renderProjectTree(filteredStructure)}
           </ScrollArea>
+
+          <div className="p-4 border-t bg-card/50">
+             <div className="text-xs text-muted-foreground font-medium flex items-center justify-between">
+                <span>Storage</span>
+                <span>2.4 GB / 5 GB</span>
+             </div>
+             <div className="h-1.5 w-full bg-primary/10 rounded-full mt-2 overflow-hidden">
+                <div className="h-full bg-primary w-[48%] rounded-full" />
+             </div>
+          </div>
         </div>
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className="p-3 border-b border-border/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {viewMode !== "overview" && (
-                  <Button variant="ghost" size="sm" className="shadow-lg cursor-pointer" onClick={handleBackToOverview}>
-                    <ArrowLeft size={16} className="" />
-                    Back
-                  </Button>
-                )}
-                <div>
-                  <h1 className="text-lg font-bold text-foreground">
-                    {viewMode === "folder" && selectedFolder ? selectedFolder.name :
-                      viewMode === "file" && selectedFile ? selectedFile.name :
-                        "Research and Collaboration"}
-                  </h1>
-                </div>
-              </div>
-              {(selectedFile || selectedFolder) && (
-                <div className="flex space-x-2 ">
-                  <Button variant="outline" size="sm" className="atlassian-card hover:cursor-pointer border-border/50 hover:border-primary/50 transition-all duration-200">
-                    <Download size={16} className="" />
-                    {/* {selectedFile ? "Download" : "Export"} */}
-                  </Button>
-                  <Button variant="outline" size="sm" className="atlassian-card hover:cursor-pointer border-border/50 hover:border-primary/50 transition-all duration-200">
-                    <Share size={16} className="" />
+        {/* Main Workspace Area */}
+        <div className="flex-1 flex flex-col min-w-0 bg-background/50 relative overflow-hidden">
+            {/* Top Toolbar */}
+            <div className="h-14 border-b bg-card/30 backdrop-blur-xl flex items-center justify-between px-6 z-10 sticky top-0">
+               <div className="flex items-center gap-4">
+                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="hover:text-foreground cursor-pointer transition-colors">Research</span>
+                    <ChevronRight className="w-4 h-4" />
+                    <span className="font-semibold text-foreground flex items-center gap-2 bg-primary/10 px-2 py-0.5 rounded-md text-primary">
+                        {selectedNode ? selectedNode.name : "Overview"}
+                    </span>
+                 </div>
+               </div>
 
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Content based on view mode */}
-          <div className="flex-1">
-            {viewMode === "folder" && selectedFolder && (
-              <div className="h-screen flex flex-col  overflow-auto no-scrollbar p-1">
-                {/* Top Row: Focus & Papers */}
-                <div className="flex flex-col gap-6">
-                  <TodaysFocus className="h-full" />
-                  <RecentPapers projectId={selectedFolder.id} />
-                </div>
-
-                {/* Bottom Row: Collaborators & Files */}
-                <div className="grid grid-cols-1 mt-9 md:grid-cols-2 gap-6">
+               <div className="flex items-center gap-2">
                   {/* Collaborators */}
-                  <div className="atlassian-card h-[calc(100vh-200px)]">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-foreground flex items-center">
-                        <Users size={18} className="mr-2" />
-                        Collaborators ({selectedFolder.collaborators?.length || 0})
-                      </h3>
-                      <Button size="sm" variant="ghost">
-                        <Plus size={16} />
-                      </Button>
-                    </div>
-                    <div className="space-y-3">
-                      {selectedFolder.collaborators?.map((collaborator) => (
-                        <div key={collaborator.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <div className="relative">
-                              {collaborator.avatar ? (
-                                <img src={collaborator.avatar} alt={collaborator.name} className="w-8 h-8 rounded-full border border-border" />
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
-                                  {collaborator.name.charAt(0)}
+                  <div className="flex items-center -space-x-2 mr-4">
+                     {[1,2,3].map(i => (
+                         <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-muted flex items-center justify-center text-xs font-bold relative group cursor-pointer hover:z-10 hover:scale-110 transition-all">
+                            <span className="group-hover:hidden">U{i}</span>
+                            <img 
+                                src={`https://i.pravatar.cc/150?u=${i}`} 
+                                alt="User" 
+                                className="w-full h-full rounded-full object-cover hidden group-hover:block"
+                            />
+                         </div>
+                     ))}
+                     <div className="w-8 h-8 rounded-full border-2 border-background bg-muted flex items-center justify-center text-xs text-muted-foreground hover:bg-muted/80 cursor-pointer z-0">
+                        +5
+                     </div>
+                  </div>
+
+                  <Separator orientation="vertical" className="h-6 mx-2" />
+
+                  <Button variant="outline" size="sm" className="h-9 gap-2">
+                    <Share2 className="w-4 h-4" />
+                    Share
+                  </Button>
+                  <Button size="sm" className="h-9 gap-2 bg-primary hover:bg-primary/90">
+                    <MessageSquare size={16} className="w-4 h-4" />
+                    Comment
+                  </Button>
+               </div>
+            </div>
+
+            {/* Content View Area */}
+            <div className="flex-1 overflow-auto p-8 relative">
+                {selectedNode ? (
+                    <div className="max-w-5xl mx-auto animate-in fade-in duration-300 slide-in-from-bottom-4">
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-4">
+                                <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-primary border border-primary/20 shadow-lg">
+                                    {selectedNode.type === 'folder' ? <Folder className="w-8 h-8" /> : <FileText className="w-8 h-8" />}
                                 </div>
-                              )}
-                              <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-background ${collaborator.status === 'online' ? 'bg-green-500' :
-                                collaborator.status === 'busy' ? 'bg-red-500' : 'bg-gray-400'
-                                }`} />
+                                <div>
+                                    <h1 className="text-3xl font-bold font-space-grotesk tracking-tight text-foreground">{selectedNode.name}</h1>
+                                    <p className="text-muted-foreground mt-1 flex items-center gap-2">
+                                        <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+                                        Last edited just now by You
+                                    </p>
+                                </div>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium">{collaborator.name}</span>
-                              <span className="text-[10px] text-muted-foreground capitalize">{collaborator.role}</span>
+                            <div className="flex gap-2">
+                                <Button size="lg" className="rounded-xl shadow-lg shadow-primary/20">
+                                    Open
+                                </Button>
                             </div>
-                          </div>
-                          {/* <Button variant="ghost" size="icon" className="h-6 w-6">
-                                    <MessageSquare size={14} className="text-muted-foreground" />
-                                  </Button> */}
-                        </div>
-                      ))}
-                      {(!selectedFolder.collaborators || selectedFolder.collaborators.length === 0) && (
-                        <p className="text-sm text-muted-foreground italic">No collaborators to display.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Files - Using new thumbnail layout if possible, or list */}
-                  <div className="atlassian-card h-fit">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-foreground flex items-center">
-                        <FileText size={18} className="mr-2" />
-                        Files ({selectedFolder.files?.length || 0})
-                      </h3>
-                      <Button size="sm" variant="ghost" onClick={() => document.getElementById('sidebar-file-upload')?.click()}>
-                        <Upload size={16} />
-                      </Button>
-                    </div>
-                    {/* Thumbnail Grid for Files */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {selectedFolder.files?.map((file) => (
-                        <div
-                          key={file.id}
-                          className="group relative bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/50 rounded-lg p-3 transition-all cursor-pointer flex flex-col items-center text-center gap-2"
-                          onClick={() => handleFileSelect(file)}
-                        >
-                          <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                            {file.name.endsWith('.pdf') ? <FileText size={20} /> :
-                              file.name.endsWith('.md') ? <StickyNote size={20} /> :
-                                <File size={20} />}
-                          </div>
-                          <p className="font-medium text-xs truncate w-full" title={file.name}>{file.name}</p>
-                        </div>
-                      ))}
-                      <div
-                        className="border-2 border-dashed border-border hover:border-primary/50 rounded-lg p-3 flex flex-col items-center justify-center text-muted-foreground hover:text-primary cursor-pointer transition-colors min-h-[80px]"
-                        onClick={() => document.getElementById('sidebar-file-upload')?.click()}
-                      >
-                        <Plus size={20} />
-                        <span className="text-[10px] font-medium mt-1">Add</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* View Mode: Overview - Projects Grid */}
-            {viewMode === "overview" && selectedFolder && (
-              <ScrollArea className="flex-1 p-6">
-                <div className="max-w-6xl mx-auto space-y-8">
-
-                  {/* 1. Collaborators Section (Top) */}
-                  <section>
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <Users size={18} className="text-primary" />
-                        Collaborators
-                      </h2>
-                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
-                        <Plus size={16} className="mr-1" /> Invite
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-4">
-                      {selectedFolder.collaborators.map((collab) => (
-                        <div key={collab.id} className="flex items-center space-x-3 bg-card border border-border/50 p-2 pr-4 rounded-full shadow-sm">
-                          <div className="relative">
-                            {collab.avatar ? (
-                              <img src={collab.avatar} alt={collab.name} className="w-8 h-8 rounded-full border border-border" />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-medium">
-                                {collab.name.charAt(0)}
-                              </div>
-                            )}
-                            <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-background ${collab.status === 'online' ? 'bg-green-500' :
-                              collab.status === 'busy' ? 'bg-red-500' : 'bg-gray-400'
-                              }`} />
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium">{collab.name}</span>
-                            <span className="text-[10px] text-muted-foreground capitalize">{collab.role}</span>
-                          </div>
-                        </div>
-                      ))}
-                      {selectedFolder.collaborators.length === 0 && (
-                        <p className="text-sm text-muted-foreground italic">No collaborators yet.</p>
-                      )}
-                    </div>
-                  </section>
-
-                  {/* 2. Main Content Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Left Col: Today's Focus */}
-                    <div className="space-y-4">
-                      <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <Target size={18} className="text-primary" />
-                        Today's Focus
-                      </h2>
-                      <TodaysFocus />
-                    </div>
-
-                    {/* Right Col: Recent Papers */}
-                    <div className="space-y-4">
-                      <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <BookOpen size={18} className="text-primary" />
-                        Recent Papers
-                      </h2>
-                      <RecentPapers />
-                    </div>
-                  </div>
-
-                  {/* 3. Files & Resources (Thumbnails) */}
-                  <section>
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <FileText size={18} className="text-primary" />
-                        Files & Resources
-                      </h2>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => document.getElementById('sidebar-file-upload')?.click()}>
-                          <Upload size={14} className="mr-2" /> Upload New
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {selectedFolder.files.map((file) => (
-                        <div
-                          key={file.id}
-                          className="group relative bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/50 rounded-xl p-4 transition-all cursor-pointer flex flex-col items-center text-center gap-3 aspect-square justify-center"
-                          onClick={() => handleFileSelect(file)}
-                        >
-                          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                            {file.name.endsWith('.pdf') ? <FileText size={24} /> :
-                              file.name.endsWith('.md') ? <StickyNote size={24} /> :
-                                <File size={24} />}
-                          </div>
-                          <div className="space-y-1 w-full">
-                            <p className="font-medium text-sm truncate w-full" title={file.name}>{file.name}</p>
-                            <p className="text-[10px] text-muted-foreground">{file.size} • {file.lastModified}</p>
-                          </div>
-                        </div>
-                      ))}
-
-                      {/* Upload Placeholder Card */}
-                      <div
-                        className="border-2 border-dashed border-border hover:border-primary/50 rounded-xl p-4 flex flex-col items-center justify-center text-muted-foreground hover:text-primary cursor-pointer transition-colors aspect-square gap-2"
-                        onClick={() => document.getElementById('sidebar-file-upload')?.click()}
-                      >
-                        <Plus size={24} />
-                        <span className="text-xs font-medium">Add File</span>
-                      </div>
-                    </div>
-                  </section>
-
-                </div>
-              </ScrollArea>
-            )}
-
-            {viewMode === "file" && selectedFile && (
-              <div className="group relative h-full">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl blur opacity-75 transition duration-300" />
-                <Card className="relative atlassian-card h-full border-border/50">
-                  <CardContent className="p-0 h-[calc(100vh-4rem)] ">
-                    <PDFViewer fileUrl={selectedFile.fileUrl || ""} />
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {!selectedFolder && !selectedFile && (
-              <ScrollArea className="flex-1 p-6">
-                <div className="max-w-6xl mx-auto space-y-8">
-
-                  {/* Projects Header */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
-                      <p className="text-muted-foreground">Manage your research projects</p>
-                    </div>
-                    <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg">
-                      {["All", "Active", "Completed", "Archived"].map((tab) => (
-                        <button
-                          key={tab}
-                          className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${tab === "All" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                            }`}
-                        >
-                          {tab}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Projects Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {projects.map((project) => (
-                      <div
-                        key={project.id}
-                        className="group relative bg-card hover:bg-muted/30 border border-border rounded-xl p-5 hover:border-primary/50 transition-all cursor-pointer shadow-sm hover:shadow-md flex flex-col justify-between min-h-[200px]"
-                        onClick={() => handleFolderSelect(project.rootNode)}
-                      >
-                        {/* Card Header */}
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-3 h-3 rounded-full ${project.status === 'active' ? 'bg-blue-500' :
-                              project.status === 'completed' ? 'bg-green-500' : 'bg-gray-400'
-                              }`} />
-                            <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">
-                              {project.name}
-                            </h3>
-                          </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-yellow-500" onClick={(e) => { e.stopPropagation(); toggleProjectStar(project.id); }}>
-                              <Star size={16} fill={project.isStarred ? "currentColor" : "none"} className={project.isStarred ? "text-yellow-500" : ""} />
-                            </Button>
-                          </div>
                         </div>
 
-                        {/* Card Body */}
-                        <div className="space-y-4 mb-6">
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {project.description || "No description provided for this research project."}
-                          </p>
-                          <div className="space-y-1.5">
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>Progress</span>
-                              <span>{project.progress || Math.floor(Math.random() * 100)}%</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-primary rounded-full transition-all"
-                                style={{ width: `${project.progress || Math.floor(Math.random() * 100)}%` }}
-                              />
-                            </div>
-                          </div>
+                        {/* File Preview Mockup */}
+                        <div className="rounded-xl border bg-card/50 backdrop-blur-sm min-h-[500px] shadow-sm relative overflow-hidden group">
+                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-background/5 p-4">
+                                <Button variant="secondary" className="backdrop-blur-md">Preview File</Button>
+                             </div>
+                             <div className="p-12 text-center text-muted-foreground opacity-20 select-none pointer-events-none">
+                                <FileText className="w-32 h-32 mx-auto mb-4" />
+                                <h3 className="text-2xl font-bold">Content Preview</h3>
+                                <p>Select a file to view detailed content</p>
+                             </div>
                         </div>
-
-                        {/* Card Footer */}
-                        <div className="flex items-center justify-between pt-4 border-t border-border/50 mt-auto">
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1.5">
-                              <Calendar size={14} />
-                              <span>{new Date(project.updatedAt).toLocaleDateString()}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <FileText size={14} />
-                              <span>{project.rootNode.children?.length || 0} docs</span>
-                            </div>
-                          </div>
-
-                          <div className="flex -space-x-2">
-                            {[1, 2, 3].map((i) => (
-                              <div key={i} className="w-6 h-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-medium text-muted-foreground">
-                                {['A', 'B', 'C'][i - 1]}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* New Project Card */}
-                    <div
-                      className="border-2 border-dashed border-border hover:border-primary/50 text-muted-foreground hover:text-primary rounded-xl p-5 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors min-h-[200px]"
-                      onClick={handleAddProject}
-                    >
-                      <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                        <Plus size={24} />
-                      </div>
-                      <span className="font-medium">Create New Project</span>
                     </div>
-                  </div>
-                </div>
-              </ScrollArea>
-            )}
-          </div>
-        </div>
-
-        {/* End of Main Content Area, Start of AI Sidebar (if needed) */}
-
-        {/* AI Assistant Sidebar */}
-        <div className="w-96 border-l border-border/50 glass-card flex flex-col">
-          {/* Header */}
-          <div className="p-4 border-b border-border/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
-                  <Sparkles size={16} className="text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Race Chat</h3>
-                  <p className="text-xs text-muted-foreground">AI Research Assistant</p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGeneratePodcast}
-                disabled={!selectedFile || isGeneratingPodcast}
-              >
-                {isGeneratingPodcast ? (
-                  <>
-                    <Loader2 size={14} className="mr-1 animate-spin" />
-                    Generating...
-                  </>
                 ) : (
-                  "Generate Podcast"
-                )}
-              </Button>
-            </div>
+                    // Dashboard Overview
+                    <div className="max-w-6xl mx-auto">
+                        <h2 className="text-2xl font-bold font-space-grotesk mb-6 flex items-center gap-2">
+                            <Sparkles className="w-6 h-6 text-primary" />
+                            Recent Activity
+                        </h2>
 
-            {/* Podcast Player */}
-            {podcastUrl && (
-              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Podcast Explanation</span>
-                  <Button size="sm" variant="ghost" onClick={() => setIsPlaying(!isPlaying)}>
-                    {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-                  </Button>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="flex-1 h-1 bg-muted rounded-full">
-                    <div className="h-1 bg-primary rounded-full w-1/3"></div>
-                  </div>
-                  <Volume2 size={14} className="text-muted-foreground" />
-                </div>
-              </div>
-            )}
-          </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                             {[1, 2, 3].map((i) => (
+                                 <Card key={i} className="hover:shadow-lg transition-all duration-300 cursor-pointer border-border/50 bg-card/40 hover:bg-card hover:border-primary/30 group">
+                                     <CardContent className="p-5">
+                                         <div className="flex items-start justify-between mb-4">
+                                             <div className="p-3 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                                                 <FileText className="w-6 h-6" />
+                                             </div>
+                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                                                 <MoreHorizontal className="w-4 h-4" />
+                                             </Button>
+                                         </div>
+                                         <h3 className="font-bold text-lg mb-1 group-hover:text-primary transition-colors">Research Paper {i}.pdf</h3>
+                                         <p className="text-sm text-muted-foreground mb-4 line-clamp-2">Analysis of quantum coherence in biological systems...</p>
+                                         <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                             <span>Updated 2h ago</span>
+                                             <div className="flex -space-x-2">
+                                                 <div className="w-6 h-6 rounded-full bg-blue-500 border-2 border-background" />
+                                                 <div className="w-6 h-6 rounded-full bg-purple-500 border-2 border-background" />
+                                             </div>
+                                         </div>
+                                     </CardContent>
+                                 </Card>
+                             ))}
+                        </div>
 
-          {/* Chat Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
-              {chatMessages.map((message) => (
-                <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[80%] p-3 rounded-lg ${message.sender === "user"
-                      ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg"
-                      : "glass-card border border-border/50 text-foreground"
-                      }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    <p
-                      className={`text-xs mt-1 ${message.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}
-                    >
-                      {message.timestamp.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-                    </p>
-                  </div>
-                </div>
-              ))}
-
-              {isChatLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-muted p-3 rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                      <span className="text-sm">Analyzing...</span>
+                        <h2 className="text-2xl font-bold font-space-grotesk mb-6 flex items-center gap-2">
+                             <TrendingUp className="w-6 h-6 text-green-500" />
+                             Project Analytics
+                        </h2>
+                        <div className="grid lg:grid-cols-3 gap-6">
+                            <Card className="col-span-2 bg-gradient-to-br from-card/50 to-background border-border/50">
+                                <CardContent className="p-6">
+                                    <div className="h-[200px] flex items-center justify-center text-muted-foreground border-2 border-dashed border-border/50 rounded-xl bg-muted/20">
+                                        Activity Chart Placeholder
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card className="col-span-1 bg-gradient-to-br from-card/50 to-background border-border/50">
+                                <CardContent className="p-6 space-y-6">
+                                    <div>
+                                        <div className="flex justify-between text-sm mb-2">
+                                            <span className="font-medium">Storage Used</span>
+                                            <span className="text-muted-foreground">48%</span>
+                                        </div>
+                                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                            <div className="h-full bg-primary w-[48%]" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="flex justify-between text-sm mb-2">
+                                            <span className="font-medium">Weekly Goals</span>
+                                            <span className="text-muted-foreground">3/5</span>
+                                        </div>
+                                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                            <div className="h-full bg-green-500 w-[60%]" />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
-                  </div>
-                </div>
-              )}
+                )}
             </div>
-          </ScrollArea>
-
-          {/* Chat Input */}
-          <div className="p-4 border-t border-border">
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">NEW TOPIC</p>
-              <div className="flex items-center space-x-2">
-                <div className="flex-1 relative">
-                  <Input
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Let's research together..."
-                    className="pr-10 bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all duration-200"
-                    disabled={isChatLoading}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        handleSendMessage()
-                      }
-                    }}
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                    disabled={isChatLoading}
-                  >
-                    <Mic size={14} />
-                  </Button>
-                </div>
-                <Button
-                  onClick={handleSendMessage}
-                  size="sm"
-                  className="btn-primary shadow-lg hover:shadow-xl transition-all duration-200"
-                  disabled={isChatLoading || !chatInput.trim()}
-                >
-                  {isChatLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                </Button>
-              </div>
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm" className="flex-1 bg-transparent" disabled={isChatLoading}>
-                  <BookOpen size={14} className="mr-1" />
-                  Summarize
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1 bg-transparent" disabled={isChatLoading}>
-                  <MessageSquare size={14} className="mr-1" />
-                  Explain
-                </Button>
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
-
-

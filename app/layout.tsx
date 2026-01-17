@@ -5,15 +5,17 @@ import { Inter, Space_Grotesk, Outfit } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 
 import "./globals.css"
+import CustomCursor from "@/components/custom-cursor"
 
 //context providers
 import { AuthProvider } from "./context/AuthContext";
 import { UserProvider } from "./context/UserContext";
 import { ProjectProvider } from "./context/ProjectContext"
 import { ChatProvider } from "./context/ChatContext"
-// NEW FEATURES - Add these imports
-import { NotificationProvider } from "@/lib/contexts/notification-context"
+import { SettingsProvider } from "./context/SettingsContext"
+
 import { ToastProvider } from "@/lib/contexts/toast-context"
+import { NotificationProvider } from "@/lib/contexts/notification-context"
 import { CommandPalette } from "@/components/command-palette"
 import { QuickCapture } from "@/components/quick-capture"
 
@@ -46,9 +48,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  // const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-  // const isValidClerkKey = publishableKey && publishableKey.startsWith("pk_") && publishableKey.length > 20
-
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${outfit.variable}`} suppressHydrationWarning>
       <head>
@@ -60,23 +59,23 @@ export default function RootLayout({
         />
         <meta name="api-keys-required" content="OPENAI_API_KEY for full functionality" />
       </head>
-      <body className="font-sans antialiased bg-background text-foreground" suppressHydrationWarning>
+      <body className={`${inter.className} font-sans antialiased bg-background text-foreground`} suppressHydrationWarning>
+        <CustomCursor />
         <AuthProvider>
           <UserProvider>
             <ProjectProvider>
               <ChatProvider>
-                <ThemeProvider attribute="class" defaultTheme="light" enableSystem={true}>
-                  {/* NEW: Wrap with feature providers */}
-                  <ToastProvider>
-                    <NotificationProvider>
-                      {children}
-
-                      {/* NEW: Add global features */}
-                      <CommandPalette />  {/* Press ⌘K or Ctrl+K to open */}
-                      <QuickCapture />    {/* Floating + button in bottom-right */}
-                    </NotificationProvider>
-                  </ToastProvider>
-                </ThemeProvider>
+                <SettingsProvider>
+                  <ThemeProvider attribute="class" defaultTheme="light" enableSystem={true}>
+                    <ToastProvider>
+                      <NotificationProvider>
+                        {children}
+                        <CommandPalette />
+                        <QuickCapture />
+                      </NotificationProvider>
+                    </ToastProvider>
+                  </ThemeProvider>
+                </SettingsProvider>
               </ChatProvider>
             </ProjectProvider>
           </UserProvider>
@@ -84,9 +83,4 @@ export default function RootLayout({
       </body>
     </html>
   )
-
-  // if (isValidClerkKey) {
-  //   return <ClerkProvider publishableKey={publishableKey}>{content}</ClerkProvider>
-  // }
-  // return content
 }

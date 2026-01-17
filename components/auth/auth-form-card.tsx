@@ -1,11 +1,16 @@
 "use client"
 
+import { signIn as nextAuthSignIn } from "next-auth/react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Eye, EyeOff, Mail, Lock } from "lucide-react"
 import { useUser } from "@/app/context/UserContext"
 import { useProjects } from "@/app/context/ProjectContext"
 import { useChatContext } from "@/app/context/ChatContext"
+import { submitToHubSpot } from "@/lib/hubspot"
+import { supabase } from "@/lib/supabase"
+// Sound removed as per user request
+// import { useCalmingSound } from "@/hooks/use-calming-sound";
 
 interface AuthFormCardProps {
     onAuthSuccess: (userData: any, isNewUser?: boolean) => void
@@ -34,6 +39,8 @@ export default function AuthFormCard({ onAuthSuccess }: AuthFormCardProps) {
     const { setChatSessions } = useChatContext()
     const { updateUser } = useUser()
     const router = useRouter()
+    // Sound removed
+    // const playSound = useCalmingSound()
 
     const [formData, setFormData] = useState<FormData>({
         email: "",
@@ -68,9 +75,8 @@ export default function AuthFormCard({ onAuthSuccess }: AuthFormCardProps) {
 
         if (!formData.password) {
             errors.password = "Password is required"
-        } else if (formData.password.length < 6) {
-            // Adjusted length requirement if needed, sticking to 8 usually but let's be lenient or match backend
-            if (formData.password.length < 8) errors.password = "Password must be at least 8 characters long"
+        } else if (formData.password.length < 8) {
+            errors.password = "Password must be at least 8 characters long"
         }
 
         if (isSignUp && formData.password !== formData.confirmPassword) {
@@ -89,95 +95,56 @@ export default function AuthFormCard({ onAuthSuccess }: AuthFormCardProps) {
         setFormErrors((prev) => ({ ...prev, submit: "" }))
 
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5001"
-
             if (isSignUp) {
-                // --- SIGN UP: Validate via Backend ---
-                const endpoint = `${baseUrl}/auth/signup`
-                console.log("🔹 Signing up via:", endpoint)
-
-                // This validates if user exists
-                const response = await fetch(endpoint, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        email: formData.email,
-                        password: formData.password,
-                        // Add default name if required by backend, simplified for now
-                        name: formData.email.split('@')[0]
-                    }),
+                // --- SIGN UP: Supabase ---
+                const { data, error } = await supabase.auth.signUp({
+                    email: formData.email,
+                    password: formData.password,
+                    options: {
+                        data: {
+                            full_name: formData.email.split('@')[0],
+                        }
+                    }
                 })
 
-                if (!response.ok) {
-                    if (response.status === 409) {
-                        throw new Error("User already exists. Please sign in instead.")
-                    }
-                    const text = await response.text()
-                    try {
-                        const json = JSON.parse(text)
-                        throw new Error(json.message || "Signup failed")
-                    } catch (e: any) {
-                        throw new Error("Signup failed. Please try again.")
-                    }
+                if (error) throw error
+
+                // Submit to HubSpot
+                if (data.user) {
+                    await submitToHubSpot({
+                        email: data.user.email || formData.email,
+                        firstname: formData.email.split('@')[0], 
+                        lifecyclestage: "lead"
+                    }).catch(err => console.error("HubSpot non-blocking error:", err));
                 }
 
-                const result = await response.json()
-
-                // Update context with basic info, but usually we move to Onboarding
+                // Update Context
                 updateUser({
                     email: formData.email,
-                    // We might carry over the password if needed for auto-login later, or token
+                    id: data.user?.id
                 })
 
-                onAuthSuccess(result.user || { email: formData.email }, true)
+                onAuthSuccess(data.user || { email: formData.email }, true)
 
             } else {
-                // --- SIGN IN ---
-                const endpoint = `${baseUrl}/auth/signin`
-
-                const response = await fetch(endpoint, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        email: formData.email,
-                        password: formData.password,
-                    }),
+                // --- SIGN IN: Supabase ---
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: formData.email,
+                    password: formData.password,
                 })
 
-                if (!response.ok) {
-                    const text = await response.text()
-                    if (response.status === 404) {
-                        throw new Error("Account not found. Please sign up.")
-                    }
-                    if (response.status === 401) {
-                        throw new Error("Invalid password. Please try again.")
-                    }
-                    throw new Error("Signin failed. Please check your credentials.")
+                if (error) throw error
+
+                if (data.user && data.session) {
+                    localStorage.setItem("race_ai_token", data.session.access_token)
+                    
+                    updateUser({
+                        ...data.user,
+                        email: data.user.email // Ensure email is passed
+                    })
+
+                    onAuthSuccess(data.user, false)
                 }
-
-                const result = await response.json()
-                const { user, token } = result
-
-                if (!user || !token) throw new Error("Invalid response from server")
-
-                localStorage.setItem("race_ai_user", JSON.stringify(user))
-                localStorage.setItem("race_ai_token", token)
-
-                updateUser(user)
-
-                // Load initial data in background
-                // We do this here optimistically
-                fetch(`${baseUrl}/chat/user/${user.id}`)
-                    .then(res => res.json())
-                    .then(data => setChatSessions(data))
-                    .catch(err => console.warn("Failed to load chats", err))
-
-                fetch(`${baseUrl}/projects/structuredProjects/${user.id}`)
-                    .then(res => res.json())
-                    .then(data => setProjects(data))
-                    .catch(err => console.warn("Failed to load projects", err))
-
-                onAuthSuccess(user, false)
             }
         } catch (error: any) {
             console.error("Auth Error:", error)
@@ -190,14 +157,19 @@ export default function AuthFormCard({ onAuthSuccess }: AuthFormCardProps) {
         }
     }
 
-    const handleSocialSignIn = async (provider: string) => {
+    const handleSocialSignIn = async (provider: 'google' | 'github') => {
         setIsLoading(true)
         try {
-            // Simulation
-            await new Promise(resolve => setTimeout(resolve, 1000))
-            setFormErrors(prev => ({ ...prev, submit: `${provider} login requires backend configuration (Client ID/Secret).` }))
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider,
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                }
+            })
+            if (error) throw error
         } catch (error) {
-            // ignore 
+            console.error("Social Auth Error:", error)
+            setFormErrors(prev => ({ ...prev, submit: "Social authentication failed." }))
         } finally {
             setIsLoading(false)
         }
@@ -205,7 +177,7 @@ export default function AuthFormCard({ onAuthSuccess }: AuthFormCardProps) {
 
     return (
         <div className="w-full max-w-md mx-auto">
-            <div className="card-default p-8 bg-card/80 backdrop-blur-md shadow-xl border border-border/50">
+            <div className="card-default p-8 bg-transparent shadow-none border-0">
 
                 <div className="text-center mb-6">
                     <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -217,7 +189,7 @@ export default function AuthFormCard({ onAuthSuccess }: AuthFormCardProps) {
                 </div>
 
                 {/* Toggle Buttons */}
-                <div className="flex bg-muted/50 rounded-lg p-1 mb-6">
+                <div className="flex bg-white/5 dark:bg-black/20 rounded-lg p-1 mb-6 backdrop-blur-sm border border-white/10">
                     <button
                         onClick={() => setIsSignUp(false)}
                         className={`flex-1 py-2.5 px-6 text-sm font-medium rounded-md transition-all duration-200 ${!isSignUp
@@ -351,11 +323,11 @@ export default function AuthFormCard({ onAuthSuccess }: AuthFormCardProps) {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => handleSocialSignIn('Google')} type="button" className="btn-secondary py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-medium hover:bg-muted/80 transition-colors">
+                    <button onClick={() => handleSocialSignIn('google')} type="button" className="btn-secondary py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-medium hover:bg-muted/80 transition-colors">
                         <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="#EA4335" d="M24 12.276c0-1.077-.101-2.115-.274-3.122H12.276V13.88h6.606c-.308 1.503-1.168 2.766-2.43 3.593v3.012h3.918c2.29-2.11 3.612-5.226 3.612-8.21z" /><path fill="#34A853" d="M12.276 24c3.298 0 6.066-1.092 8.087-2.963l-3.918-3.013c-1.092.735-2.492 1.177-4.169 1.177-3.195 0-5.903-2.155-6.866-5.063H1.474v3.21C3.542 21.455 7.64 24 12.276 24z" /><path fill="#FBBC05" d="M5.41 14.138c-.244-.735-.386-1.523-.386-2.336 0-.813.142-1.601.386-2.336V6.257H1.474C.535 8.127 0 10.207 0 12.404c0 2.197.535 4.277 1.474 6.147l3.936-3.21z" /><path fill="#4285F4" d="M12.276 4.796c1.728 0 3.364.634 4.654 1.83l3.355-3.355C18.337 1.343 15.569 0 12.276 0 7.64 0 3.542 2.545 1.474 6.257l3.936 3.21c.963-2.909 3.671-5.064 6.866-5.064z" /></svg>
                         Google
                     </button>
-                    <button onClick={() => handleSocialSignIn('GitHub')} type="button" className="btn-secondary py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-medium hover:bg-muted/80 transition-colors">
+                    <button onClick={() => handleSocialSignIn('github')} type="button" className="btn-secondary py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-medium hover:bg-muted/80 transition-colors">
                         <svg className="w-4 h-4 text-foreground" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
                         GitHub
                     </button>

@@ -25,8 +25,24 @@ import {
   Atom,
   Beaker,
   Brain,
+  X,
+  Share2,
+  Bookmark,
+  Quote
 } from "lucide-react";
 import NavigationSidebar from "@/components/navigation-sidebar";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+
+
+import PDFViewer from "@/components/pdfviewer";
+import { useUser } from "../context/UserContext";
 
 interface ResearchItem {
   id: string;
@@ -43,6 +59,32 @@ interface ResearchItem {
 export default function KnowledgeDiscoveryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("state-of-art");
+  const [selectedItem, setSelectedItem] = useState<ResearchItem | null>(null);
+  const [showPDFViewer, setShowPDFViewer] = useState(false);
+  const { user, updateUser } = useUser();
+
+  const handleSavePaper = (item: ResearchItem) => {
+    // Simple verification check/toast logic could go here
+    // For now we assume we just added it to the context
+    // In a real app we'd call an API
+    console.log("Saving paper:", item.title);
+    
+    // Simulate updating user context with Saved Papers
+    // Note: The User type might need to be extended to hold this, 
+    // but for now we'll just log or use local storage as persistence shim if needed
+    // or assume the user context has a general 'metadata' field. 
+    // Let's create a local storage entry for 'saved_papers' to share with dashboard
+    
+    const saved = JSON.parse(localStorage.getItem("saved_papers") || "[]");
+    if (!saved.find((p: any) => p.id === item.id)) {
+        saved.push(item);
+        localStorage.setItem("saved_papers", JSON.stringify(saved));
+        alert("Paper saved to library!"); 
+    } else {
+        alert("Paper already in library.");
+    }
+  };
+
 
   const fieldCategories = [
     {
@@ -326,21 +368,25 @@ export default function KnowledgeDiscoveryPage() {
   };
 
   const handleSearch = () => {
-    if (!searchQuery.trim()) return;
+    // Search is reactive now, but we can keep this for explicit actions if needed
+    console.log("Searching for:", searchQuery);
+  };
 
-    // Filter research data across all categories based on search query
-    const allResearchItems = Object.values(researchData).flat();
-    const filteredItems = allResearchItems.filter(
-      (item) =>
+  // Filter logic
+  const allResearchItems = Object.values(researchData).flat();
+  const filteredData = searchQuery.trim() 
+    ? allResearchItems.filter(item => 
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.author?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+      )
+    : (researchData[selectedCategory] || []);
 
-    console.log("Search results:", filteredItems);
-    // For now, just log the results. In a real app, you'd update state to show filtered results
-  };
+  const displayTitle = searchQuery.trim() 
+    ? `Search Results for "${searchQuery}"`
+    : fieldCategories.find((c) => c.id === selectedCategory)?.label || "Research";
+
 
   const selectedCategoryData = researchData[selectedCategory] || [];
 
@@ -462,14 +508,14 @@ export default function KnowledgeDiscoveryPage() {
             {/* Content Display */}
             <div>
               <h2 className="text-2xl font-semibold text-foreground mb-6">
-                {fieldCategories.find((c) => c.id === selectedCategory)?.label}
+                {displayTitle}
               </h2>
 
               <ScrollArea className="h-[calc(100vh-380px)]">
                 <div className="space-y-6 pr-2">
-                  {selectedCategoryData.map((item) => (
-                    <div key={item.id} className="group">
-                      <Card className="card-default hover:border-primary transition-normal">
+                  {filteredData.map((item) => (
+                    <div key={item.id} className="group" onClick={() => setSelectedItem(item)}>
+                      <Card className="card-default hover:border-primary transition-normal cursor-pointer hover:shadow-md">
                         <CardHeader className="pb-4 p-6">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -493,7 +539,7 @@ export default function KnowledgeDiscoveryPage() {
                           </div>
                         </CardHeader>
                         <CardContent className="p-6 pt-0">
-                          <p className="text-muted-foreground mb-4 leading-relaxed">
+                          <p className="text-muted-foreground mb-4 leading-relaxed line-clamp-2">
                             {item.description}
                           </p>
                           <div className="flex items-center justify-between">
@@ -524,7 +570,7 @@ export default function KnowledgeDiscoveryPage() {
                             {item.citations && (
                               <div className="flex items-center gap-2 bg-warning/10 text-warning px-3 py-1.5 rounded-lg text-sm font-medium">
                                 <Star size={14} className="text-warning" />
-                                <span>{item.citations}</span>
+                                <span className="text-warning font-mono">{item.citations}</span>
                               </div>
                             )}
                           </div>
@@ -576,6 +622,109 @@ export default function KnowledgeDiscoveryPage() {
           </div>
         </div>
       </div>
+      {/* Detailed View Sheet */}
+      <Sheet open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
+        <SheetContent side="right" className="w-[600px] sm:w-[800px] sm:max-w-[90vw] overflow-y-auto bg-background/95 backdrop-blur-xl border-l border-border shadow-2xl z-[100]">
+           {selectedItem && (
+             <div className="space-y-8 py-6">
+                <SheetHeader className="space-y-4">
+                   <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-primary border-primary/20">
+                         {selectedItem.category}
+                      </Badge>
+                      {selectedItem.date && (
+                        <span className="text-sm text-muted-foreground font-mono">
+                           {new Date(selectedItem.date).toLocaleDateString()}
+                        </span>
+                      )}
+                   </div>
+                   <SheetTitle className="text-3xl font-bold leading-tight">
+                      {selectedItem.title}
+                   </SheetTitle>
+                   <div className="flex items-center gap-6 text-sm text-muted-foreground border-b pb-6 border-white/5">
+                      {selectedItem.author && (
+                        <div className="flex items-center gap-2">
+                           <Users size={16} />
+                           <span className="text-foreground">{selectedItem.author}</span>
+                        </div>
+                      )}
+                      {selectedItem.citations && (
+                          <div className="flex items-center gap-2 text-warning">
+                             <Star size={16} />
+                             <span>{selectedItem.citations} citations</span>
+                          </div>
+                      )}
+                   </div>
+                </SheetHeader>
+
+                <div className="space-y-6">
+                   <div className="p-6 rounded-2xl bg-muted/30 border border-white/5">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                         <Sparkles size={18} className="text-primary" />
+                         Abstract
+                      </h3>
+                      <p className="text-muted-foreground leading-relaxed text-lg">
+                         {selectedItem.description}
+                         <span className="text-muted-foreground/50 ml-1">
+                            (Full abstract content would be populated here in a production environment, pulling from the actual paper source or API.)
+                         </span>
+                      </p>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 rounded-xl border border-white/5 bg-background">
+                         <h4 className="font-medium text-sm text-muted-foreground mb-2">Key Concepts</h4>
+                         <div className="flex flex-wrap gap-2">
+                            {["Neural Networks", "Optimization", "Algorithms", "Data Efficiency"].map(tag => (
+                               <Badge key={tag} variant="secondary" className="bg-secondary/50">
+                                  {tag}
+                               </Badge>
+                            ))}
+                         </div>
+                      </div>
+                      <div className="p-4 rounded-xl border border-white/5 bg-background">
+                         <h4 className="font-medium text-sm text-muted-foreground mb-2">Funding Source</h4>
+                           <div className="flex items-center gap-2 mt-1">
+                              <DollarSign size={16} className="text-green-500" />
+                              <span>National Science Foundation</span>
+                           </div>
+                      </div>
+                   </div>
+
+                   <div className="flex gap-3 pt-4">
+                      <Button className="flex-1 bg-primary hover:bg-primary/90" onClick={() => setShowPDFViewer(true)}>
+                         <BookOpen size={16} className="mr-2" /> 
+                         Read Full Paper
+                      </Button>
+                      <Button variant="outline" className="flex-1" onClick={() => handleSavePaper(selectedItem)}>
+                         <Bookmark size={16} className="mr-2" />
+                         Save to Library
+                      </Button>
+                      <Button variant="ghost" size="icon">
+                         <Share2 size={18} />
+                      </Button>
+                      <Button variant="ghost" size="icon">
+                         <Quote size={18} />
+                      </Button>
+                   </div>
+                </div>
+             </div>
+           )}
+        </SheetContent>
+      </Sheet>
+
+      {/* PDF Viewer Overlay */}
+      {showPDFViewer && selectedItem && (
+        <div className="fixed inset-0 z-[200] bg-background">
+            <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="font-semibold">{selectedItem.title}</h3>
+                <Button variant="ghost" onClick={() => setShowPDFViewer(false)}>Close</Button>
+            </div>
+            <div className="h-[calc(100vh-64px)]">
+               <PDFViewer fileUrl={selectedItem.url || "https://pdftron.s3.amazonaws.com/downloads/pl/demo-annotated.pdf"} />
+            </div>
+        </div>
+      )}
     </div>
   );
 }

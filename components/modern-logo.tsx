@@ -12,26 +12,21 @@ interface ModernLogoProps {
 export default function ModernLogo({ size = 32, className = "", showText = true, animated = false }: ModernLogoProps) {
   const gradientId = useId().replace(/:/g, "") + "-gradient"
 
-  // The 'R' Logo consists of two parts: The Head/Loop and the Leg/Kick.
-  const PathHead = (
-    <path
-      d="M10 20 L20 10 L30 10 C35.5 10 35.5 18 30 18 L20 18 L30 30"
-      stroke={`url(#${gradientId})`}
-      strokeWidth="4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  );
-
-  const PathLeg = (
-    <path
-      d="M10 30 L20 20"
-      stroke={`url(#${gradientId})`}
-      strokeWidth="4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  );
+  // Unified Path for the 'R' to prevent stroke overlap artifacts
+  // Combines Head and Leg into one continuous path or properly separated visual elements.
+  // M10 30 L20 20 creates the leg. 
+  // M10 20 L20 10 L30 10 ... creates the head/loop.
+  // We'll draw them as a single group of paths with proper line joins.
+  
+  const PathR = (
+      <path
+        d="M10 20 L20 10 L30 10 C35.5 10 35.5 18 30 18 L20 18 L30 30 M10 30 L20 20"
+        stroke={`url(#${gradientId})`}
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+  )
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
@@ -66,8 +61,7 @@ export default function ModernLogo({ size = 32, className = "", showText = true,
         {/* Static State: Render Normal Logo */}
         {!animated && (
           <g>
-            {PathHead}
-            {PathLeg}
+            {PathR}
           </g>
         )}
 
@@ -76,14 +70,12 @@ export default function ModernLogo({ size = 32, className = "", showText = true,
           <g>
             {/* Ghost 1: Moves Top-Left */}
             <g className="animate-path-1 mix-blend-multiply dark:mix-blend-screen">
-              {PathHead}
-              {PathLeg}
+              {PathR}
             </g>
 
             {/* Ghost 2: Moves Bottom-Right */}
             <g className="animate-path-2 mix-blend-multiply dark:mix-blend-screen">
-              {PathHead}
-              {PathLeg}
+              {PathR}
             </g>
           </g>
         )}

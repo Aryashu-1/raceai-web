@@ -8,6 +8,12 @@ import { Block } from "@/app/types/blocks";
 
 
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import GeometricBackground from "@/components/geometric-background";
 import {
   Select,
@@ -19,6 +25,14 @@ import {
   SelectLabel,
   SelectSeparator,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import {
   Send,
@@ -39,7 +53,6 @@ import {
   X,
   Calendar,
   Edit3,
-  Save,
   Users,
   Link,
   Monitor,
@@ -50,6 +63,11 @@ import {
   FileText,
   MessageSquare,
   ArrowUpRight,
+  Share2,
+  Upload,
+  User,
+  Zap,
+  Folder,
 } from "lucide-react";
 import Logo2D from "@/components/logo-2d";
 import ModernLogo from "@/components/modern-logo";
@@ -65,6 +83,7 @@ import ScreenShareOverlay from "@/components/ScreenShareOverlay";
 import { ChatProvider } from "../context/ChatContext";
 import { useChatContext, ChatSession as ContextChatSession } from "../context/ChatContext";
 import { useToast } from "@/components/ui/use-toast";
+import JarvisThinking from "@/components/jarvis-thinking";
 
 const CleanBackground = ({ children }: { children: React.ReactNode }) => (
   <div className="min-h-screen bg-aurora">{children}</div>
@@ -96,6 +115,8 @@ interface LocalChatSession {
   category: "recent" | "pinned" | "project";
   projectName?: string;
   topic?: string;
+  model?: string;
+  projectId?: string | null;
   messages?: any[];
 }
 
@@ -168,6 +189,8 @@ export default function JarvisPage() {
   const [showChatActions, setShowChatActions] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState<string | null>(null);
   const [showSaveModal, setShowSaveModal] = useState<string | null>(null);
+  const { chatSessions, setChatSessions, updateSession } = useChatContext();
+  const { projects, addChatToProject, addProject } = useProjects();
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState<string | null>(null);
@@ -179,9 +202,9 @@ export default function JarvisPage() {
   const [deletedChats, setDeletedChats] = useState<string[]>([]);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string>("1");
-  const { chatSessions, setChatSessions } = useChatContext();
-  const { projects } = useProjects();
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
 
   const mapContextMessageToLocal = (msg: any): Message => ({
     id: msg.id,
@@ -214,7 +237,7 @@ export default function JarvisPage() {
       updatedAt: new Date(session.updatedAt || session.createdAt),
       isPinned: session.isPinned,
       category: session.isPinned ? "pinned" : "recent", // Simple logic for now
-      projectName: session.projectId, // Optional
+      projectName: projects.find(p => p.id === session.projectId)?.name || undefined, // Map ID to Name
     };
   };
 
@@ -570,11 +593,11 @@ export default function JarvisPage() {
 
           const newTitle = extractedTitle || generateChatTitle(userMessageContent);
 
-          const newSession: ChatSession = {
+          const newSession: LocalChatSession = {
             id: currentSessionId,
             title: newTitle,
             preview: formattedPreview,
-            date: "Today",
+            timestamp: "Today",
             messages: updatedMessagesList,
             model: selectedModel,
             updatedAt: new Date(),
@@ -775,6 +798,23 @@ export default function JarvisPage() {
   const handleDeleteChat = (chatId: string) => {
     setDeletedChats((prev) => [...prev, chatId]);
     setShowDeleteModal(null);
+    
+    // If we deleted the current active chat, switch to a new chat or another existing one
+    if (currentSessionId === chatId) {
+        // Find another recent chat that isn't deleted
+        const remainingChats = chatSessions
+            .map(mapContextSessionToLocal)
+            .filter(s => s.id !== chatId && !deletedChats.includes(s.id));
+            
+        if (remainingChats.length > 0) {
+            handleSelectSession(remainingChats[0].id);
+        } else {
+            // No chats left, reset to new chat state
+            setCurrentSessionId(""); 
+            setMessages([]);
+        }
+    }
+    toast({ title: "Chat Deleted", description: "Functionality synced with sidebar." });
   };
 
   const handleScreenShare = async () => {
@@ -1115,7 +1155,7 @@ export default function JarvisPage() {
                       <div
                         key={session.id}
                         className={`group relative p-4 cursor-pointer transition-all border rounded-xl mb-2 backdrop-blur-sm ${currentSessionId === session.id
-                          ? 'active-chat-border bg-accent/20 shadow-lg'
+                          ? 'border-primary bg-primary/10 shadow-[0_0_20px_rgba(59,130,246,0.3)] animate-border-flow' // Restored flow animation
                           : 'bg-background border-border/30 hover:border-primary/50 hover:bg-gradient-to-r hover:from-accent/40 hover:to-transparent'
                           }`}
                         onClick={() => handleSelectSession(session.id)}
@@ -1175,50 +1215,100 @@ export default function JarvisPage() {
                             </Button>
                             {hoveredChat === session.id && (
                               <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-white/10 dark:hover:text-blue-400 cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleChatAction({ type: "rename", chatId: session.id });
-                                  }}
-                                >
-                                  <Edit3 size={10} />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-white/10 dark:hover:text-blue-400 cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleChatAction({ type: "share", chatId: session.id });
-                                  }}
-                                >
-                                  <Share size={10} />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-white/10 dark:hover:text-blue-400 cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleChatAction({ type: "save", chatId: session.id });
-                                  }}
-                                >
-                                  <Save size={10} />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-red-50 hover:text-destructive dark:hover:bg-red-900/10 dark:hover:text-red-400 cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowDeleteModal(session.id);
-                                  }}
-                                >
-                                  <Trash2 size={10} />
-                                </Button>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-white/10 dark:hover:text-blue-400 cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleChatAction({ type: "rename", chatId: session.id });
+                                        }}
+                                      >
+                                        <Edit3 size={10} />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">Rename</TooltipContent>
+                                  </Tooltip>
+                                  
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-white/10 dark:hover:text-blue-400 cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleChatAction({ type: "share", chatId: session.id });
+                                        }}
+                                      >
+                                        <Share size={10} />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">Share</TooltipContent>
+                                  </Tooltip>
+
+                                  <div onClick={(e) => e.stopPropagation()}>
+                                    <DropdownMenu modal={false}>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-white/10 dark:hover:text-blue-400 cursor-pointer"
+                                        >
+                                          <Folder size={10} />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="start" className="w-48 z-[200]">
+                                        <DropdownMenuLabel>Save to Project</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        {projects.map((project) => (
+                                          <DropdownMenuItem
+                                            key={project.id}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              addChatToProject(project.id, { id: session.id, title: session.title });
+                                              updateSession(session.id, { projectId: project.id });
+                                              toast({ title: "Saved to Project", description: `Added chat to ${project.name}` });
+                                            }}
+                                          >
+                                            <Folder className="mr-2 h-4 w-4" />
+                                            <span>{project.name}</span>
+                                          </DropdownMenuItem>
+                                        ))}
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowSaveModal(session.id); // Triggers existing New Project/Save modal logic
+                                          }}
+                                        >
+                                          <Plus className="mr-2 h-4 w-4" />
+                                          <span>Create New Project</span>
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-red-50 hover:text-destructive dark:hover:bg-red-900/10 dark:hover:text-red-400 cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowDeleteModal(session.id);
+                                        }}
+                                      >
+                                        <Trash2 size={10} />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="text-destructive">Delete</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </div>
                             )}
                           </div>
@@ -1393,270 +1483,7 @@ export default function JarvisPage() {
           </div>
         </ScrollArea>
 
-        {/* Share Modal */}
-        {showShareModal && (
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]"
-            style={{ pointerEvents: 'auto', backdropFilter: 'blur(8px)' }}
-            onClick={() => {
-              setShowShareModal(null);
-              setShowCopiedNotification(false);
-              setShowCollaboratorInput(false);
-              setCollaboratorEmail("");
-            }}
-          >
-            <div
-              className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 relative z-[10000]"
-              style={{ pointerEvents: 'auto' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
-                Share Chat
-              </h3>
 
-              {/* Inline Copied Notification */}
-              {showCopiedNotification && (
-                <div className="mb-4 bg-primary/10 border border-primary/20 text-primary px-4 py-3 rounded-lg flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                  <span className="font-medium text-sm">
-                    Link copied to clipboard
-                  </span>
-                </div>
-              )}
-
-              {!showCollaboratorInput ? (
-                <div className="space-y-3">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-transparent hover:bg-accent cursor-pointer h-12"
-                    style={{ pointerEvents: 'auto' }}
-                    onClick={() =>
-                      handleShare(showShareModal, { type: "external" })
-                    }
-                  >
-                    <Link size={18} className="mr-3" />
-                    <div className="flex flex-col items-start">
-                      <span className="text-sm font-medium">Copy Link</span>
-                      <span className="text-xs text-muted-foreground">Anyone with link can view</span>
-                    </div>
-                    <Badge variant="secondary" className="ml-auto text-xs">
-                      External
-                    </Badge>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-transparent hover:bg-accent cursor-pointer h-12"
-                    style={{ pointerEvents: 'auto' }}
-                    onClick={() =>
-                      handleShare(showShareModal, { type: "collaborator" })
-                    }
-                  >
-                    <Users size={18} className="mr-3" />
-                    <div className="flex flex-col items-start">
-                      <span className="text-sm font-medium">Invite Collaborators</span>
-                      <span className="text-xs text-muted-foreground">Share securely with team</span>
-                    </div>
-                    <Badge variant="secondary" className="ml-auto text-xs">
-                      Internal
-                    </Badge>
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block text-foreground">
-                      Collaborator Email
-                    </label>
-                    <Input
-                      placeholder="colleague@example.com"
-                      className="bg-background"
-                      value={collaboratorEmail}
-                      onChange={(e) => setCollaboratorEmail(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleInviteCollaborator()}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1.5">
-                      They will receive a notification to join this chat.
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      className="w-full"
-                      onClick={handleInviteCollaborator}
-                      disabled={!collaboratorEmail.trim()}
-                    >
-                      Send Invite
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full"
-                      onClick={() => setShowCollaboratorInput(false)}
-                    >
-                      Back
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {!showCollaboratorInput && (
-                <div className="flex justify-end space-x-2 mt-6">
-                  <Button
-                    variant="outline"
-                    className="cursor-pointer"
-                    style={{ pointerEvents: 'auto' }}
-                    onClick={() => {
-                      setShowShareModal(null);
-                      setShowCopiedNotification(false);
-                    }}
-                  >
-                    Done
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Save Modal */}
-        {showSaveModal && (
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]"
-            style={{ pointerEvents: 'auto', backdropFilter: 'blur(8px)' }}
-            onClick={() => setShowSaveModal(null)}
-          >
-            <div
-              className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 relative z-[10000]"
-              style={{ pointerEvents: 'auto' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
-                Save to Project
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Project / Organization Name
-                  </label>
-                  <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                    <SelectTrigger className="w-full" style={{ pointerEvents: 'auto' }}>
-                      <SelectValue placeholder="Select a project..." />
-                    </SelectTrigger>
-                    <SelectContent className="z-[10001]"> {/* High z-index for modal */}
-                      {projects.map((p) => (
-                        <SelectItem key={p.id} value={p.id} className="cursor-pointer">
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Chat will be saved to the <strong>Chats</strong> folder of this project.
-                  </p>
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2 mt-6">
-                <Button
-                  variant="outline"
-                  className="cursor-pointer"
-                  style={{ pointerEvents: 'auto' }}
-                  onClick={() => setShowSaveModal(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="cursor-pointer"
-                  disabled={!selectedProjectId}
-                  style={{ pointerEvents: 'auto' }}
-                  onClick={() => {
-                    const project = projects.find(p => p.id === selectedProjectId);
-                    console.log(`Saving chat ${showSaveModal} to Project: ${project?.name}`);
-                    toast({
-                      title: "Chat Saved",
-                      description: `Saved to 'Chats' folder in Project: ${project?.name}`
-                    });
-                    // Logic to actually move the chat would go here (e.g. update projectId in chatSession)
-                    // setChatSessions(prev => prev.map(c => c.id === showSaveModal ? { ...c, projectId: selectedProjectId } : c))
-                    setShowSaveModal(null);
-                    setSelectedProjectId("");
-                  }}
-                >
-                  Save
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteModal && (
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[9999]"
-            style={{ pointerEvents: 'auto', backdropFilter: 'blur(8px)' }}
-            onClick={() => setShowDeleteModal(null)}
-          >
-            <div
-              className="bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl max-w-md w-full mx-4 relative z-[10000]"
-              style={{ pointerEvents: 'auto' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                  <svg
-                    className="w-6 h-6 text-red-600 dark:text-red-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Delete Chat?
-                  </h3>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-                This action cannot be undone. This will permanently delete{" "}
-                <span className="font-semibold text-foreground">
-                  "
-                  {chatTitles[showDeleteModal] ||
-                    chatSessions.find((s) => s.id === showDeleteModal)
-                      ?.title ||
-                    "this chat"}
-                  "
-                </span>{" "}
-                and all its messages.
-              </p>
-              <div className="flex justify-end space-x-2 mt-6">
-                <Button
-                  variant="outline"
-                  className="border-2 border-primary text-primary hover:bg-primary/10 cursor-pointer"
-                  style={{ pointerEvents: 'auto' }}
-                  onClick={() => setShowDeleteModal(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700 cursor-pointer"
-                  style={{ pointerEvents: 'auto' }}
-                  onClick={() => {
-                    if (showDeleteModal) {
-                      handleDeleteChat(showDeleteModal);
-                    }
-                  }}
-                >
-                  Delete
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Main Chat Area */}
@@ -1668,7 +1495,10 @@ export default function JarvisPage() {
               <div className="flex items-center space-x-2">
                 <div>
                   <h2 className="font-semibold text-foreground">
-                    JARVIS RACE Research Assistant
+                    {currentSessionId 
+                      ? (chatTitles[currentSessionId] || chatSessions.find(s => s.id === currentSessionId)?.title || "New Chat")
+                      : "JARVIS RACE Research Assistant"
+                    }
                   </h2>
                   <p className="text-xs text-muted-foreground">
                     {selectedModelInfo
@@ -1825,14 +1655,11 @@ export default function JarvisPage() {
                 size="sm"
                 variant="ghost"
                 className="text-muted-foreground hover:cursor-pointer"
-              >
-                <Settings size={16} />
-              </Button>
-
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground hover:cursor-pointer"
+                onClick={() => {
+                  if (currentSessionId) {
+                    setShowDeleteModal(currentSessionId);
+                  }
+                }}
               >
                 <Trash2 size={16} />
               </Button>
@@ -1978,7 +1805,7 @@ export default function JarvisPage() {
                           </div>
                         </div>
                         <span className="text-sm font-medium animate-text-wave bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 bg-clip-text text-transparent">
-                          JARVIS is thinking...
+                          <JarvisThinking />
                         </span>
                       </div>
                     </div>
@@ -2124,6 +1951,16 @@ export default function JarvisPage() {
                   >
                     <Mic size={20} />
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={`text-muted-foreground hover:text-foreground h-10 w-10 rounded-lg hover:bg-accent ${showWhiteboard ? "text-primary bg-primary/10" : ""}`}
+                    disabled={isLoading}
+                    onClick={handleWhiteboard}
+                    title="Whiteboard"
+                  >
+                    <Presentation size={20} />
+                  </Button>
                 </div>
               </div>
 
@@ -2140,40 +1977,14 @@ export default function JarvisPage() {
               </Button>
             </div>
 
-            {/* Tools Row */}
-            <div className="flex items-center justify-center gap-3 mt-4">
-              <Button
-                size="sm"
-                variant="ghost"
-                className={`${isScreenSharing
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground"
-                  } hover:text-foreground hover:bg-accent px-3 py-2 h-9 rounded-lg flex items-center gap-2`}
-                onClick={handleScreenShare}
-              >
-                <Monitor size={16} />
-                <span className="text-xs font-medium">
-                  {isScreenSharing ? "Sharing..." : "Share Screen"}
-                </span>
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground hover:text-foreground hover:bg-accent px-3 py-2 h-9 rounded-lg flex items-center gap-2"
-                onClick={handleWhiteboard}
-              >
-                <Presentation size={16} />
-                <span className="text-xs font-medium">Whiteboard</span>
-              </Button>
-            </div>
+
           </div>
         </div>
       </div >
-      {/* Share Modal - Global Placement */}
       {
         showShareModal && (
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999]"
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[999]"
             style={{ pointerEvents: 'auto' }}
             onClick={() => {
               setShowShareModal(null);
@@ -2183,11 +1994,11 @@ export default function JarvisPage() {
             }}
           >
             <div
-              className="bg-background/95 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-2xl max-w-md w-full mx-4 relative z-[10000] overflow-hidden"
+              className="bg-card backdrop-blur-xl p-6 rounded-2xl border border-border/50 shadow-2xl max-w-md w-full mx-4 relative z-[1000] overflow-hidden"
               style={{ pointerEvents: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Gradient Border Effect */}
+              {/* Gradient Border Effect - Theme Aware */}
               <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
               <div className="flex items-center justify-between mb-6">
@@ -2197,7 +2008,7 @@ export default function JarvisPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-white/10"
+                  className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground"
                   onClick={() => setShowShareModal(null)}
                 >
                   <X size={16} />
@@ -2218,7 +2029,7 @@ export default function JarvisPage() {
                 <div className="space-y-3">
                   <Button
                     variant="outline"
-                    className="w-full justify-start bg-card/50 hover:bg-primary/5 hover:border-primary/30 cursor-pointer h-16 border-white/5 transition-all group"
+                    className="w-full justify-start bg-card/50 hover:bg-primary/5 hover:border-primary/30 cursor-pointer h-16 border-border/50 transition-all group"
                     style={{ pointerEvents: 'auto' }}
                     onClick={() =>
                       handleShare(showShareModal, { type: "external" })
@@ -2228,29 +2039,29 @@ export default function JarvisPage() {
                       <Link size={18} className="text-primary" />
                     </div>
                     <div className="flex flex-col items-start">
-                      <span className="text-sm font-semibold text-foreground">Copy Link</span>
-                      <span className="text-xs text-muted-foreground">Anyone with link can view</span>
+                      <span className="text-sm font-bold text-foreground font-space-grotesk">Copy Link</span>
+                      <span className="text-xs text-muted-foreground font-sans">Anyone with link can view</span>
                     </div>
-                    <Badge variant="secondary" className="ml-auto text-[10px] bg-white/5">
+                    <Badge variant="secondary" className="ml-auto text-[10px] bg-muted text-muted-foreground">
                       External
                     </Badge>
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full justify-start bg-card/50 hover:bg-primary/5 hover:border-primary/30 cursor-pointer h-16 border-white/5 transition-all group"
+                    className="w-full justify-start bg-card/50 hover:bg-primary/5 hover:border-primary/30 cursor-pointer h-16 border-border/50 transition-all group"
                     style={{ pointerEvents: 'auto' }}
                     onClick={() =>
                       handleShare(showShareModal, { type: "collaborator" })
                     }
                   >
-                    <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center mr-4 group-hover:bg-purple-500/20 transition-colors">
-                      <Users size={18} className="text-purple-500" />
+                    <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center mr-4 group-hover:bg-green-500/20 transition-colors">
+                      <Users size={18} className="text-green-600 dark:text-green-500" />
                     </div>
                     <div className="flex flex-col items-start">
-                      <span className="text-sm font-semibold text-foreground">Invite Collaborators</span>
-                      <span className="text-xs text-muted-foreground">Share securely with team</span>
+                      <span className="text-sm font-bold text-foreground font-space-grotesk">Invite Collaborators</span>
+                      <span className="text-xs text-muted-foreground font-sans">Share securely with team</span>
                     </div>
-                    <Badge variant="secondary" className="ml-auto text-[10px] bg-white/5">
+                    <Badge variant="secondary" className="ml-auto text-[10px] bg-green-500/10 text-green-600 dark:text-green-500 border-green-200 dark:border-green-900/30">
                       Internal
                     </Badge>
                   </Button>
@@ -2301,12 +2112,12 @@ export default function JarvisPage() {
       {
         showSaveModal && (
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999]"
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[999]"
             style={{ pointerEvents: 'auto' }}
             onClick={() => setShowSaveModal(null)}
           >
             <div
-              className="bg-background/95 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-2xl max-w-md w-full mx-4 relative z-[10000] overflow-hidden"
+              className="bg-card backdrop-blur-xl p-6 rounded-2xl border border-border/50 shadow-2xl max-w-md w-full mx-4 relative z-[1000] overflow-hidden"
               style={{ pointerEvents: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -2318,7 +2129,7 @@ export default function JarvisPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-white/10"
+                  className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground"
                   onClick={() => setShowSaveModal(null)}
                 >
                   <X size={16} />
@@ -2326,28 +2137,28 @@ export default function JarvisPage() {
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">
+                  <label className="text-sm font-medium mb-2 block font-sans">
                     Project Name
                   </label>
-                  <Input placeholder="Enter project name..." className="bg-black/20 border-white/10" style={{ pointerEvents: 'auto' }} />
+                  <Input placeholder="Enter project name..." className="bg-background border-input" style={{ pointerEvents: 'auto' }} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-2 block">
+                  <label className="text-sm font-medium mb-2 block font-sans">
                     Folder (Optional)
                   </label>
-                  <Input placeholder="Enter folder name..." className="bg-black/20 border-white/10" style={{ pointerEvents: 'auto' }} />
+                  <Input placeholder="Enter folder name..." className="bg-background border-input" style={{ pointerEvents: 'auto' }} />
                 </div>
               </div>
               <div className="flex justify-end space-x-2 mt-6">
                 <Button
                   variant="ghost"
-                  className="cursor-pointer"
+                  className="cursor-pointer hover:bg-muted"
                   style={{ pointerEvents: 'auto' }}
                   onClick={() => setShowSaveModal(null)}
                 >
                   Cancel
                 </Button>
-                <Button className="cursor-pointer bg-primary hover:bg-primary/90" style={{ pointerEvents: 'auto' }}>
+                <Button className="cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground" style={{ pointerEvents: 'auto' }}>
                   Save
                 </Button>
               </div>
@@ -2357,6 +2168,59 @@ export default function JarvisPage() {
       }
 
       {/* Integrated Creativity Tools */}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[999]"
+          style={{ pointerEvents: 'auto' }}
+          onClick={() => setShowDeleteModal(null)}
+        >
+          <div
+            className="bg-card backdrop-blur-xl p-6 rounded-2xl border border-border/50 shadow-2xl max-w-sm w-full mx-4 relative z-[1000] overflow-hidden"
+            style={{ pointerEvents: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+             <div className="flex flex-col items-center text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-2">
+                    <Trash2 size={24} className="text-destructive" />
+                </div>
+                <div>
+                    <h3 className="text-lg font-bold text-destructive font-space-grotesk">Delete Chat?</h3>
+                    <p className="text-sm text-destructive/80 mt-1 font-medium">
+                        This action cannot be undone. This chat session will be permanently removed.
+                    </p>
+                </div>
+                <div className="flex gap-3 w-full pt-2">
+                    <Button 
+                        variant="outline" 
+                        className="flex-1 hover:bg-muted"
+                        onClick={() => setShowDeleteModal(null)}
+                    >
+                        Cancel
+                    </Button>
+                    <Button 
+                        className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                        onClick={() => {
+                            // Delete Logic
+                            setChatSessions(prev => prev.filter(c => c.id !== showDeleteModal));
+                            if (currentSessionId === showDeleteModal) {
+                                setCurrentSessionId(null);
+                            }
+                            setShowDeleteModal(null);
+                            toast({
+                                title: "Chat Deleted",
+                                description: "The chat session has been permanently removed."
+                            });
+                        }}
+                    >
+                        Delete
+                    </Button>
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
       {showWhiteboard && (
         <Whiteboard
           onClose={() => setShowWhiteboard(false)}

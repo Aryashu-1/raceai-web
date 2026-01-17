@@ -4,10 +4,10 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Upload, X, User, Camera } from "lucide-react"
+import { Upload, X, User, Camera, Sparkles, ChevronRight, Terminal } from "lucide-react"
 import ModernLogo from "@/components/modern-logo"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface UserData {
   firstName: string
@@ -26,36 +26,11 @@ interface SimplifiedOnboardingProps {
 }
 
 const RESEARCH_INTERESTS = [
-  "Machine Learning",
-  "Artificial Intelligence",
-  "Computer Vision",
-  "Natural Language Processing",
-  "Robotics",
-  "Data Science",
-  "Quantum Computing",
-  "Biotechnology",
-  "Neuroscience",
-  "Physics",
-  "Chemistry",
-  "Biology",
-  "Medicine",
-  "Environmental Science",
-  "Materials Science",
-  "Engineering",
-  "Mathematics",
-  "Statistics",
-  "Psychology",
-  "Sociology",
-  "Economics",
-  "Political Science",
-  "Philosophy",
-  "Linguistics",
-  "Anthropology",
-  "Archaeology",
-  "History",
-  "Literature",
-  "Art History",
-  "Music Theory"
+  "Machine Learning", "Artificial Intelligence", "Computer Vision",
+  "Natural Language Processing", "Robotics", "Data Science",
+  "Quantum Computing", "Biotechnology", "Neuroscience",
+  "Physics", "Chemistry", "Biology", "Medicine",
+  "Environmental Science", "Materials Science", "Engineering"
 ]
 
 export default function SimplifiedOnboarding({ onComplete, onBack, initialData = {} }: SimplifiedOnboardingProps) {
@@ -70,404 +45,224 @@ export default function SimplifiedOnboarding({ onComplete, onBack, initialData =
   })
 
   const [interestInput, setInterestInput] = useState("")
-  const [filteredInterests, setFilteredInterests] = useState<string[]>([])
-  const [showInterestDropdown, setShowInterestDropdown] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Parallax mouse tracking
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth) * 100,
-        y: (e.clientY / window.innerHeight) * 100,
-      })
-    }
+  // Simulation of "Jarvis" typing effect
+  const [headerText, setHeaderText] = useState("")
+  const fullText = "Identity Verification & Profile Calibration"
 
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
+  useEffect(() => {
+    let i = 0
+    const interval = setInterval(() => {
+      setHeaderText(fullText.slice(0, i))
+      i++
+      if (i > fullText.length) clearInterval(interval)
+    }, 30)
+    return () => clearInterval(interval)
   }, [])
 
   const handleInputChange = (field: keyof UserData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }))
-    }
-  }
-
-  const handleInterestInputChange = (value: string) => {
-    setInterestInput(value)
-    if (value.trim()) {
-      const filtered = RESEARCH_INTERESTS.filter(interest =>
-        interest.toLowerCase().includes(value.toLowerCase()) &&
-        !formData.interests.includes(interest)
-      )
-      setFilteredInterests(filtered)
-      setShowInterestDropdown(filtered.length > 0)
-    } else {
-      setShowInterestDropdown(false)
-    }
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: "" }))
   }
 
   const addInterest = (interest: string) => {
     if (!formData.interests.includes(interest)) {
-      setFormData(prev => ({
-        ...prev,
-        interests: [...prev.interests, interest]
-      }))
+      setFormData(prev => ({ ...prev, interests: [...prev.interests, interest] }))
     }
     setInterestInput("")
-    setShowInterestDropdown(false)
   }
 
   const removeInterest = (interest: string) => {
-    setFormData(prev => ({
-      ...prev,
-      interests: prev.interests.filter(i => i !== interest)
-    }))
+    setFormData(prev => ({ ...prev, interests: prev.interests.filter(i => i !== interest) }))
   }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setErrors(prev => ({ ...prev, profilePicture: "Please select an image file" }))
-      return
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, profilePicture: "File size must be less than 5MB" }))
-      return
-    }
+    if (!file.type.startsWith('image/')) return
+    if (file.size > 5 * 1024 * 1024) return
 
     setIsUploading(true)
-    try {
-      // Convert to base64 for storage
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string
-        setFormData(prev => ({
-          ...prev,
-          profilePicture: base64,
-          profileType: "upload"
-        }))
-        setIsUploading(false)
-        if (errors.profilePicture) {
-          setErrors(prev => ({ ...prev, profilePicture: "" }))
-        }
-      }
-      reader.readAsDataURL(file)
-    } catch (error) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setFormData(prev => ({ ...prev, profilePicture: e.target?.result as string }))
       setIsUploading(false)
-      setErrors(prev => ({ ...prev, profilePicture: "Failed to upload image" }))
     }
-  }
-
-  const removeProfilePicture = () => {
-    setFormData(prev => ({
-      ...prev,
-      profilePicture: "",
-      profileType: "upload"
-    }))
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
+    reader.readAsDataURL(file)
   }
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
-
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = "First name is required"
-    }
-
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required"
-    }
-
-    if (!formData.role.trim()) {
-      newErrors.role = "Role is required"
-    }
-
-    if (formData.interests.length === 0) {
-      newErrors.interests = "Please select at least one research interest"
-    }
-
+    if (!formData.firstName.trim()) newErrors.firstName = "Required"
+    if (!formData.lastName.trim()) newErrors.lastName = "Required"
+    if (!formData.role.trim()) newErrors.role = "Required"
+    if (formData.interests.length === 0) newErrors.interests = "Select at least one"
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleComplete = () => {
-    if (validateForm()) {
-      onComplete(formData)
-    }
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background gradient-bg relative">
-      {/* Animated Background */}
-      <div className="animated-background">
-        <div className="floating-particle"></div>
-        <div className="floating-particle"></div>
-        <div className="floating-particle"></div>
-        <div className="floating-particle"></div>
-        <div className="floating-particle"></div>
-      </div>
-
-      <Card className="w-full max-w-2xl mx-auto card-default book-page page-flip-enter relative z-10">
-        <CardHeader className="text-center space-y-4">
-          <div className="flex justify-center">
-            <ModernLogo size={48} showText={false} />
-          </div>
-          <div>
-            <CardTitle className="text-2xl font-bold text-foreground">Complete Your Profile</CardTitle>
-            <p className="text-muted-foreground mt-2">
-              Tell us about yourself and your research interests to get started
-            </p>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          {/* Profile Picture Section */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Profile Picture (Optional)</Label>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                {formData.profilePicture ? (
-                  <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-border">
-                    <img
-                      src={formData.profilePicture}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      onClick={removeProfilePicture}
-                      className="absolute -top-1 -right-1 w-6 h-6 bg-error text-white rounded-full flex items-center justify-center hover:bg-error/90 transition-fast"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="w-20 h-20 rounded-full border-2 border-dashed border-border flex items-center justify-center bg-muted/50">
-                    <User className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="btn-secondary space-x-2"
-                >
-                  {isUploading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      <span>Uploading...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="w-4 h-4" />
-                      <span>{formData.profilePicture ? "Change Photo" : "Upload Photo"}</span>
-                    </>
-                  )}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Max 5MB. JPG, PNG, GIF supported
-                </p>
-              </div>
+    <div className="relative w-full">
+      {/* Glass Panel Main Container */}
+      <div className="bg-background/40 dark:bg-black/40 backdrop-blur-xl border border-white/10 dark:border-white/5 rounded-3xl shadow-2xl overflow-hidden">
+        
+        {/* Header Bar */}
+        <div className="bg-white/5 border-b border-white/5 p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                <div className="w-3 h-3 rounded-full bg-green-500/80" />
             </div>
-            {errors.profilePicture && (
-              <p className="text-sm text-destructive">{errors.profilePicture}</p>
-            )}
-          </div>
+            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground uppercase tracking-widest">
+                <Terminal size={12} />
+                <span>Secure Connection</span>
+            </div>
+        </div>
 
-          {/* Personal Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name *</Label>
-              <Input
-                id="firstName"
-                value={formData.firstName}
-                onChange={(e) => handleInputChange("firstName", e.target.value)}
-                placeholder="Enter your first name"
-                className={errors.firstName ? "border-error" : ""}
-              />
-              {errors.firstName && (
-                <p className="text-sm text-error">{errors.firstName}</p>
-              )}
+        <div className="p-8 lg:p-10 space-y-8">
+            {/* Jarvis Greeting */}
+            <div className="flex gap-6 items-start">
+                 {/* Jarvis Avatar */}
+                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-cyan-400 p-[2px] shrink-0 shadow-lg shadow-primary/20">
+                     <div className="w-full h-full rounded-full bg-black/80 flex items-center justify-center">
+                         <Sparkles className="w-6 h-6 text-primary animate-pulse" />
+                     </div>
+                 </div>
+
+                 {/* Dialogue Bubble */}
+                 <div className="space-y-2 flex-1">
+                     <div className="bg-primary/10 border border-primary/20 rounded-2xl rounded-tl-sm p-4 inline-block">
+                        <p className="text-sm font-mono text-primary mb-1">JARVIS // AI ASSISTANT</p>
+                        <h2 className="text-xl font-medium text-foreground min-h-[1.75rem]">
+                            {headerText}<span className="animate-pulse">_</span>
+                        </h2>
+                     </div>
+                     <p className="text-sm text-muted-foreground pl-1">
+                        Please provide your credentials to authorize full system access.
+                     </p>
+                 </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name *</Label>
-              <Input
-                id="lastName"
-                value={formData.lastName}
-                onChange={(e) => handleInputChange("lastName", e.target.value)}
-                placeholder="Enter your last name"
-                className={errors.lastName ? "border-error" : ""}
-              />
-              {errors.lastName && (
-                <p className="text-sm text-error">{errors.lastName}</p>
-              )}
-            </div>
-          </div>
+            {/* Form Fields - Styled as "Data Modules" */}
+            <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: 0.5 }}
+               className="space-y-6"
+            >
+                {/* Module 1: Identity */}
+                <div className="space-y-4">
+                    <h3 className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2 after:h-[1px] after:flex-1 after:bg-border">
+                        <User size={12} /> Identity Verification
+                    </h3>
 
-          <div className="space-y-2">
-            <Label htmlFor="role">Role *</Label>
-            <Input
-              id="role"
-              value={formData.role}
-              onChange={(e) => handleInputChange("role", e.target.value)}
-              placeholder="e.g., Graduate Student, Professor, Researcher"
-              className={errors.role ? "border-error" : ""}
-            />
-            {errors.role && (
-              <p className="text-sm text-error">{errors.role}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="organization">Organization</Label>
-            <Input
-              id="organization"
-              value={formData.organization}
-              onChange={(e) => handleInputChange("organization", e.target.value)}
-              placeholder="University or Institution (Optional)"
-            />
-          </div>
-
-          {/* Research Interests */}
-          <div className="space-y-4">
-            <Label className="text-lg font-semibold text-foreground">Research Interests *</Label>
-
-            {/* Popular Interests */}
-            <div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {RESEARCH_INTERESTS.slice(0, 8).map((interest) => (
-                  <button
-                    key={interest}
-                    onClick={() => addInterest(interest)}
-                    disabled={formData.interests.includes(interest)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-fast focus-ring ${
-                      formData.interests.includes(interest)
-                        ? "bg-primary/20 text-primary cursor-not-allowed opacity-60"
-                        : "btn-secondary hover:bg-primary/10"
-                    }`}
-                  >
-                    {interest}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Custom Interest Input */}
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground mb-3 block">Add research interests</Label>
-              <div className="flex gap-3">
-                <div className="flex-1 relative">
-                  <Input
-                    value={interestInput}
-                    onChange={(e) => handleInterestInputChange(e.target.value)}
-                    placeholder="Type your research area..."
-                    onFocus={() => interestInput && setShowInterestDropdown(true)}
-                    className={`bg-input border-border rounded-lg ${errors.interests ? "border-error" : ""}`}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && interestInput.trim()) {
-                        e.preventDefault()
-                        addInterest(interestInput.trim())
-                      }
-                    }}
-                  />
-                  {showInterestDropdown && filteredInterests.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 z-10 card-default rounded-lg shadow-lg max-h-40 overflow-y-auto mt-2">
-                      {filteredInterests.map((interest) => (
-                        <button
-                          key={interest}
-                          onClick={() => addInterest(interest)}
-                          className="w-full text-left px-4 py-3 hover:bg-muted text-sm transition-fast first:rounded-t-lg last:rounded-b-lg"
-                        >
-                          {interest}
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <Label className="text-xs">First Designation</Label>
+                            <Input 
+                                value={formData.firstName}
+                                onChange={(e) => handleInputChange("firstName", e.target.value)}
+                                className={`bg-background/20 border-white/10 focus:border-primary/50 transition-all ${errors.firstName && 'border-red-500'}`}
+                                placeholder="First Name"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-xs">Family Designation</Label>
+                            <Input 
+                                value={formData.lastName}
+                                onChange={(e) => handleInputChange("lastName", e.target.value)}
+                                className={`bg-background/20 border-white/10 focus:border-primary/50 transition-all ${errors.lastName && 'border-red-500'}`}
+                                placeholder="Last Name"
+                            />
+                        </div>
                     </div>
-                  )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <Label className="text-xs">Role</Label>
+                            <Input 
+                                value={formData.role}
+                                onChange={(e) => handleInputChange("role", e.target.value)}
+                                className="bg-background/20 border-white/10"
+                                placeholder="e.g. Lead Researcher"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                             <Label className="text-xs">Affiliation</Label>
+                             <Input 
+                                value={formData.organization}
+                                onChange={(e) => handleInputChange("organization", e.target.value)}
+                                className="bg-background/20 border-white/10"
+                                placeholder="Institution"
+                            />
+                        </div>
+                    </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (interestInput.trim()) {
-                      addInterest(interestInput.trim())
-                    }
-                  }}
-                  disabled={!interestInput.trim()}
-                  className="btn-primary px-6 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Add
-                </button>
-              </div>
-            </div>
 
-            {/* Selected Interests */}
-            {formData.interests.length > 0 && (
-              <div>
-                <Label className="text-sm font-medium text-muted-foreground mb-3 block">Your Selected Interests</Label>
-                <div className="flex flex-wrap gap-2">
-                  {formData.interests.map((interest) => (
-                    <Badge
-                      key={interest}
-                      className="flex items-center gap-2 px-3 py-2 bg-primary/10 text-primary border-0 rounded-lg font-medium"
-                    >
-                      {interest}
-                      <button
-                        onClick={() => removeInterest(interest)}
-                        className="hover:text-error transition-fast"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
+                 {/* Module 2: Image Analysis */}
+                <div className="flex items-center gap-4 p-4 border border-dashed border-white/10 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                     <div className="relative">
+                         {formData.profilePicture ? (
+                             <img src={formData.profilePicture} className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/50" />
+                         ) : (
+                             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                 <Camera size={20} className="text-primary" />
+                             </div>
+                         )}
+                     </div>
+                     <div className="flex-1">
+                         <p className="text-sm font-medium">Biometric Uplink</p>
+                         <p className="text-xs text-muted-foreground">Upload profile visualization (Max 5MB)</p>
+                     </div>
+                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="border-primary/30 hover:bg-primary/10">
+                        {isUploading ? "Scanning..." : "Upload"}
+                     </Button>
+                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
                 </div>
-              </div>
-            )}
 
-            {errors.interests && (
-              <p className="text-sm text-error">{errors.interests}</p>
-            )}
-          </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-between pt-4">
-            <button
-              type="button"
-              onClick={onBack}
-              className="btn-secondary"
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={handleComplete}
-              className="btn-primary"
-            >
-              Done
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+                {/* Module 3: Research Parameters */}
+                <div className="space-y-4">
+                     <h3 className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2 after:h-[1px] after:flex-1 after:bg-border">
+                        <div className="w-2 h-2 bg-secondary rounded-full" /> Calibration Vectors
+                    </h3>
+                    
+                    <div className="flex flex-wrap gap-2">
+                        {RESEARCH_INTERESTS.slice(0, 10).map((interest) => (
+                          <Badge 
+                            key={interest}
+                            onClick={() => formData.interests.includes(interest) ? removeInterest(interest) : addInterest(interest)}
+                            variant={formData.interests.includes(interest) ? "default" : "outline"}
+                            className={`cursor-pointer transition-all hover:scale-105 ${
+                                formData.interests.includes(interest) 
+                                ? "bg-primary text-primary-foreground hover:bg-primary/80" 
+                                : "hover:text-primary hover:border-primary/50"
+                            }`}
+                          >
+                            {interest}
+                          </Badge>
+                        ))}
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* Action Footer */}
+             <div className="pt-4 border-t border-white/5 flex justify-between items-center">
+                  <Button variant="ghost" onClick={onBack} className="text-muted-foreground hover:text-foreground">
+                      Return
+                  </Button>
+                  <Button 
+                      onClick={() => { if(validateForm()) onComplete(formData) }}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all transform hover:-translate-y-0.5"
+                  >
+                      Complete Protocol <ChevronRight size={16} className="ml-2" />
+                  </Button>
+             </div>
+        </div>
+      </div>
     </div>
   )
 }

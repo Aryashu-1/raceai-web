@@ -2,10 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import GeometricBackground from "@/components/geometric-background";
+import UnifiedInteractiveGrid from "@/components/unified-interactive-grid";
 import SimplifiedOnboardingContainer from "@/components/onboarding/simplified-onboarding-container";
+import dynamic from "next/dynamic";
+
+
+const Tesseract3D = dynamic(() => import("@/components/tesseract-3d"), { ssr: false });
 import { useUser } from "../context/UserContext";
 import { User } from "../context/UserContext";
+import { SimpleThemeToggle } from "@/components/theme-toggle";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -16,6 +21,8 @@ export default function OnboardingPage() {
   // Load from context
   useEffect(() => {
     if (user) setUserData(user);
+    // If no user in context, we might rely on localStorage or just wait?
+    // For now, let's allow it to render so we can see the UI even if state is partial.
   }, [user]);
 
   const handleOnboardingComplete = async (completedUserData: User) => {
@@ -26,31 +33,15 @@ export default function OnboardingPage() {
     };
 
     localStorage.setItem("race_ai_user", JSON.stringify(updatedUser));
-    console.log("✅ Stored user in context:", updatedUser);
+    
+    // Update context
+    updateUser(updatedUser);
 
     try {
-      const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/signup`;
-      console.log("📡 Calling signup API:", endpoint);
-
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedUser), // ✅ FIXED (was updateUser)
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        console.error("❌ Signup API failed:", errText);
-        throw new Error("Signup API failed");
-      }
-
-      const result = await res.json();
-      console.log("✅ Signup successful, response:", result);
-
-      // 🔹 Update context with final user info
-      updateUser(updatedUser);
-
-      // 🔹 Navigate to dashboard (or next)
+      // Simulate or call backend signup if needed
+      // const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/signup`;
+      // await fetch(...) 
+      // For now, assume success and redirect:
       router.push("/jarvis");
     } catch (err: any) {
       console.error("Signup failed:", err);
@@ -58,120 +49,52 @@ export default function OnboardingPage() {
     }
   };
 
-  if (!userData)
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Loading onboarding...</p>
-      </div>
-    );
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-white dark:from-slate-950 dark:via-blue-950/50 dark:to-blue-900/30 relative">
-      <GeometricBackground variant="tesseract" />
-      <SimplifiedOnboardingContainer
-        initialUserData={userData}
-        onComplete={handleOnboardingComplete}
-      />
+    <div className="min-h-screen relative overflow-hidden bg-background">
+      {/* 1. Background from Home Page */}
+      <div className="fixed inset-0 z-0 bg-background dark:bg-[radial-gradient(circle_at_50%_50%,#0f172a_0%,#020617_100%)]">
+        <UnifiedInteractiveGrid />
+      </div>
+
+       {/* Theme Toggle */}
+       <div className="fixed top-6 right-6 z-50">
+        <SimpleThemeToggle />
+      </div>
+
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 min-h-screen">
+         {/* Left Column: 3D Tesseract */}
+         <div className="relative hidden lg:flex items-center justify-center p-12">
+            {/* Tesseract Container - constrained */}
+            <div className="w-full h-full max-w-lg max-h-[600px] relative">
+               <Tesseract3D />
+               <div className="absolute -bottom-12 left-0 right-0 text-center">
+                  <p className="text-muted-foreground/50 font-mono text-xs tracking-[0.2em] uppercase animate-pulse">
+                     Initializing Neural Interface
+                  </p>
+               </div>
+            </div>
+         </div>
+
+         {/* Right Column: Jarvis "Classy" Dialogue */}
+         <div className="flex items-center justify-center p-6 lg:p-12">
+            <div className="w-full max-w-xl">
+               {userData ? (
+                 <SimplifiedOnboardingContainer
+                   initialUserData={userData}
+                   onComplete={handleOnboardingComplete}
+                 />
+               ) : (
+                  // Loading State
+                  <div className="flex flex-col items-center gap-4 p-8 glass-panel rounded-2xl">
+                     <div className="w-8 h-8 relative">
+                        <div className="absolute inset-0 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                     </div>
+                     <p className="text-primary font-mono text-sm">Authenticating Protocol...</p>
+                  </div>
+               )}
+            </div>
+         </div>
+      </div>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-// "use client"
-
-// import { useState, useEffect } from "react"
-// import { useRouter } from "next/navigation"
-// import SimplifiedOnboardingContainer from "@/components/onboarding/simplified-onboarding-container"
-// import GeometricBackground from "@/components/geometric-background"
-// import { useUser } from "../context/UserContext";
-
-
-// import { User } from "../types/user";
-
-// interface UserState {
-//   user: User | null;
-//   token: string | null;
-//   loading: boolean;
-
-//   // Actions
-//   setUser: (user: User) => void;
-//   setToken: (token: string) => void;
-//   clearUser: () => void;
-//   setLoading: (state: boolean) => void;
-// }
-
-
-// export default function OnboardingPage() {
-//   const router = useRouter()
-//   const [userData, setUserData] =  useState<User | null>(null);
-
-//   const { user, updateUser } = useUser();
-//    useEffect(() => {
-//     if (user) {
-//       setUserData(user);
-//     }
-//   }, [user]);
-
-//   // Example usage:
-//   console.log("Prefilled user email:", userData?.email);
-
-//   useEffect(() => {
-//     // Check if user is authenticated
-//     const storedUser = localStorage.getItem("race_ai_user")
-//     if (!storedUser) {
-//       router.push("/")
-//       return
-//     }
-
-//     const user = JSON.parse(storedUser)
-//     if (!user.authenticated) {
-//       router.push("/")
-//       return
-//     }
-
-//     setUserData(user)
-//   }, [router])
-
-//   const handleOnboardingComplete = (completedUserData: any) => {
-//     // Update user data with onboarding completion
-//     const updatedUser = {
-//       ...completedUserData,
-//       authenticated: true,
-//       onboarded: true,
-//     }
-//     localStorage.setItem("race_ai_user", JSON.stringify(updatedUser))
-
-//     // Redirect to JARVIS chat
-//     router.push("/jarvis")
-//   }
-
-//   if (!userData) {
-//     return (
-//       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-blue-50 to-white dark:from-slate-950 dark:via-blue-950/50 dark:to-blue-900/30 relative">
-//         <GeometricBackground variant="tesseract" />
-//         <div className="text-center">
-//           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-//           <div className="card-default px-6 py-3">
-//             <p className="text-foreground font-medium">Loading onboarding...</p>
-//           </div>
-//         </div>
-//       </div>
-//     )
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-white dark:from-slate-950 dark:via-blue-950/50 dark:to-blue-900/30 relative">
-//       <GeometricBackground variant="tesseract" />
-//       <SimplifiedOnboardingContainer initialUserData={userData} onComplete={handleOnboardingComplete} />
-//     </div>
-//   )
-// }
-
-
-

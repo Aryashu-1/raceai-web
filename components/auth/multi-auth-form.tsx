@@ -1,22 +1,26 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AriaAssistant } from "@/components/aria-assistant"
-import { Eye, EyeOff, Mail, Smartphone, CheckCircle } from "lucide-react"
+import { Eye, EyeOff, Mail, Smartphone, CheckCircle, Github } from "lucide-react"
+import { authService } from "@/app/services/authService"
+import { useToast } from "@/components/ui/use-toast"
 
 interface MultiAuthFormProps {
   onComplete: (userData: any) => void
 }
 
 export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
+  const { toast } = useToast()
   const [showPassword, setShowPassword] = useState(false)
-  const [authMethod, setAuthMethod] = useState<"password" | "google" | "otp">("password")
+  const [authMethod, setAuthMethod] = useState<"password" | "google" | "github" | "otp">("password")
   const [otpMethod, setOtpMethod] = useState<"email" | "mobile">("mobile")
   const [formData, setFormData] = useState({
     email: "",
@@ -31,81 +35,56 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
     "Welcome! I'm ARIA, your research assistant. Let's get you started with the best sign-in method for you.",
   )
 
-  useEffect(() => {
-    const script = document.createElement("script")
-    script.src = "https://accounts.google.com/gsi/client"
-    script.async = true
-    script.defer = true
-    document.head.appendChild(script)
-
-    script.onload = () => {
-      if (window.google) {
-        window.google.accounts.id.initialize({
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "demo-client-id",
-          callback: handleGoogleCallback,
-          auto_select: false,
-          cancel_on_tap_outside: false,
-        })
-      }
-    }
-
-    return () => {
-      document.head.removeChild(script)
-    }
-  }, [])
-
-  const handleGoogleCallback = (response: any) => {
-    try {
-      // In a real app, you'd verify the JWT token on your backend
-      const payload = JSON.parse(atob(response.credential.split(".")[1]))
-      setAriaMessage("Perfect! Google sign-in successful. Welcome to RACE AI!")
-      setTimeout(() => {
-        onComplete({
-          method: "google",
-          email: payload.email,
-          name: payload.name,
-          picture: payload.picture,
-        })
-      }, 1000)
-    } catch (error) {
-      console.error("Google sign-in error:", error)
-      setAriaMessage("Oops! There was an issue with Google sign-in. Let's try another method.")
-    }
-  }
-
+  // Handle Backend Authentication (Email/Password)
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setAriaMessage("Great choice! Email sign-in gives you the most secure access to all features.")
+    setAriaMessage("Verifying your credentials secure access...")
 
-    setTimeout(() => {
-      setLoading(false)
-      onComplete({ method: "email", email: formData.email })
-    }, 1500)
-  }
+    try {
+      // Connect to existing backend service
+      const response = await authService.login({
+        email: formData.email,
+        password: formData.password
+      });
 
-  const handleGoogleAuth = () => {
-    setAriaMessage("Google sign-in is super convenient! You'll be up and running in seconds.")
-
-    if (window.google?.accounts?.id) {
-      window.google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          // Fallback to one-tap if prompt fails
-          window.google.accounts.id.renderButton(document.getElementById("google-signin-button"), {
-            theme: "outline",
-            size: "large",
-            width: "100%",
-            text: "continue_with",
-          })
-        }
-      })
-    } else {
-      // Demo fallback with better UX
-      setLoading(true)
+      setAriaMessage("Perfect! Access granted. Welcome back.")
+      
+      // Allow a brief moment for the user to read the message
       setTimeout(() => {
         setLoading(false)
-        onComplete({ method: "google", email: "demo@gmail.com", name: "Demo User" })
-      }, 2000)
+        onComplete({ method: "email", ...response.data })
+      }, 1000)
+
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      setLoading(false)
+      setAriaMessage("I couldn't verify those credentials. Please checking your email and password.")
+      toast({
+        title: "Authentication Failed",
+        description: error.response?.data?.message || "Invalid email or password",
+        variant: "destructive"
+      })
+    }
+  }
+
+  // Handle Social Authentication (NextAuth)
+  const handleSocialAuth = async (provider: "google" | "github") => {
+    setLoading(true)
+    const providerName = provider.charAt(0).toUpperCase() + provider.slice(1)
+    setAriaMessage(`Redirecting you to ${providerName} for secure sign-in...`)
+    
+    try {
+      await signIn(provider, { callbackUrl: "/" })
+    } catch (error) {
+      console.error(`${providerName} sign-in error:`, error)
+      setLoading(false)
+      setAriaMessage(`Oops! There was an issue connecting to ${providerName}.`)
+      toast({
+         title: "Connection Error",
+         description: `Could not connect to ${providerName}. Please try again.`,
+         variant: "destructive"
+      })
     }
   }
 
@@ -173,19 +152,20 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
 
         <CardContent className="space-y-6">
           <Tabs value={authMethod} onValueChange={(value) => setAuthMethod(value as any)} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-white/10">
+            <TabsList className="grid w-full grid-cols-4 bg-white/10">
               <TabsTrigger value="password" className="data-[state=active]:bg-blue-500">
                 <Mail className="w-4 h-4 mr-1" />
                 Email
               </TabsTrigger>
               <TabsTrigger value="google" className="data-[state=active]:bg-blue-500">
                 <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC04" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  <path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.347.533 12S5.867 24 12.48 24c3.44 0 6.147-1.133 7.973-3.04 1.84-1.92 2.36-4.907 2.36-7.44 0-.747-.053-1.44-.16-2.107H12.48z" />
                 </svg>
                 Google
+              </TabsTrigger>
+               <TabsTrigger value="github" className="data-[state=active]:bg-blue-500">
+                <Github className="w-4 h-4 mr-1" />
+                GitHub
               </TabsTrigger>
               <TabsTrigger value="otp" className="data-[state=active]:bg-blue-500">
                 <Smartphone className="w-4 h-4 mr-1" />
@@ -248,14 +228,14 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
                 <p className="text-blue-100 text-sm">Sign in with your Google account for instant access</p>
                 <div id="google-signin-button">
                   <Button
-                    onClick={handleGoogleAuth}
+                    onClick={() => handleSocialAuth("google")}
                     className="w-full bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md font-medium py-3 px-4"
                     disabled={loading}
                   >
                     {loading ? (
                       <div className="flex items-center justify-center gap-2">
-                        <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent  animate-spin"></div>
-                        Connecting...
+                         <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent animate-spin"></div>
+                         Connecting...
                       </div>
                     ) : (
                       <div className="flex items-center justify-center gap-3">
@@ -270,7 +250,31 @@ export function MultiAuthForm({ onComplete }: MultiAuthFormProps) {
                     )}
                   </Button>
                 </div>
+              </div>
+            </TabsContent>
 
+            <TabsContent value="github" className="space-y-4 mt-6">
+              <div className="text-center space-y-4">
+                <p className="text-blue-100 text-sm">Sign in with your GitHub account</p>
+                <div>
+                  <Button
+                    onClick={() => handleSocialAuth("github")}
+                    className="w-full bg-[#24292e] text-white hover:bg-[#2f363d] border border-transparent transition-all duration-200 shadow-sm hover:shadow-md font-medium py-3 px-4"
+                    disabled={loading}
+                  >
+                     {loading ? (
+                      <div className="flex items-center justify-center gap-2">
+                         <div className="w-4 h-4 border-2 border-white/30 border-t-white animate-spin"></div>
+                         Connecting...
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-3">
+                        <Github className="w-5 h-5" />
+                        <span>Continue with GitHub</span>
+                      </div>
+                    )}
+                  </Button>
+                </div>
               </div>
             </TabsContent>
 

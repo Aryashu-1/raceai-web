@@ -1,12 +1,10 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import ModernLogo from "@/components/modern-logo"
-import { MessageCircle, Sparkles } from "lucide-react"
+import { MessageCircle, Sparkles, Terminal, ShieldCheck } from "lucide-react"
+import { motion } from "framer-motion"
 
 interface EmailVerificationProps {
   email: string
@@ -19,22 +17,45 @@ export default function EmailVerification({ email, onNext, onBack }: EmailVerifi
   const [resendCountdown, setResendCountdown] = useState(60)
   const [error, setError] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
+  const [targetCode, setTargetCode] = useState("")
+  
+  // Typing effect state
+  const [headerText, setHeaderText] = useState("")
+  const fullText = "Security Protocol: Identity Verification"
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setResendCountdown((prev) => (prev > 0 ? prev - 1 : 0))
-    }, 1000)
-    return () => clearInterval(timer)
+    let i = 0
+    const interval = setInterval(() => {
+      setHeaderText(fullText.slice(0, i))
+      i++
+      if (i > fullText.length) clearInterval(interval)
+    }, 30)
+    return () => clearInterval(interval)
   }, [])
+  
+  useEffect(() => {
+    if (email) sendVerificationCode(email);
+  }, [email])
+
+  const sendVerificationCode = async (toEmail: string) => {
+      const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+      setTargetCode(newCode);
+      try {
+          // Dev only simulation
+          console.log("Code sent (dev mode):", newCode);
+      } catch (err) {
+          setError("Failed to send verification code.");
+      }
+  }
 
   const validateCode = (codeString: string) => {
     if (codeString.length !== 6) {
       setError("Please enter all 6 digits")
       return false
     }
-    if (!/^\d{6}$/.test(codeString)) {
-      setError("Code must contain only numbers")
-      return false
+    if (codeString !== targetCode) {
+        setError("Invalid code. Please try again.")
+        return false
     }
     return true
   }
@@ -48,13 +69,11 @@ export default function EmailVerification({ email, onNext, onBack }: EmailVerifi
     setCode(newCode)
     setError("")
 
-    // Auto-advance to next input
     if (value && index < 5) {
       const nextInput = document.getElementById(`code-${index + 1}`)
       nextInput?.focus()
     }
 
-    // Auto-submit when complete
     if (newCode.every((digit) => digit) && newCode.join("").length === 6) {
       const codeString = newCode.join("")
       if (validateCode(codeString)) {
@@ -89,120 +108,109 @@ export default function EmailVerification({ email, onNext, onBack }: EmailVerifi
     setResendCountdown(60)
     setError("")
     setCode(["", "", "", "", "", ""])
-    // Focus first input after resend
-    setTimeout(() => {
-      const firstInput = document.getElementById("code-0")
-      firstInput?.focus()
-    }, 100)
-  }
-
-  if (!email) {
-    return (
-      <div className="flex items-center justify-center p-4 pt-8">
-        <div className="w-full max-w-md text-center">
-          <p className="text-red-500 mb-4">Email address is required for verification</p>
-          <Button onClick={onBack} variant="outline">
-            Go Back
-          </Button>
-        </div>
-      </div>
-    )
+    if (email) sendVerificationCode(email)
+    setTimeout(() => document.getElementById("code-0")?.focus(), 100)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background relative">
-      {/* Animated Background */}
-      <div className="animated-background">
-        <div className="floating-particle"></div>
-        <div className="floating-particle"></div>
-        <div className="floating-particle"></div>
-        <div className="floating-particle"></div>
-        <div className="floating-particle"></div>
-      </div>
-
-      <div className="w-full max-w-2xl relative z-10 space-y-6">
-        {/* JARVIS Welcome Chat */}
-        <div className="card-default p-6 book-page page-flip-enter">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center flex-shrink-0">
-              <MessageCircle className="w-6 h-6 text-white" />
+    <div className="relative w-full">
+      {/* Glass Panel Container */}
+      <div className="bg-background/40 dark:bg-black/40 backdrop-blur-xl border border-white/10 dark:border-white/5 rounded-3xl shadow-2xl overflow-hidden min-h-[500px]">
+        
+         {/* Status Bar */}
+        <div className="bg-white/5 border-b border-white/5 p-4 flex items-center justify-between">
+             <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                <div className="w-3 h-3 rounded-full bg-green-500/80" />
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="font-semibold text-foreground">JARVIS</h3>
-                <Sparkles className="w-4 h-4 text-blue-500" />
-              </div>
-              <p className="text-muted-foreground leading-relaxed">
-                Welcome to Race AI! I'm JARVIS, your AI research assistant. I'm here to help you discover insights,
-                analyze papers, and accelerate your research journey. Let's verify your email to get started!
-              </p>
+            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground uppercase tracking-widest">
+                <ShieldCheck size={12} />
+                <span>Verification Pending</span>
             </div>
-          </div>
         </div>
 
-        {/* Email Verification Card */}
-        <div className="card-default p-8 book-page page-flip-enter">
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-              <ModernLogo size={48} showText={false} />
-            </div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Verify Email</h1>
-            <p className="text-muted-foreground">
-              We sent a 6-digit code to
-              <br />
-              <span className="font-medium text-foreground">{email}</span>
-            </p>
-          </div>
+        <div className="p-8 lg:p-10 space-y-8">
+            {/* Jarvis Dialogue */}
+            <div className="flex gap-6 items-start">
+                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-cyan-400 p-[2px] shrink-0 shadow-lg shadow-primary/20">
+                     <div className="w-full h-full rounded-full bg-black/80 flex items-center justify-center">
+                         <Sparkles className="w-6 h-6 text-primary animate-pulse" />
+                     </div>
+                 </div>
 
-          <div className="space-y-6">
-            <div className="flex justify-center space-x-3">
-              {code.map((digit, index) => (
-                <Input
-                  key={index}
-                  id={`code-${index}`}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleCodeChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  className={`w-14 h-14 text-center text-lg font-bold ${error ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}`}
-                  disabled={isVerifying}
-                />
-              ))}
+                 <div className="space-y-2 flex-1">
+                     <div className="bg-primary/10 border border-primary/20 rounded-2xl rounded-tl-sm p-4 inline-block">
+                        <p className="text-sm font-mono text-primary mb-1">JARVIS // SECURITY GATE</p>
+                        <h2 className="text-xl font-medium text-foreground min-h-[1.75rem]">
+                            {headerText}<span className="animate-pulse">_</span>
+                        </h2>
+                     </div>
+                     <p className="text-sm text-muted-foreground pl-1">
+                        A 6-digit confirmation key has been transmitted to <span className="text-foreground font-mono bg-white/5 px-1 rounded">{email || "your device"}</span>.
+                     </p>
+                 </div>
             </div>
 
-            {error && (
-              <div className="text-center">
-                <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-200 dark:border-red-800">
-                  {error}
-                </p>
-              </div>
-            )}
+            {/* Input Module */}
+            <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: 0.3 }}
+               className="space-y-6"
+            >
+                <div>
+                   <label className="text-xs font-mono font-bold text-muted-foreground uppercase tracking-wider mb-4 block">Input Access Key</label>
+                   <div className="flex justify-center space-x-3">
+                    {code.map((digit, index) => (
+                        <Input
+                        key={index}
+                        id={`code-${index}`}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleCodeChange(index, e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(index, e)}
+                        className={`w-12 h-14 text-center text-xl font-mono bg-background/50 border-white/10 focus:border-primary focus:ring-primary/20 transition-all ${error ? "border-red-500 bg-red-500/5 text-red-500" : ""}`}
+                        disabled={isVerifying}
+                        />
+                    ))}
+                    </div>
+                </div>
 
-            <div className="text-center">
-              {resendCountdown > 0 ? (
-                <p className="text-sm text-muted-foreground">Resend code in {resendCountdown}s</p>
-              ) : (
-                <button onClick={handleResend} className="btn-ghost text-sm" disabled={isVerifying}>
-                  Resend Code
-                </button>
-              )}
+                {error && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
+                        <p className="text-xs text-red-400 font-mono flex items-center justify-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                            {error}
+                        </p>
+                    </motion.div>
+                )}
+            </motion.div>
+            
+            <div className="pt-6 border-t border-white/5 flex flex-col items-center gap-4">
+                 <div className="flex gap-4 w-full">
+                    <Button variant="ghost" onClick={onBack} className="flex-1 text-muted-foreground hover:text-foreground">
+                        Abort
+                    </Button>
+                    <Button 
+                        onClick={handleManualVerify}
+                        disabled={code.some((digit) => !digit) || isVerifying}
+                        className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                    >
+                        {isVerifying ? "Authenticating..." : "Confirm Access"}
+                    </Button>
+                 </div>
+                 
+                 {resendCountdown > 0 ? (
+                    <p className="text-xs text-muted-foreground font-mono">Resend uplink available in {resendCountdown}s</p>
+                 ) : (
+                    <button onClick={handleResend} className="text-xs text-primary hover:underline font-mono" disabled={isVerifying}>
+                        Retransmit Signal
+                    </button>
+                 )}
             </div>
-
-            <div className="flex space-x-3">
-              <button onClick={onBack} className="flex-1 btn-secondary" disabled={isVerifying}>
-                Back
-              </button>
-              <button
-                onClick={handleManualVerify}
-                disabled={code.some((digit) => !digit) || isVerifying}
-                className="flex-1 btn-primary"
-              >
-                {isVerifying ? "Verifying..." : "Verify"}
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

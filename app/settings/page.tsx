@@ -56,22 +56,17 @@ import {
   Sparkles
 } from "lucide-react"
 
+import { useSettings } from "@/app/context/SettingsContext"
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("account")
-  const [darkMode, setDarkMode] = useState(true)
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: false,
-    research: true,
-    collaborations: true,
-    updates: false
-  })
-  const [privacy, setPrivacy] = useState({
-    profileVisible: true,
-    researchVisible: false,
-    shareByDefault: false,
-    dataRetention: "1-year"
-  })
+  
+  // Use Context
+  const { settings, updateSettings } = useSettings();
+  
+  // Destructure for easier usage map to existing code references
+  const { notifications, privacy, ai, interface: interfaceSettings } = settings;
+  const darkMode = interfaceSettings.theme === 'dark'; // Mock for existing var, or just use context logic below
 
   const settingsCategories = [
     {
@@ -557,42 +552,40 @@ export default function SettingsPage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label>Public Profile</Label>
-                            <p className="text-sm text-muted-foreground">Make your profile visible to others</p>
-                          </div>
-                          <Switch
-                            checked={privacy.profileVisible}
-                            onCheckedChange={(checked) => setPrivacy({...privacy, profileVisible: checked})}
-                          />
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Public Profile</Label>
+                          <p className="text-sm text-muted-foreground">Make your profile visible to others</p>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label>Share Research Publicly</Label>
-                            <p className="text-sm text-muted-foreground">Allow others to discover your research</p>
-                          </div>
-                          <Switch
-                            checked={privacy.researchVisible}
-                            onCheckedChange={(checked) => setPrivacy({...privacy, researchVisible: checked})}
-                          />
+                        <Switch
+                          checked={privacy.profileVisible}
+                          onCheckedChange={(checked) => updateSettings('privacy', { profileVisible: checked })}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Share Research Publicly</Label>
+                          <p className="text-sm text-muted-foreground">Allow others to discover your research</p>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <Label>Default Sharing</Label>
-                            <p className="text-sm text-muted-foreground">Share new projects by default</p>
-                          </div>
-                          <Switch
-                            checked={privacy.shareByDefault}
-                            onCheckedChange={(checked) => setPrivacy({...privacy, shareByDefault: checked})}
-                          />
+                        <Switch
+                          checked={privacy.researchVisible}
+                          onCheckedChange={(checked) => updateSettings('privacy', { researchVisible: checked })}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Default Sharing</Label>
+                          <p className="text-sm text-muted-foreground">Share new projects by default</p>
                         </div>
+                        <Switch
+                          checked={privacy.shareByDefault}
+                          onCheckedChange={(checked) => updateSettings('privacy', { shareByDefault: checked })}
+                        />
                       </div>
 
                       <div>
                         <Label>Data Retention</Label>
-                        <Select value={privacy.dataRetention} onValueChange={(value) => setPrivacy({...privacy, dataRetention: value})}>
+                        <Select value={privacy.dataRetention} onValueChange={(value) => updateSettings('privacy', { dataRetention: value })}>
                           <SelectTrigger className="mt-2">
                             <SelectValue />
                           </SelectTrigger>
@@ -604,41 +597,6 @@ export default function SettingsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-
-                      <div className="p-4 bg-warning/10 rounded-lg border border-warning/20">
-                        <div className="flex items-start gap-3">
-                          <Lock className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
-                          <div>
-                            <h4 className="font-medium text-warning">End-to-End Encryption</h4>
-                            <p className="text-sm text-warning/80 mt-1">
-                              Your research data is encrypted and only you have access to the decryption keys.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="card-default card-dual-light">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Key className="h-5 w-5" />
-                        Security
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <button className="btn-secondary w-full justify-start">
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Change Password
-                      </button>
-                      <button className="btn-secondary w-full justify-start">
-                        <Smartphone className="h-4 w-4 mr-2" />
-                        Setup Two-Factor Authentication
-                      </button>
-                      <button className="btn-secondary w-full justify-start">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Security Keys
-                      </button>
                     </CardContent>
                   </Card>
                 </div>
@@ -666,7 +624,7 @@ export default function SettingsPage() {
                           </div>
                           <Switch
                             checked={notifications.email}
-                            onCheckedChange={(checked) => setNotifications({...notifications, email: checked})}
+                            onCheckedChange={(checked) => updateSettings('notifications', { email: checked })}
                           />
                         </div>
                         <div className="flex items-center justify-between">
@@ -679,7 +637,7 @@ export default function SettingsPage() {
                           </div>
                           <Switch
                             checked={notifications.push}
-                            onCheckedChange={(checked) => setNotifications({...notifications, push: checked})}
+                            onCheckedChange={(checked) => updateSettings('notifications', { push: checked })}
                           />
                         </div>
                         <div className="flex items-center justify-between">
@@ -692,7 +650,7 @@ export default function SettingsPage() {
                           </div>
                           <Switch
                             checked={notifications.research}
-                            onCheckedChange={(checked) => setNotifications({...notifications, research: checked})}
+                            onCheckedChange={(checked) => updateSettings('notifications', { research: checked })}
                           />
                         </div>
                         <div className="flex items-center justify-between">
@@ -705,7 +663,7 @@ export default function SettingsPage() {
                           </div>
                           <Switch
                             checked={notifications.collaborations}
-                            onCheckedChange={(checked) => setNotifications({...notifications, collaborations: checked})}
+                            onCheckedChange={(checked) => updateSettings('notifications', { collaborations: checked })}
                           />
                         </div>
                         <div className="flex items-center justify-between">
@@ -718,7 +676,7 @@ export default function SettingsPage() {
                           </div>
                           <Switch
                             checked={notifications.updates}
-                            onCheckedChange={(checked) => setNotifications({...notifications, updates: checked})}
+                            onCheckedChange={(checked) => updateSettings('notifications', { updates: checked })}
                           />
                         </div>
                       </div>

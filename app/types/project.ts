@@ -7,7 +7,7 @@ export interface ProjectCollaborator {
   email: string;
   role: ProjectRole;
   avatar?: string;
-  status: "online" | "offline" | "away";
+  status: "online" | "offline" | "away" | "busy";
 }
 
 // Tree Node for Files/Folders

@@ -6,9 +6,11 @@ import ModernLogo from "@/components/modern-logo";
 import SimplifiedOnboardingContainer from "@/components/onboarding/simplified-onboarding-container";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+
 import { SimpleThemeToggle } from "@/components/theme-toggle";
-import AnimatedTechBackground from "@/components/animated-tech-background";
-import GeometricBackground from "@/components/geometric-background";
+import UnifiedInteractiveGrid from "@/components/unified-interactive-grid";
+import CustomCursor from "@/components/custom-cursor";
 import { useUser } from "./context/UserContext";
 import { useProjects } from "@/app/context/ProjectContext";
 import { useChatContext } from "@/app/context/ChatContext";
@@ -190,26 +192,25 @@ const AuthFormCard: React.FC<AuthFormCardProps> = ({ onAuthSuccess }) => {
   };
 
 
+  /* 
+   * NOTE: For Production, you should use `signIn` from `next-auth/react` on the client side.
+   * However, since `next-auth` integration often requires SessionProvider wrapping in the root layout,
+   * we will implement the handler to redirect to the API routes which standard NextAuth Setup uses.
+   * If you have `signIn` available from a hook/import, use it. Here we assume standard path.
+   */
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      // Simulate Google OAuth flow
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      const userData = {
-        email: "user@gmail.com",
-        provider: "google",
-        authenticated: true,
-        onboarded: false,
-      };
-      localStorage.setItem("race_ai_user", JSON.stringify(userData));
-      onAuthSuccess(userData, true);
+       // Standard NextAuth pattern: default sign-in route
+       // Or `import { signIn } from "next-auth/react"` if you wrap the app in SessionProvider
+       // Since we are fixing "correct implementation", let's redirect to the provider flow.
+       window.location.href = "/api/auth/signin/google";
     } catch (error) {
+      console.error(error);
       setFormErrors((prev) => ({
         ...prev,
         submit: "Failed to sign in with Google",
       }));
-    } finally {
       setIsLoading(false);
     }
   };
@@ -217,29 +218,19 @@ const AuthFormCard: React.FC<AuthFormCardProps> = ({ onAuthSuccess }) => {
   const handleGitHubSignIn = async () => {
     setIsLoading(true);
     try {
-      // Simulate GitHub OAuth flow
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      const userData = {
-        email: "user@github.com",
-        provider: "github",
-        authenticated: true,
-        onboarded: false,
-      };
-      localStorage.setItem("race_ai_user", JSON.stringify(userData));
-      onAuthSuccess(userData, true);
+      window.location.href = "/api/auth/signin/github";
     } catch (error) {
+       console.error(error);
       setFormErrors((prev) => ({
         ...prev,
         submit: "Failed to sign in with GitHub",
       }));
-    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className="w-full max-w-md mx-auto font-outfit">
       <div className="card-default p-8 bg-card/80 backdrop-blur-sm shadow-xl border border-border/50">
 
         <div className="text-center mb-6">
@@ -495,6 +486,14 @@ const AuthFormCard: React.FC<AuthFormCardProps> = ({ onAuthSuccess }) => {
             </p>
           </div>
         </form>
+      <footer className="w-full py-6 text-center text-xs text-white/30 relative z-0 mt-8">
+         <div className="flex justify-center gap-6 mb-4">
+            <a href="#" className="hover:text-white/60 transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white/60 transition-colors">Terms</a>
+            <a href="#" className="hover:text-white/60 transition-colors">Support</a>
+         </div>
+         © 2026 RaceAI. Research Accessible by Everyone.
+      </footer>
       </div>
     </div>
   );
@@ -547,10 +546,10 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen relative">
-      <AnimatedTechBackground variant="grid" />
-      <div className="dark:block hidden">
-        <GeometricBackground variant="tesseract" />
+    <div className="min-h-screen relative flex items-center justify-center">
+      {/* Unified Background: Moving + Rubber Band Physics */}
+      <div className="fixed inset-0 z-0 bg-background dark:bg-[radial-gradient(circle_at_50%_50%,#0f172a_0%,#020617_100%)]">
+        <UnifiedInteractiveGrid />
       </div>
 
       {/* Theme Toggle */}
@@ -558,200 +557,70 @@ export default function HomePage() {
         <SimpleThemeToggle />
       </div>
 
-      {/* Hero Section - Split Screen Layout */}
-      <section className="min-h-screen flex items-center py-20 lg:py-32 px-6 lg:px-12 relative z-10">
-        <div className="container-lg">
-          <div className="grid lg:grid-cols-5 gap-12 lg:gap-20 items-center min-h-[80vh]">
-            {/* Left Side - Hero Content (60%) */}
-            <div className="lg:col-span-3 text-center lg:text-left">
-              <div className="flex justify-center lg:justify-start mb-10">
-                <ModernLogo size={64} />
+      {/* Main Layout - Allow Scrolling (Revert to natural scroll) */ }
+      <div className="container-lg w-full relative z-10 px-6 min-h-screen flex flex-col justify-center py-20">
+        
+
+
+        <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto gap-12 lg:gap-10">
+          
+          {/* Top: Value Prop + Steps */}
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="text-center space-y-6"
+          >
+              <div className="flex flex-col items-center">
+                {/* Logo Centered Above Text */}
+                <div className="mb-6 scale-125">
+                   <ModernLogo size={80} showText={false} animated={true} />
+                </div>
+                
+                <h1 className="font-space-grotesk text-5xl lg:text-7xl font-bold text-foreground mb-6 tracking-tight leading-none">
+                  Research Accessible
+                  <br />
+                  <span className="text-primary">by Everyone.</span>
+                </h1>
+                <p className="text-lg lg:text-xl text-muted-foreground max-w-xl leading-relaxed mx-auto">
+                  Analyze papers, collaborate with AI and your team, manage tasks & discover breakthroughs faster than ever.
+                </p>
               </div>
 
-              <h1 className="font-space-grotesk text-6xl lg:text-7xl font-bold text-foreground mb-8 tracking-tight leading-1.1">
-                Research
-                <br />
-                Accessible
-                <br />
-                <span className="text-primary">by Everyone</span>
-              </h1>
+              {/* Steps (Compact - Centered) */}
+              {/* <ul className="flex flex-wrap justify-center gap-8 mt-8 hidden lg:flex">
+                 <li className="flex items-center gap-3 bg-white/50 dark:bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-border/50">
+                     <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 shrink-0 font-bold border border-blue-200 dark:border-blue-800 text-xs">1</div>
+                     <span className="text-sm font-medium text-muted-foreground">Access Platform</span>
+                 </li>
+                 <li className="flex items-center gap-3 bg-white/50 dark:bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-border/50">
+                     <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 shrink-0 font-bold border border-purple-200 dark:border-purple-800 text-xs">2</div>
+                     <span className="text-sm font-medium text-muted-foreground">Define Field</span>
+                 </li>
+                 <li className="flex items-center gap-3 bg-white/50 dark:bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-border/50">
+                     <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center text-green-600 shrink-0 font-bold border border-green-200 dark:border-green-800 text-xs">3</div>
+                     <span className="text-sm font-medium text-muted-foreground">Accelerate</span>
+                 </li>
+              </ul> */}
+          </motion.div>
 
-              <p className="text-xl lg:text-2xl text-muted-foreground mb-10 max-w-2xl leading-relaxed mx-auto lg:mx-0">
-                Transform your research workflow with JARVIS.
-                Analyze papers, discover insights, and collaborate seamlessly.
-              </p>
+          {/* Bottom: Auth Form */}
+          <motion.div 
+             initial={{ opacity: 0, y: 40 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+             className="w-full max-w-md mx-auto"
+          >
+             {/* Using a transparent container to let grid show, assuming auth-form-card handles its own blur or transparency */}
+             <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl opacity-20 blur-xl animate-pulse"></div>
+                <AuthFormCard onAuthSuccess={handleAuthSuccess} />
+             </div>
+          </motion.div>
 
-              <div className="flex flex-wrap justify-center lg:justify-start gap-3 mb-12">
-                <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-border bg-card/50 backdrop-blur-sm text-sm font-medium text-foreground hover:bg-muted transition-colors duration-200">
-                  <Brain className="w-4 h-4 text-primary" />
-                  AI-Powered
-                </span>
-                <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-border bg-card/50 backdrop-blur-sm text-sm font-medium text-foreground hover:bg-muted transition-colors duration-200">
-                  <Zap className="w-4 h-4 text-primary" />
-                  Instant Insights
-                </span>
-                <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-border bg-card/50 backdrop-blur-sm text-sm font-medium text-foreground hover:bg-muted transition-colors duration-200">
-                  <User className="w-4 h-4 text-primary" />
-                  Collaborative
-                </span>
-              </div>
-            </div>
-
-            {/* Right Side - Auth Form (40%) */}
-            <div className="lg:col-span-2 flex justify-center lg:justify-end w-full">
-              <AuthFormCard onAuthSuccess={handleAuthSuccess} />
-            </div>
-          </div>
         </div>
-      </section>
-
-      {/* Research Journey Section */}
-      <section className="py-24 lg:py-32 relative">
-        <div className="container-lg px-6">
-          <div className="text-center mb-20">
-            <h2 className="font-space-grotesk text-4xl lg:text-5xl font-bold text-foreground mb-6">
-              Built for Researchers, By Researchers
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Enter any research field and contribute meaningfully - fast. All your research tools in one place.
-            </p>
-          </div>
-
-          {/* Research Journey Flow */}
-          <div className="max-w-6xl mx-auto">
-            <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12">
-
-              {/* Step 1: Reduce Time to Research */}
-              <div className="flex flex-col items-center text-center flex-1">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center mb-6 shadow-lg">
-                  <Zap className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">1. Reduce Time to Research</h3>
-                <p className="text-muted-foreground leading-relaxed max-w-xs">
-                  Cut down months of learning into days. Get quick field onboarding, understand complex papers instantly, and have AI explain terminology on-demand.
-                </p>
-              </div>
-
-              {/* Flow Arrow 1 */}
-              <div className="hidden lg:block">
-                <ArrowRight className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <div className="lg:hidden">
-                <svg className="w-8 h-8 text-muted-foreground rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-
-              {/* Step 2: Unified Research Workspace */}
-              <div className="flex flex-col items-center text-center flex-1">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
-                  <Brain className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">2. Unified Research Workspace</h3>
-                <p className="text-muted-foreground leading-relaxed max-w-xs">
-                  Complete research management platform. Organize projects hierarchically, access multiple LLMs, LaTeX editor, and collaboration tools - all in one place.
-                </p>
-              </div>
-
-              {/* Flow Arrow 2 */}
-              <div className="hidden lg:block">
-                <ArrowRight className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <div className="lg:hidden">
-                <svg className="w-8 h-8 text-muted-foreground rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-
-              {/* Step 3: Stay at the Cutting Edge */}
-              <div className="flex flex-col items-center text-center flex-1">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full flex items-center justify-center mb-6 shadow-lg">
-                  <Search className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">3. Stay at the Cutting Edge</h3>
-                <p className="text-muted-foreground leading-relaxed max-w-xs">
-                  Track state-of-the-art research, discover major unsolved problems, connect with top researchers, and access funding opportunities.
-                </p>
-              </div>
-            </div>
-
-            {/* Key Features Below */}
-            <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              <div className="flex items-start space-x-4 p-6 bg-card rounded-2xl border border-border hover:border-primary/50 transition-colors">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Search className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-foreground mb-2">Knowledge Discovery</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Explore state-of-the-art research, track breakthroughs, and discover what matters in your field
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4 p-6 bg-card rounded-2xl border border-border hover:border-primary/50 transition-colors">
-                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-foreground mb-2">Research Management</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Organize projects, papers, and collaborations in a hierarchical workspace inspired by Box Notes
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4 p-6 bg-card rounded-2xl border border-border hover:border-primary/50 transition-colors">
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Brain className="w-5 h-5 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-foreground mb-2">AI-Powered Learning</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Generate podcasts from papers, get explanations in simple terms, understand new fields faster
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4 p-6 bg-card rounded-2xl border border-border hover:border-primary/50 transition-colors">
-                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Zap className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-foreground mb-2">Multi-LLM Assistant</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Access GPT-4, Claude, Gemini, and more - all in one place with auto-mode combining responses
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4 p-6 bg-card rounded-2xl border border-border hover:border-primary/50 transition-colors">
-                <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 text-teal-600 dark:text-teal-400" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-foreground mb-2">Collaboration Tools</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Voice chat, screen sharing, whiteboard - everything you need to work with your team
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4 p-6 bg-card rounded-2xl border border-border hover:border-primary/50 transition-colors">
-                <div className="w-10 h-10 bg-rose-100 dark:bg-rose-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <ArrowRight className="w-5 h-5 text-rose-600 dark:text-rose-400" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-foreground mb-2">Problems & Funding</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Discover significant research challenges and connect with funding opportunities
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
-  );
+      
+     );
 }

@@ -19,7 +19,7 @@ export const mockProjects: Project[] = [
         color: "#3b82f6", // Blue
         rootNode: {
             id: "root-1",
-            name: "Root",
+            name: "Topics",
             type: "folder",
             children: [
                 {
@@ -59,7 +59,7 @@ export const mockProjects: Project[] = [
         color: "#10b981", // Emerald
         rootNode: {
             id: "root-2",
-            name: "Root",
+            name: "Topics",
             type: "folder",
             children: [
                 { id: "d-4", name: "BERT_Analysis.pdf", type: "file", fileType: "pdf", size: "1.8 MB", lastModified: "3 days ago" }
@@ -81,7 +81,7 @@ export const mockProjects: Project[] = [
         color: "#8b5cf6", // Purple
         rootNode: {
             id: "root-3",
-            name: "Root",
+            name: "Topics",
             type: "folder",
             children: []
         }

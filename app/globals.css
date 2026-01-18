@@ -7,8 +7,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 body {
-  font-family: var(--font-outfit), 'Inter', sans-serif;
-  /* Primary Font: Outfit */
+  font-family: var(--font-outfit), sans-serif;
+  /* Primary Font: Outfit ONLY */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-attachment: fixed;
@@ -28,7 +28,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-outfit), 'Inter', sans-serif;
+  font-family: var(--font-outfit), sans-serif;
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.02em;

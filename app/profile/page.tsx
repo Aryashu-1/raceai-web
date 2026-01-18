@@ -27,7 +27,7 @@ import {
 } from "lucide-react"
 import NavigationSidebar from "@/components/navigation-sidebar"
 import ModernLogo from "@/components/modern-logo"
-import GeometricBackground from "@/components/geometric-background"
+import AnimatedTechBackground from "@/components/animated-tech-background"
 
 import { User, useUser } from "../context/UserContext";
 
@@ -201,13 +201,14 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="layout-container relative">
-      <GeometricBackground variant="torus" />
+    <div className="layout-container relative overflow-hidden">
+      <AnimatedTechBackground variant="grid" />
       <NavigationSidebar />
 
       <main className="layout-main">
         {/* Header Section */}
-        <header className="layout-header bg-card/50 backdrop-blur-sm border-b border-border/50 p-8 relative z-10">
+        {/* Header Section */}
+        <header className="layout-header bg-background/30 backdrop-blur-xl border-b border-white/10 p-8 relative z-10">
           <div className="max-w-6xl mx-auto">
             <div className="flex items-start gap-8">
               <div className="relative group">
@@ -286,7 +287,7 @@ export default function ProfilePage() {
         {/* Main Content */}
         <div className="layout-content max-w-6xl mx-auto p-8 space-y-6 relative z-10">
           {/* Bio Section */}
-          <div className="card-default p-6 border border-border/50 bg-card/50 backdrop-blur-sm">
+          <div className="rounded-2xl p-8 border border-white/10 bg-background/20 backdrop-blur-md shadow-xl">
             <h2 className="text-xl font-bold mb-4 text-foreground">
               About
             </h2>
@@ -300,7 +301,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Research Interests */}
-          <div className="card-default p-6 border border-border/50 bg-card/50 backdrop-blur-sm">
+          <div className="rounded-2xl p-8 border border-white/10 bg-background/20 backdrop-blur-md shadow-xl">
             <h2 className="text-xl font-bold mb-4 text-foreground">
               Research Interests
             </h2>
@@ -335,7 +336,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Links Section */}
-          <div className="card-default p-6 border border-border/50 bg-card/50 backdrop-blur-sm">
+          <div className="rounded-2xl p-8 border border-white/10 bg-background/20 backdrop-blur-md shadow-xl">
             <h2 className="text-xl font-bold mb-4 text-foreground">
               Links & Profiles
             </h2>
@@ -368,7 +369,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Current Projects */}
-          <div className="card-default p-6 border border-border/50 bg-card/50 backdrop-blur-sm">
+          <div className="rounded-2xl p-8 border border-white/10 bg-background/20 backdrop-blur-md shadow-xl">
             <h2 className="text-xl font-bold mb-4 text-foreground">
               Current Projects
             </h2>

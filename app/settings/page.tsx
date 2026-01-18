@@ -53,16 +53,20 @@ import {
   AlertTriangle,
   CheckCircle,
   Crown,
-  Sparkles
+  Sparkles,
+  Plus,
+  X
 } from "lucide-react"
 
 import { useSettings } from "@/app/context/SettingsContext"
+import { useUser } from "@/app/context/UserContext"
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("account")
   
   // Use Context
   const { settings, updateSettings } = useSettings();
+  const { user, updateUser } = useUser();
   
   // Destructure for easier usage map to existing code references
   const { notifications, privacy, ai, interface: interfaceSettings } = settings;
@@ -194,10 +198,10 @@ export default function SettingsPage() {
                     <CardContent className="space-y-6">
                       <div className="flex items-center gap-6">
                         <div className="relative">
-                          <div className="h-20 w-20 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-2xl font-bold">
-                            JS
+                          <div className="h-20 w-20 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-2xl font-bold ring-4 ring-primary/20">
+                             {user?.firstName?.[0]}{user?.lastName?.[0] || user?.email?.[0] || "U"}
                           </div>
-                          <button className="absolute -bottom-2 -right-2 h-8 w-8 p-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center transition-colors">
+                          <button className="absolute -bottom-2 -right-2 h-8 w-8 p-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center transition-colors shadow-lg border-2 border-background">
                             <Camera className="h-4 w-4" />
                           </button>
                         </div>
@@ -205,16 +209,32 @@ export default function SettingsPage() {
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <Label htmlFor="firstName">First Name</Label>
-                              <Input id="firstName" placeholder="John" defaultValue="John" />
+                              <Input 
+                                id="firstName" 
+                                placeholder="First Name" 
+                                value={user?.firstName || ''}
+                                onChange={(e) => updateUser({ firstName: e.target.value })}
+                              />
                             </div>
                             <div>
                               <Label htmlFor="lastName">Last Name</Label>
-                              <Input id="lastName" placeholder="Smith" defaultValue="Smith" />
+                              <Input 
+                                id="lastName" 
+                                placeholder="Last Name" 
+                                value={user?.lastName || ''}
+                                onChange={(e) => updateUser({ lastName: e.target.value })}
+                              />
                             </div>
                           </div>
                           <div>
                             <Label htmlFor="email">Email</Label>
-                            <Input id="email" type="email" placeholder="john@example.com" defaultValue="john@example.com" />
+                            <Input 
+                              id="email" 
+                              type="email" 
+                              placeholder="Email Address" 
+                              value={user?.email || ''}
+                              onChange={(e) => updateUser({ email: e.target.value })}
+                            />
                           </div>
                         </div>
                       </div>
@@ -222,51 +242,98 @@ export default function SettingsPage() {
                       <div className="space-y-4">
                         <div>
                           <Label htmlFor="institution">Institution/Organization</Label>
-                          <Input id="institution" placeholder="Stanford University" />
+                          <Input 
+                            id="institution" 
+                            placeholder="University or Company" 
+                            value={user?.institution || ''}
+                            onChange={(e) => updateUser({ institution: e.target.value })}
+                          />
                         </div>
                         <div>
                           <Label htmlFor="bio">Bio</Label>
-                          <Textarea id="bio" placeholder="Tell us about your research interests..." className="h-24" />
+                          <Textarea 
+                            id="bio" 
+                            placeholder="Tell us about your research interests..." 
+                            className="h-24 resize-none" 
+                            value={user?.bio || ''}
+                            onChange={(e) => updateUser({ bio: e.target.value })}
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <Label htmlFor="field">Research Field</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select field" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="ai">Artificial Intelligence</SelectItem>
-                                <SelectItem value="biology">Biology</SelectItem>
-                                <SelectItem value="chemistry">Chemistry</SelectItem>
-                                <SelectItem value="physics">Physics</SelectItem>
-                                <SelectItem value="medicine">Medicine</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <Label htmlFor="role">Current Role</Label>
+                            <Input 
+                                id="role" 
+                                placeholder="PhD Candidate, Professor, etc." 
+                                value={user?.role || ''}
+                                onChange={(e) => updateUser({ role: e.target.value })}
+                              />
                           </div>
                           <div>
-                            <Label htmlFor="timezone">Timezone</Label>
-                            <Select>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select timezone" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="utc">UTC</SelectItem>
-                                <SelectItem value="est">Eastern Time</SelectItem>
-                                <SelectItem value="pst">Pacific Time</SelectItem>
-                                <SelectItem value="gmt">GMT</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <Label htmlFor="location">Location</Label>
+                             <Input 
+                                id="location" 
+                                placeholder="City, Country" 
+                                value={user?.location || ''}
+                                onChange={(e) => updateUser({ location: e.target.value })}
+                              />
                           </div>
                         </div>
-                      </div>
+                        </div>
+                        
+                        <div>
+                          <Label>Research Interests</Label>
+                          <div className="flex flex-wrap gap-2 mb-3 mt-2">
+                             {user?.researchInterests?.map((interest, index) => (
+                                <Badge key={index} variant="secondary" className="px-2 py-1 gap-1">
+                                  {interest}
+                                  <span 
+                                    className="cursor-pointer hover:text-destructive"
+                                    onClick={() => {
+                                      const newInterests = user.researchInterests?.filter((_, i) => i !== index);
+                                      updateUser({ researchInterests: newInterests });
+                                    }}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </span>
+                                </Badge>
+                             ))}
+                          </div>
+                          <div className="flex gap-2">
+                             <Input 
+                               placeholder="Add a research interest (e.g. Neuroscience)" 
+                               onKeyDown={(e) => {
+                                 if(e.key === 'Enter') {
+                                   const val = e.currentTarget.value.trim();
+                                   if(val) {
+                                      const current = user?.researchInterests || [];
+                                      if(!current.includes(val)) {
+                                         updateUser({ researchInterests: [...current, val] });
+                                         e.currentTarget.value = '';
+                                      }
+                                   }
+                                 }
+                               }}
+                             />
+                             <Button variant="outline" size="icon" onClick={(e) => {
+                                 // Need reference to input if using button, or just rely on Enter. 
+                                 // For simplicity without refs here, just relying on Enter or could add Ref. Used basic enter approach for now inside Input.
+                             }}>
+                                <Plus className="h-4 w-4" />
+                             </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">Press Enter to add tags</p>
+                        </div>
 
-                      <div className="flex justify-end">
-                        <button className="btn-primary px-6 py-2">
+
+                      <div className="flex justify-end pt-4">
+                        <Button className="btn-primary" onClick={() => {
+                            // In a real app, this might trigger a backend sync, but for context state it updates immediately.
+                            // We can add a toast here for visual feedback.
+                        }}>
                           <Save className="h-4 w-4 mr-2" />
                           Save Changes
-                        </button>
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>

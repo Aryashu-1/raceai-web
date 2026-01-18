@@ -39,6 +39,12 @@ const navigationItems = [
     path: "/knowledge",
   },
   {
+    id: "research-hub",
+    label: "Research Hub",
+    icon: FolderKanban,
+    path: "/research2",
+  },
+  {
     id: "research",
     label: "Collaborate",
     icon: Users,

@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter, Space_Grotesk, Outfit } from "next/font/google"
+import { Space_Grotesk, Outfit } from "next/font/google"
 // import { ClerkProvider } from "@clerk/nextjs"
 import { ThemeProvider } from "@/components/theme-provider"
 
@@ -19,11 +19,7 @@ import { NotificationProvider } from "@/lib/contexts/notification-context"
 import { CommandPalette } from "@/components/command-palette"
 import { QuickCapture } from "@/components/quick-capture"
 
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter",
-})
+
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -49,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${outfit.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${spaceGrotesk.variable} ${outfit.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -59,7 +55,7 @@ export default function RootLayout({
         />
         <meta name="api-keys-required" content="OPENAI_API_KEY for full functionality" />
       </head>
-      <body className={`${inter.className} font-sans antialiased bg-background text-foreground`} suppressHydrationWarning>
+      <body className={`${outfit.className} font-sans antialiased bg-background text-foreground`} suppressHydrationWarning>
         <CustomCursor />
         <AuthProvider>
           <UserProvider>

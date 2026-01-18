@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Block } from "@/app/types/blocks";
@@ -68,6 +69,20 @@ import {
   User,
   Zap,
   Folder,
+  Clock,
+  MoreVertical,
+  Edit2,
+  ArrowUp,
+  Copy,
+  RotateCcw,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  MoreHorizontal,
+  Bot,
+  LayoutGrid,
+  Grid,
+  List
 } from "lucide-react";
 import Logo2D from "@/components/logo-2d";
 import ModernLogo from "@/components/modern-logo";
@@ -463,37 +478,55 @@ export default function JarvisPage() {
         }
       });
 
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: [
-            ...messages.map((msg) => ({
-              sender: msg.sender,
-              content:
-                msg.sender === "user"
-                  ? (msg.blocks?.[0] as any)?.text || msg.content || ""
-                  : msg.content || ""
-            })),
-            {
-              sender: "user",
-              content: apiContent // Send array!
-            }
-          ],
-          model: selectedModel,
-          includeResources: true
-        }),
-      });
+      let data;
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: [
+              ...messages.map((msg) => ({
+                sender: msg.sender,
+                content:
+                  msg.sender === "user"
+                    ? (msg.blocks?.[0] as any)?.text || msg.content || ""
+                    : msg.content || ""
+              })),
+              {
+                sender: "user",
+                content: apiContent
+              }
+            ],
+            model: selectedModel,
+            includeResources: true
+          }),
+        });
 
-      if (!response.ok) throw new Error("Failed to get response");
+        if (!response.ok) {
+           const errorData = await response.json().catch(() => ({}));
+           console.error("Chat API Error:", response.status, errorData);
+           throw new Error(errorData.error || `Failed to get response: ${response.status}`);
+        }
 
-      const data = await response.json();
+        data = await response.json();
+      } catch (error) {
+        console.error("Message sending failed:", error);
+        toast({
+          title: "Error sending message",
+          description: error instanceof Error ? error.message : "Network error",
+          variant: "destructive"
+        });
+        // setIsThinking(false); // This line was removed in the original diff, keeping it removed.
+        return;
+      }
+
+      if (!data) return;
 
       const assistantMessage: Message = {
         id: data.message.id,
-        blocks: data.message.blocks, // <-- blocks structure returned from API
+        blocks: data.message.blocks,
         sender: "assistant",
         timestamp: new Date(),
         resources: data.message.resources,
@@ -504,8 +537,10 @@ export default function JarvisPage() {
       // Update ChatSessions with new messages and title (if applicable)
       setChatSessions((prev) => {
         const sessionExists = prev.some(s => s.id === currentSessionId);
-
+        
         // Define updated messages list shared by both paths
+        // Note: We need to reconstruct the messages array to include the new one for title extraction context
+        // But the mapping below relies on `messages` closure which is the state BEFORE update + userMessage + assistantMessage
         const updatedMessagesList = [
           ...messages,
           userMessage,
@@ -1152,103 +1187,90 @@ export default function JarvisPage() {
                     });
 
                     const renderSessionCard = (session: LocalChatSession) => (
-                      <div
-                        key={session.id}
-                        className={`group relative p-4 cursor-pointer transition-all border rounded-xl mb-2 backdrop-blur-sm ${currentSessionId === session.id
-                          ? 'border-primary bg-primary/10 shadow-[0_0_20px_rgba(59,130,246,0.3)] animate-border-flow' // Restored flow animation
-                          : 'bg-background border-border/30 hover:border-primary/50 hover:bg-gradient-to-r hover:from-accent/40 hover:to-transparent'
-                          }`}
-                        onClick={() => handleSelectSession(session.id)}
-                        onMouseEnter={() => setHoveredChat(session.id)}
-                        onMouseLeave={() => setHoveredChat(null)}
-                      >
-                        <div className="flex items-start justify-between mb-1">
-                          {editingChatId === session.id ? (
-                            <Input
-                              value={editingTitle}
-                              onChange={(e) => setEditingTitle(e.target.value)}
-                              onBlur={() => handleInlineRename(session.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleInlineRename(session.id);
-                                } else if (e.key === "Escape") {
-                                  setEditingChatId(null);
-                                  setEditingTitle("");
-                                }
-                              }}
-                              className="h-6 text-sm flex-1 mr-2"
-                              autoFocus
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          ) : (
-                            <h4 className="font-medium text-foreground text-sm truncate flex-1">
-                              {chatTitles[session.id] || session.title}
-                            </h4>
-                          )}
-                          <div className="flex items-center space-x-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className={`h-5 w-5 p-0 transition-all hover:scale-125 ${pinnedChats.includes(session.id)
-                                ? "opacity-100 bg-blue-50 text-blue-700 dark:bg-white/10 dark:text-blue-400"
-                                : hoveredChat === session.id
-                                  ? "hover:bg-blue-50 hover:text-blue-700 opacity-100 dark:hover:bg-white/10 dark:hover:text-blue-400"
-                                  : "opacity-0"
-                                } cursor-pointer`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                togglePin(session.id);
-                              }}
-                            >
-                              {pinnedChats.includes(session.id) && hoveredChat === session.id ? (
-                                <PinOff size={12} className="text-blue-700 dark:text-blue-400" />
-                              ) : (
-                                <Pin
-                                  size={12}
-                                  className={
-                                    pinnedChats.includes(session.id)
-                                      ? "text-blue-700 fill-blue-700 dark:text-blue-400 dark:fill-blue-400"
-                                      : "text-muted-foreground hover:text-blue-700 dark:text-muted-foreground dark:hover:text-blue-400"
+                      <div key={session.id}>
+                        <motion.div
+                          layout
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, x: -50, height: 0, marginBottom: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className={`group relative p-3 cursor-pointer transition-all duration-300 border rounded-xl mb-2 backdrop-blur-md ${currentSessionId === session.id
+                            ? 'border-primary/50 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 shadow-[rgba(59,130,246,0.25)_0px_0px_0px_3px]'
+                            : 'bg-transparent border-transparent hover:bg-accent/40 hover:border-border/30'
+                            }`}
+                          onClick={() => handleSelectSession(session.id)}
+                          onMouseEnter={() => setHoveredChat(session.id)}
+                          onMouseLeave={() => setHoveredChat(null)}
+                        >
+                          <div className="flex items-start justify-between mb-1">
+                            {editingChatId === session.id ? (
+                              <Input
+                                value={editingTitle}
+                                onChange={(e) => setEditingTitle(e.target.value)}
+                                onBlur={() => handleInlineRename(session.id)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    handleInlineRename(session.id);
+                                  } else if (e.key === "Escape") {
+                                    setEditingChatId(null);
+                                    setEditingTitle("");
                                   }
-                                />
-                              )}
-                            </Button>
-                            {hoveredChat === session.id && (
-                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-white/10 dark:hover:text-blue-400 cursor-pointer"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleChatAction({ type: "rename", chatId: session.id });
-                                        }}
-                                      >
-                                        <Edit3 size={10} />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">Rename</TooltipContent>
-                                  </Tooltip>
-                                  
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-white/10 dark:hover:text-blue-400 cursor-pointer"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleChatAction({ type: "share", chatId: session.id });
-                                        }}
-                                      >
-                                        <Share size={10} />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">Share</TooltipContent>
-                                  </Tooltip>
+                                }}
+                                className="h-6 text-sm flex-1 mr-2"
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            ) : (
+                              <h4 className={`font-medium text-sm truncate flex-1 transition-colors ${currentSessionId === session.id ? 'text-primary' : 'text-foreground'}`}>
+                                {chatTitles[session.id] || session.title}
+                              </h4>
+                            )}
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className={`h-6 w-6 p-0 transition-all duration-300 ease-out hover:scale-125 active:scale-95 ${pinnedChats.includes(session.id)
+                                  ? "opacity-100 text-primary"
+                                  : hoveredChat === session.id
+                                    ? "opacity-100 text-muted-foreground hover:text-primary"
+                                    : "opacity-0"
+                                  }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  togglePin(session.id);
+                                }}
+                              >
+                                {pinnedChats.includes(session.id) ? (
+                                  <PinOff size={14} className="transition-colors" />
+                                ) : (
+                                  <Pin size={14} className="transition-colors" />
+                                )}
+                              </Button>
+                              {hoveredChat === session.id && (
+                                <div className="flex items-center space-x-1 animate-in fade-in slide-in-from-right-2 duration-200">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary transition-all duration-300 ease-out hover:scale-125 active:scale-95"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleChatAction({ type: "rename", chatId: session.id });
+                                    }}
+                                  >
+                                    <Edit3 size={14} />
+                                  </Button>
+
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary transition-all duration-300 ease-out hover:scale-125 active:scale-95"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleChatAction({ type: "share", chatId: session.id });
+                                    }}
+                                  >
+                                    <Share size={14} />
+                                  </Button>
 
                                   <div onClick={(e) => e.stopPropagation()}>
                                     <DropdownMenu modal={false}>
@@ -1256,9 +1278,9 @@ export default function JarvisPage() {
                                         <Button
                                           size="sm"
                                           variant="ghost"
-                                          className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-white/10 dark:hover:text-blue-400 cursor-pointer"
+                                          className="h-6 w-6 p-0 text-muted-foreground hover:text-primary transition-all duration-300 ease-out hover:scale-125 active:scale-95"
                                         >
-                                          <Folder size={10} />
+                                          <Folder size={14} />
                                         </Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="start" className="w-48 z-[200]">
@@ -1282,7 +1304,7 @@ export default function JarvisPage() {
                                         <DropdownMenuItem
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            setShowSaveModal(session.id); // Triggers existing New Project/Save modal logic
+                                            setShowSaveModal(session.id);
                                           }}
                                         >
                                           <Plus className="mr-2 h-4 w-4" />
@@ -1292,40 +1314,31 @@ export default function JarvisPage() {
                                     </DropdownMenu>
                                   </div>
 
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-5 w-5 p-0 hover:scale-125 transition-all duration-200 hover:bg-red-50 hover:text-destructive dark:hover:bg-red-900/10 dark:hover:text-red-400 cursor-pointer"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setShowDeleteModal(session.id);
-                                        }}
-                                      >
-                                        <Trash2 size={10} />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="text-destructive">Delete</TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive transition-all duration-300 ease-out hover:scale-125 active:scale-95"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowDeleteModal(session.id);
+                                    }}
+                                  >
+                                    <Trash2 size={14} />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                          {session.preview}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
-                            {session.timestamp}
-                          </span>
+                          {/* Preview Text */}
+                          <p className="text-xs text-muted-foreground truncate opacity-70">
+                            {session.messages?.[session.messages.length - 1]?.content.substring(0, 50) || "New conversation"}
+                          </p>
                           {session.projectName && (
-                            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
+                            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary mt-2">
                               {session.projectName}
                             </Badge>
                           )}
-                        </div>
+                        </motion.div>
                       </div>
                     );
 
@@ -1339,7 +1352,9 @@ export default function JarvisPage() {
                               <span className="text-xs text-muted-foreground">{todaySessions.length}</span>
                             </div>
                             <div className="space-y-2">
-                              {todaySessions.map(renderSessionCard)}
+                              <AnimatePresence mode="popLayout">
+                                {todaySessions.map(renderSessionCard)}
+                              </AnimatePresence>
                             </div>
                           </div>
                         )}
@@ -1352,7 +1367,9 @@ export default function JarvisPage() {
                               <span className="text-xs text-muted-foreground">{yesterdaySessions.length}</span>
                             </div>
                             <div className="space-y-2">
-                              {yesterdaySessions.map(renderSessionCard)}
+                              <AnimatePresence mode="popLayout">
+                                {yesterdaySessions.map(renderSessionCard)}
+                              </AnimatePresence>
                             </div>
                           </div>
                         )}
@@ -1365,7 +1382,9 @@ export default function JarvisPage() {
                               <span className="text-xs text-muted-foreground">{olderSessions.length}</span>
                             </div>
                             <div className="space-y-2">
-                              {olderSessions.map(renderSessionCard)}
+                              <AnimatePresence mode="popLayout">
+                                {olderSessions.map(renderSessionCard)}
+                              </AnimatePresence>
                             </div>
                           </div>
                         )}
@@ -1378,17 +1397,17 @@ export default function JarvisPage() {
                 {isMounted && activeTab === 'project' && (
                   <div className="space-y-6">
                     {/* Mock Projects for now - ideally comes from ProjectContext */}
-                    {['Research Alpha', 'Project Beta', 'Thesis 2024'].map(project => {
-                      const projectSessions = filteredSessions.filter(s => s.projectName === project);
+                    {projects.map(project => {
+                      const projectSessions = filteredSessions.filter(s => s.projectId === project.id);
                       if (projectSessions.length === 0) return null;
 
                       return (
-                        <div key={project}>
+                        <div key={project.id}>
                           <div className="flex items-center gap-2 mb-2 px-2">
                             <div className="p-1 bg-primary/10 rounded">
                               <BookOpen size={12} className="text-primary" />
                             </div>
-                            <h3 className="text-sm font-medium text-foreground">{project}</h3>
+                            <h3 className="text-sm font-medium text-foreground">{project.name}</h3>
                             <span className="text-xs text-muted-foreground ml-auto">{projectSessions.length}</span>
                           </div>
                           <div className="space-y-2 pl-2 border-l border-border/50 ml-3">
@@ -1411,7 +1430,7 @@ export default function JarvisPage() {
                     })}
                     {/* Uncategorized / Others */}
                     {(() => {
-                      const uncategorized = filteredSessions.filter(s => !s.projectName || !['Research Alpha', 'Project Beta', 'Thesis 2024'].includes(s.projectName));
+                      const uncategorized = filteredSessions.filter(s => !s.projectId);
                       if (uncategorized.length === 0) return null;
                       return (
                         <div>
@@ -2054,14 +2073,15 @@ export default function JarvisPage() {
                       handleShare(showShareModal, { type: "collaborator" })
                     }
                   >
-                    <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center mr-4 group-hover:bg-green-500/20 transition-colors">
-                      <Users size={18} className="text-green-600 dark:text-green-500" />
+                    {/* Changed from Green to Primary Blue */}
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mr-4 group-hover:bg-primary/20 transition-colors">
+                      <Users size={18} className="text-primary" />
                     </div>
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-bold text-foreground font-space-grotesk">Invite Collaborators</span>
                       <span className="text-xs text-muted-foreground font-sans">Share securely with team</span>
                     </div>
-                    <Badge variant="secondary" className="ml-auto text-[10px] bg-green-500/10 text-green-600 dark:text-green-500 border-green-200 dark:border-green-900/30">
+                    <Badge variant="secondary" className="ml-auto text-[10px] bg-primary/10 text-primary border-primary/20">
                       Internal
                     </Badge>
                   </Button>
@@ -2135,33 +2155,66 @@ export default function JarvisPage() {
                   <X size={16} />
                 </Button>
               </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block font-sans">
-                    Project Name
-                  </label>
-                  <Input placeholder="Enter project name..." className="bg-background border-input" style={{ pointerEvents: 'auto' }} />
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block font-sans">
+                      Select Project
+                    </label>
+                    <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                      <SelectTrigger className="w-full bg-background border-input">
+                        <SelectValue placeholder="Select a project..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                         {projects.length > 0 ? (
+                           projects.map(p => (
+                             <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                           ))
+                         ) : (
+                           <SelectItem value="none" disabled>No projects found</SelectItem>
+                         )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block font-sans">
+                      Folder (Optional)
+                    </label>
+                    <Input placeholder="Enter folder name..." className="bg-background border-input" style={{ pointerEvents: 'auto' }} />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block font-sans">
-                    Folder (Optional)
-                  </label>
-                  <Input placeholder="Enter folder name..." className="bg-background border-input" style={{ pointerEvents: 'auto' }} />
+                <div className="flex justify-end space-x-2 mt-6">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowSaveModal(null)}
+                    className="hover:bg-muted"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                    onClick={() => {
+                        if(selectedProjectId) {
+                            addChatToProject(selectedProjectId, {
+                                id: currentSessionId,
+                                title: chatSessions.find(s => s.id === currentSessionId)?.title || "Untitled Chat"
+                            });
+                            toast({
+                                title: "Saved to Project",
+                                description: "Chat session linked successfully."
+                            });
+                            setShowSaveModal(null);
+                        } else {
+                             toast({
+                                title: "Error",
+                                description: "Please select a project first",
+                                variant: "destructive"
+                            });
+                        }
+                    }}
+                  >
+                    Save
+                  </Button>
                 </div>
-              </div>
-              <div className="flex justify-end space-x-2 mt-6">
-                <Button
-                  variant="ghost"
-                  className="cursor-pointer hover:bg-muted"
-                  style={{ pointerEvents: 'auto' }}
-                  onClick={() => setShowSaveModal(null)}
-                >
-                  Cancel
-                </Button>
-                <Button className="cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground" style={{ pointerEvents: 'auto' }}>
-                  Save
-                </Button>
-              </div>
             </div>
           </div>
         )
@@ -2186,7 +2239,7 @@ export default function JarvisPage() {
                     <Trash2 size={24} className="text-destructive" />
                 </div>
                 <div>
-                    <h3 className="text-lg font-bold text-destructive font-space-grotesk">Delete Chat?</h3>
+                    <h3 className="text-lg font-bold text-destructive font-space-grotesk">Delete "{chatSessions.find(s => s.id === showDeleteModal)?.title || "Chat"}"?</h3>
                     <p className="text-sm text-destructive/80 mt-1 font-medium">
                         This action cannot be undone. This chat session will be permanently removed.
                     </p>
@@ -2200,12 +2253,13 @@ export default function JarvisPage() {
                         Cancel
                     </Button>
                     <Button 
-                        className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                        variant="outline"
+                        className="flex-1 border-red-500/50 text-red-600 dark:text-red-500 hover:bg-red-500/10 hover:border-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors"
                         onClick={() => {
                             // Delete Logic
                             setChatSessions(prev => prev.filter(c => c.id !== showDeleteModal));
                             if (currentSessionId === showDeleteModal) {
-                                setCurrentSessionId(null);
+                                setCurrentSessionId("");
                             }
                             setShowDeleteModal(null);
                             toast({

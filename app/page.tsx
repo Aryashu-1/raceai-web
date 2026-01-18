@@ -14,6 +14,7 @@ import CustomCursor from "@/components/custom-cursor";
 import { useUser } from "./context/UserContext";
 import { useProjects } from "@/app/context/ProjectContext";
 import { useChatContext } from "@/app/context/ChatContext";
+import HowItWorks from "@/components/landing/how-it-works";
 
 
 interface AuthFormCardProps {
@@ -571,45 +572,40 @@ export default function HomePage() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="text-center space-y-6"
           >
-              <div className="flex flex-col items-center">
-                {/* Logo Centered Above Text */}
-                <div className="mb-6 scale-125">
-                   <ModernLogo size={80} showText={false} animated={true} />
-                </div>
-                
-                <h1 className="font-space-grotesk text-5xl lg:text-7xl font-bold text-foreground mb-6 tracking-tight leading-none">
-                  Research Accessible
-                  <br />
-                  <span className="text-primary">by Everyone.</span>
-                </h1>
-                <p className="text-lg lg:text-xl text-muted-foreground max-w-xl leading-relaxed mx-auto">
-                  Analyze papers, collaborate with AI and your team, manage tasks & discover breakthroughs faster than ever.
-                </p>
-              </div>
-
-              {/* Steps (Compact - Centered) */}
-              {/* <ul className="flex flex-wrap justify-center gap-8 mt-8 hidden lg:flex">
-                 <li className="flex items-center gap-3 bg-white/50 dark:bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-border/50">
-                     <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 shrink-0 font-bold border border-blue-200 dark:border-blue-800 text-xs">1</div>
-                     <span className="text-sm font-medium text-muted-foreground">Access Platform</span>
-                 </li>
-                 <li className="flex items-center gap-3 bg-white/50 dark:bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-border/50">
-                     <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 shrink-0 font-bold border border-purple-200 dark:border-purple-800 text-xs">2</div>
-                     <span className="text-sm font-medium text-muted-foreground">Define Field</span>
-                 </li>
-                 <li className="flex items-center gap-3 bg-white/50 dark:bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-border/50">
-                     <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center text-green-600 shrink-0 font-bold border border-green-200 dark:border-green-800 text-xs">3</div>
-                     <span className="text-sm font-medium text-muted-foreground">Accelerate</span>
-                 </li>
-              </ul> */}
+             <div className="flex flex-col items-center">
+  {/* Logo Centered Above Text */}
+  <div className="mb-6 scale-125">
+    <ModernLogo size={80} showText={false} animated={true} />
+  </div>
+  
+  <div className="relative inline-block">
+     {/* <span className="absolute -top-6 -left-8 text-7xl text-primary/10 font-serif font-black -z-10 select-none">“</span>
+     <span className="absolute -bottom-4 -right-8 text-7xl text-primary/10 font-serif font-black -z-10 select-none">”</span> */}
+     <h1 className="font-space-grotesk text-5xl lg:text-7xl font-bold text-foreground mb-8 tracking-tight leading-tight text-center relative z-10">
+       Research Accessible
+       <br />
+       <span className="text-primary">by Everyone.</span>
+     </h1>
+  </div>
+  
+  <div className="space-y-4 max-w-2xl">
+    <p className="text-lg lg:text-xl text-muted-foreground leading-relaxed text-center">
+      Great research starts with great questions. Whether you're writing your first paper or your hundredth, we help you find what matters, faster.
+    </p>
+    
+   
+  </div>
+</div>
+              
           </motion.div>
 
           {/* Bottom: Auth Form */}
           <motion.div 
+             id="get-started"
              initial={{ opacity: 0, y: 40 }}
              animate={{ opacity: 1, y: 0 }}
              transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-             className="w-full max-w-md mx-auto"
+             className="w-full max-w-md mx-auto relative z-20"
           >
              {/* Using a transparent container to let grid show, assuming auth-form-card handles its own blur or transparency */}
              <div className="relative">
@@ -617,6 +613,11 @@ export default function HomePage() {
                 <AuthFormCard onAuthSuccess={handleAuthSuccess} />
              </div>
           </motion.div>
+          
+          {/* How It Works Section */}
+          <div className="w-full pt-10">
+             <HowItWorks />
+          </div>
 
         </div>
       </div>
